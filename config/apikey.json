@@ -1,0 +1,59 @@
+{
+	"TourcubeAPIKey": [{
+
+		"CompanyID": "WT",
+		"Test": "WTTTEST6!",
+		"Production": "WTTTEST6!",
+                "TestURL":"https://test.tourcube.net",
+                "ProductionURL":"https://test.tourcube.net",
+		"HTMLHeader":"",
+        "HTMLFooter":"",
+		"TourcubeOnline":true,
+		"TourcubeRootDrive":"c",
+		"SkinName": ""
+			
+	},{
+
+		"CompanyID": "MTS",
+		"Test": "MTS0525!",
+		"Production": "MTS0525!",
+                "TestURL":"https://test.tourcube.net",
+                "ProductionURL":"https://test.tourcube.net",
+		"HTMLHeader":"",
+                "HTMLFooter":"",
+		"TourcubeOnline":true,
+		"TourcubeRootDrive":"c",
+		"SkinName": ""
+			
+	},{
+
+		"CompanyID": "WTGUIDE",
+		"Test": "WTTTEST6!v2",
+		"Production": "WTTTEST6!v2",
+                "TestURL":"https://test.tourcube.net",
+                "ProductionURL":"https://test.tourcube.net",
+		"HTMLHeader":"",
+                "HTMLFooter":"",
+		"Logo":"wt-horizontal-logo-black-type.png",
+		"TourcubeOnline":true,
+		"TourcubeRootDrive":"c",
+		"SkinName": "theme-darkblue"
+			
+	},
+  {
+
+		"CompanyID": "WTGUIDE2",
+		"Test": "WTTTEST6!v2",
+		"Production": "WTTTEST6!v2",
+                "TestURL":"https://test.tourcube.net",
+                "ProductionURL":"https://test.tourcube.net",
+		"HTMLHeader":"",
+                "HTMLFooter":"",
+		"Logo":"wt-horizontal-logo-black-type.png",
+		"TourcubeOnline":true,
+		"TourcubeRootDrive":"c",
+		"SkinName": "theme-green"
+	}
+]
+}
+

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block body_content %}
+<div class="nk-main">
+    <div class="nk-wrap nk-wrap-nosidebar">
+        <div class="nk-content">
+            <div class="nk-block nk-block-middle nk-auth-body wide-xs">
+                <div class="brand-logo pb-4 text-center">
+                    <a href="/" class="logo-link" style="text-align: center !important; display: block !important;">
+                        {% if company_logo %}
+                        <img class="logo-dark logo-img logo-img-lg" src="{{ url_for('static', path='/images/' + company_logo) }}" alt="logo" style="width: 70% !important; height: auto !important;">
+                        {% else %}
+                        <img class="logo-dark logo-img logo-img-lg" src="{{ url_for('static', path='/images/logo.png') }}" alt="logo" style="width: 70% !important; height: auto !important;">
+                        {% endif %}
+                    </a>
+                </div>
+                <div class="card card-bordered">
+                    <div class="card-inner card-inner-lg">
+                        {% block auth_content %}{% endblock %}
+                    </div>
+                </div>
+                <div class="form-note-s2 text-center pt-4">
+                    {% block auth_footer %}{% endblock %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

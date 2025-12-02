@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" class="js">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="{% block meta_description %}Tourcube Guide Portal{% endblock %}">
+    <meta name="author" content="Tourcube">
+
+    <title>{% block title %}Tourcube Guide Portal{% endblock %}</title>
+
+    <!-- Fav Icon -->
+    <link rel="shortcut icon" href="{{ url_for('static', path='/images/favicon.ico') }}">
+
+    <!-- DashLite CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/dashlite.css') }}">
+
+    <!-- DashLite Skin CSS (Dynamic based on company configuration) -->
+    {% if skin_name %}
+    <link id="skin-default" rel="stylesheet" href="{{ url_for('static', path='/css/skins/' + skin_name + '.css') }}">
+    {% else %}
+    <link id="skin-default" rel="stylesheet" href="{{ url_for('static', path='/css/theme.css') }}">
+    {% endif %}
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/custom.css') }}">
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="nk-body npc-invest bg-lighter">
+    <div class="nk-app-root">
+        {% block body_content %}{% endblock %}
+    </div>
+
+    <!-- DashLite JavaScript -->
+    <script src="{{ url_for('static', path='/js/bundle.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/scripts.js') }}"></script>
+
+    <!-- Custom JavaScript -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

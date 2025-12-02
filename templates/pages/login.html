@@ -1,0 +1,84 @@
+{% extends "layouts/auth.html" %}
+
+{% block title %}Login - Tourcube Guide Portal{% endblock %}
+
+{% block auth_content %}
+<div class="nk-block-head">
+    <div class="nk-block-head-content">
+        <h4 class="nk-block-title">Sign-In</h4>
+        <div class="nk-block-des">
+            <p>Access the Guide Portal using your credentials.</p>
+        </div>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger alert-icon alert-dismissible" role="alert">
+    <em class="icon ni ni-cross-circle"></em>
+    {% if error == 'invalid_credentials' %}
+    <strong>Invalid credentials.</strong> Please check your username and password and try again.
+    {% elif error == 'api_error' %}
+    <strong>Service unavailable.</strong> Unable to connect to the authentication service. Please try again later.
+    {% elif error == 'unexpected_error' %}
+    <strong>An error occurred.</strong> Please try again or contact support if the problem persists.
+    {% else %}
+    <strong>Authentication failed.</strong> Please try again.
+    {% endif %}
+    <button class="close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<form action="/auth/login" method="post" id="loginForm">
+    <div class="form-group">
+        <div class="form-label-group">
+            <label class="form-label" for="username">Username</label>
+        </div>
+        <div class="form-control-wrap">
+            <input type="text" class="form-control form-control-lg" id="username" name="username" placeholder="Enter your username" required autofocus>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <div class="form-label-group">
+            <label class="form-label" for="password">Password</label>
+            <a class="link link-primary link-sm" href="/auth/forgot-password?company_code={{ company_code }}&mode={{ mode }}">Forgot Password?</a>
+        </div>
+        <div class="form-control-wrap">
+            <a href="#" class="form-icon form-icon-right passcode-switch lg" data-target="password">
+                <em class="passcode-icon icon-show icon ni ni-eye"></em>
+                <em class="passcode-icon icon-hide icon ni ni-eye-off"></em>
+            </a>
+            <input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="Enter your password" required>
+        </div>
+    </div>
+
+    <input type="hidden" name="company_code" value="{{ company_code }}">
+    <input type="hidden" name="mode" value="{{ mode }}">
+
+    <div class="form-group">
+        <button type="submit" class="btn btn-lg btn-primary btn-block" id="loginBtn">
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="loginSpinner"></span>
+            <span id="loginBtnText">Sign in</span>
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block auth_footer %}
+<a href="/auth/forgot-username?company_code={{ company_code }}&mode={{ mode }}">Forgot <strong>Username</strong>?</a>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Show loading spinner on form submit
+document.getElementById('loginForm').addEventListener('submit', function() {
+    const btn = document.getElementById('loginBtn');
+    const spinner = document.getElementById('loginSpinner');
+    const btnText = document.getElementById('loginBtnText');
+
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    btnText.textContent = ' Signing in...';
+});
+</script>
+{% endblock %}

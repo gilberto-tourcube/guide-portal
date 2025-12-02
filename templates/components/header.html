@@ -1,0 +1,111 @@
+<!-- Top Header - White Background with Logo -->
+<div class="nk-header nk-header-fluid bg-white border-bottom">
+    <div class="container-xl wide-lg">
+        <div class="nk-header-wrap">
+            <!-- Mobile Menu Trigger -->
+            <div class="nk-menu-trigger me-sm-2 d-lg-none">
+                <a href="#" class="nk-nav-toggle nk-quick-nav-icon text-base" data-target="headerNav">
+                    <em class="icon ni ni-menu"></em>
+                </a>
+            </div>
+
+            <!-- Logo/Brand -->
+            <div class="nk-header-brand">
+                {% set home_url = '/vendor/home' if request.session.get('user_role') == 'Vendor' else '/guide/home' %}
+                <a href="{{ home_url }}" class="logo-link">
+                    {% if company_logo %}
+                    <img class="logo-img" src="{{ url_for('static', path='/images/' + company_logo) }}" alt="Tourcube Portal">
+                    {% else %}
+                    <img class="logo-img" src="{{ url_for('static', path='/images/logo.png') }}" alt="Tourcube Portal">
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Header - Theme Background with User Menu -->
+<div class="nk-header nk-header-fluid is-theme">
+    <div class="container-xl wide-lg">
+        <div class="nk-header-wrap">
+            <!-- Spacer to push user menu to the right -->
+            <div class="nk-header-menu"></div>
+
+            <!-- Header Tools (User Menu, Notifications) -->
+            <div class="nk-header-tools">
+                <ul class="nk-quick-nav">
+                    <!-- Logout Link -->
+                    <li class="hide-mb-sm">
+                        <a href="/auth/logout" class="nk-quick-nav-icon" title="Sign Out">
+                            <em class="icon ni ni-signout"></em>
+                        </a>
+                    </li>
+
+                    <!-- User Dropdown -->
+                    {% set user_name = request.session.get('user_name', 'User') %}
+                    {% set user_image = guide.guide_image if guide and guide.guide_image else request.session.get('user_image') %}
+                    {% set user_role = request.session.get('user_role', 'Portal') %}
+                    {% set user_initial = user_name[0] if user_name else 'U' %}
+                    <li class="dropdown user-dropdown order-sm-first">
+                        <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="user-toggle">
+                                <div class="user-avatar sm">
+                                    {% if user_image %}
+                                    <img src="{{ user_image }}" alt="{{ user_name }}">
+                                    {% else %}
+                                    <em class="icon ni ni-user-alt"></em>
+                                    {% endif %}
+                                </div>
+                                <div class="user-info d-none d-xl-block">
+                                    <div class="user-name dropdown-indicator">{{ user_name }}</div>
+                                </div>
+                            </div>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-md dropdown-menu-end dropdown-menu-s1 is-light">
+                            <!-- User Card -->
+                            <div class="dropdown-inner user-card-wrap bg-lighter d-none d-md-block">
+                                <div class="user-card">
+                                    <div class="user-avatar">
+                                        {% if user_image %}
+                                        <img src="{{ user_image }}" alt="{{ user_name }}">
+                                        {% else %}
+                                        <span>{{ user_initial }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="user-info">
+                                        <span class="lead-text">{{ user_name }}</span>
+                                        <span class="sub-text">{{ user_role }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Menu Links -->
+                            <div class="dropdown-inner">
+                                <ul class="link-list">
+                                    <li>
+                                        <a class="dark-switch" href="#">
+                                            <em class="icon ni ni-moon"></em>
+                                            <span>Dark Mode</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- Sign Out -->
+                            <div class="dropdown-inner">
+                                <ul class="link-list">
+                                    <li>
+                                        <a href="/auth/logout">
+                                            <em class="icon ni ni-signout"></em>
+                                            <span>Sign Out</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

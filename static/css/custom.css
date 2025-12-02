@@ -1,0 +1,252 @@
+/* Tourcube Guide Portal - Custom Styles */
+
+/* ============================================
+   Fix Gap Above Header
+   ============================================ */
+
+/* Remove any gap/space above the header by ensuring body and nk-wrap start at top */
+.nk-body {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.nk-app-root {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.nk-wrap {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Ensure header starts at the very top with no gap */
+.nk-header:first-child {
+    margin-top: 0 !important;
+}
+
+/* Authentication Pages - Logo Size and Centering */
+.nk-wrap-nosidebar .nk-auth-body .brand-logo {
+    text-align: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+.nk-wrap-nosidebar .nk-auth-body .brand-logo .logo-link {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+.nk-wrap-nosidebar .nk-auth-body .brand-logo .logo-link .logo-img.logo-light,
+.nk-wrap-nosidebar .nk-auth-body .brand-logo .logo-link .logo-img.logo-dark {
+    max-width: 70% !important;
+    width: 70% !important;
+    height: auto !important;
+}
+
+/* Guide Homepage Specific Styles */
+.trip-table-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.trip-table-row:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Form Button States */
+.btn-form-complete {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+    color: white !important;
+}
+
+.btn-form-pending {
+    background-color: #007bff !important;
+    border-color: #007bff !important;
+    color: white !important;
+}
+
+.btn-form-expired {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: white !important;
+}
+
+.btn-form-disabled {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: white !important;
+    cursor: not-allowed !important;
+}
+
+/* Forms Due Section */
+.forms-due-item {
+    border-left: 4px solid #007bff;
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+}
+
+.forms-due-item.overdue {
+    border-left-color: #dc3545;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .nk-tb-col {
+        padding: 0.5rem;
+    }
+
+    .forms-due-item {
+        padding: 0.75rem;
+    }
+
+    /* Responsive Tables - Better horizontal scrolling */
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+        border-radius: 0.375rem;
+    }
+
+    /* Smaller padding on mobile tables */
+    .table-responsive table td,
+    .table-responsive table th {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    /* Ensure table links are tappable on mobile */
+    .table-responsive table a {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+}
+
+/* Tab Navigation Enhancement */
+.nav-tabs .nav-link.active {
+    font-weight: 600;
+}
+
+/* Avatar Enhancement */
+.user-avatar-header {
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Sidebar Logo Styling */
+.nk-sidebar .nk-sidebar-brand .logo-link {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    overflow: hidden !important;
+}
+
+.nk-sidebar .nk-sidebar-brand .logo-img {
+    max-width: 180px !important;
+    max-height: 50px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+}
+
+/* Hide Guide Portal text in sidebar */
+.nk-sidebar .nk-sidebar-brand .nio-version {
+    display: none !important;
+}
+
+/* ============================================
+   V6 Layout Specific Styles (Horizontal Header)
+   ============================================ */
+
+/* Header Logo Styling */
+.nk-header .nk-header-brand .logo-link {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+}
+
+.nk-header .nk-header-brand .logo-img {
+    max-width: 180px !important;
+    max-height: 50px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+}
+
+/* Header Menu Active State */
+.nk-header-menu .nk-menu .nk-menu-item.active .nk-menu-link,
+.nk-header-menu .nk-menu .nk-menu-item.current-page .nk-menu-link {
+    color: #6576ff !important;
+    font-weight: 600 !important;
+}
+
+/* Badge in Header Menu */
+.nk-header-menu .nk-menu .nk-menu-link .badge {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* User Avatar in Header */
+.nk-header .user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+/* Mobile Menu Improvements */
+@media (max-width: 991px) {
+    .nk-header-menu .nk-menu {
+        padding: 1rem 0;
+    }
+
+    .nk-header-menu .nk-menu .nk-menu-item {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .nk-header-menu .nk-menu .nk-menu-link {
+        padding: 0.75rem 1.5rem;
+    }
+}
+
+/* Fix for logo in mobile header */
+.nk-header-mobile .nk-header-brand .logo-img {
+    max-width: 140px !important;
+    max-height: 40px !important;
+}
+
+/* Ensure trip table rows are still hoverable */
+.trip-table-row {
+    cursor: pointer !important;
+    transition: background-color 0.2s ease;
+}
+
+.trip-table-row:hover {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Fix Guide Profile Avatar to be perfectly round */
+.user-card-s2 .user-avatar {
+    width: 120px !important;
+    height: 120px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+}
+
+.user-card-s2 .user-avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 50% !important;
+}
+
+.user-card-s2 .user-avatar span {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    font-size: 3rem !important;
+}

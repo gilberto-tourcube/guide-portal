@@ -1,0 +1,236 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ trip.trip_name }} - Tourcube Guide Portal{% endblock %}
+
+{% block page_content %}
+<!-- Breadcrumb -->
+<nav class="mb-3">
+    <ul class="breadcrumb breadcrumb-arrow">
+        <li class="breadcrumb-item"><a href="{% if request.session.get('user_role') == 'Vendor' %}/vendor/home{% else %}/guide/home{% endif %}">Home</a></li>
+        <li class="breadcrumb-item active">Trip: {{ trip.trip_name }}</li>
+    </ul>
+</nav>
+
+<!-- Trip Header Banner -->
+<div class="nk-block-head nk-block-head-sm">
+    <div class="card card-bordered">
+        <div class="card-inner-group">
+            <!-- Trip Banner with Image -->
+            <div class="card-inner bg-primary-dim" style="{% if trip.thumbnail_image %}background-image: url('{{ trip.thumbnail_image }}'); background-size: cover; background-position: center; min-height: 150px;{% endif %}">
+                <div class="py-4 {% if trip.thumbnail_image %}bg-dark bg-opacity-50 rounded{% endif %}">
+                    <div class="{% if trip.thumbnail_image %}text-white{% endif %}">
+                        <h3 class="nk-block-title page-title {% if trip.thumbnail_image %}text-white{% endif %}">{{ trip.trip_name }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content with Tabs -->
+<div class="nk-block">
+    <div class="card card-bordered">
+        <div class="card-inner">
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs mt-n3" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if active_tab == 'future' or not active_tab %}active{% endif %}"
+                       data-bs-toggle="tab"
+                       href="#tabFutureDepartures"
+                       aria-selected="{% if active_tab == 'future' or not active_tab %}true{% else %}false{% endif %}"
+                       role="tab">
+                        <em class="icon ni ni-calendar"></em>
+                        <span>Future Departures</span>
+                        {% if trip.future_departures %}
+                        <span class="badge rounded-pill bg-primary ms-1">{{ trip.future_departures|length }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if active_tab == 'past' %}active{% endif %}"
+                       data-bs-toggle="tab"
+                       href="#tabPastDepartures"
+                       aria-selected="{% if active_tab == 'past' %}true{% else %}false{% endif %}"
+                       role="tab"
+                       tabindex="-1">
+                        <em class="icon ni ni-history"></em>
+                        <span>Past Departures</span>
+                        {% if trip.past_departures %}
+                        <span class="badge rounded-pill bg-secondary ms-1">{{ trip.past_departures|length }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if active_tab == 'documents' %}active{% endif %}"
+                       data-bs-toggle="tab"
+                       href="#tabDocuments"
+                       aria-selected="{% if active_tab == 'documents' %}true{% else %}false{% endif %}"
+                       role="tab"
+                       tabindex="-1">
+                        <em class="icon ni ni-file-docs"></em>
+                        <span>Trip Documents</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- Future Departures Tab -->
+                <div class="tab-pane {% if active_tab == 'future' or not active_tab %}active{% endif %}"
+                     id="tabFutureDepartures"
+                     role="tabpanel">
+                    <div class="card-title-group mb-3 mt-3">
+                        <div class="card-title">
+                            <h6 class="title">Future Departures ({{ trip.future_departures|length }})</h6>
+                        </div>
+                    </div>
+                    {% if trip.future_departures %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Dates</th>
+                                    <th>Trip Leaders</th>
+                                    <th class="text-center">Clients</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for departure in trip.future_departures %}
+                                <tr>
+                                    <td>
+                                        {% if departure.is_guide_on_trip %}
+                                        <a href="/departure/{{ departure.trip_departure_id }}" class="link link-primary fw-bold">
+                                            {{ departure.dates }}
+                                        </a>
+                                        {% else %}
+                                        <span class="tb-lead text-soft" title="You can only view departures on which you were a guide">
+                                            {{ departure.dates }}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="tb-sub">{{ departure.guides if departure.guides else '-' }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="tb-sub">{{ departure.sign_ups if departure.sign_ups else '0' }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-light alert-icon">
+                        <em class="icon ni ni-info"></em>
+                        <strong>No future departures found.</strong> Future departures will appear here when scheduled.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Past Departures Tab -->
+                <div class="tab-pane {% if active_tab == 'past' %}active{% endif %}"
+                     id="tabPastDepartures"
+                     role="tabpanel">
+                    <div class="card-title-group mb-3 mt-3">
+                        <div class="card-title">
+                            <h6 class="title">Past Departures ({{ trip.past_departures|length }})</h6>
+                        </div>
+                    </div>
+                    {% if trip.past_departures %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Dates</th>
+                                    <th>Trip Leaders</th>
+                                    <th class="text-center">Clients</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for departure in trip.past_departures %}
+                                <tr>
+                                    <td>
+                                        {% if departure.is_guide_on_trip %}
+                                        <a href="/departure/{{ departure.trip_departure_id }}" class="link link-primary">
+                                            {{ departure.dates }}
+                                        </a>
+                                        {% else %}
+                                        <span class="tb-lead text-soft" title="You can only view departures on which you were a guide">
+                                            {{ departure.dates }}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="tb-sub">{{ departure.guides if departure.guides else '-' }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="tb-sub">{{ departure.sign_ups if departure.sign_ups else '0' }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-light alert-icon">
+                        <em class="icon ni ni-info"></em>
+                        <strong>No past departures found.</strong>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Trip Documents Tab -->
+                <div class="tab-pane {% if active_tab == 'documents' %}active{% endif %}"
+                     id="tabDocuments"
+                     role="tabpanel">
+                    <div class="card-title-group mb-3 mt-3">
+                        <div class="card-title">
+                            <h6 class="title">Trip Documents ({{ trip.documents|length }})</h6>
+                        </div>
+                    </div>
+                    {% if trip.documents %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Document</th>
+                                    <th class="text-center">Year</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in trip.documents %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ doc.document_url }}" target="_blank" class="link link-primary">
+                                            <em class="icon ni ni-file-pdf me-1"></em>
+                                            {{ doc.description }}
+                                        </a>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="tb-sub">{{ doc.trip_year if doc.trip_year else '-' }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-light alert-icon">
+                        <em class="icon ni ni-info"></em>
+                        <strong>No documents available.</strong> Trip documents will appear here when uploaded.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Back to Home Button -->
+<div class="nk-block">
+    <a href="/guide/home" class="btn btn-outline-primary">
+        <em class="icon ni ni-arrow-left"></em>
+        <span>Back to Home</span>
+    </a>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+*.md
+.git
+.gitignore
+.env.example
+.vscode
+.DS_Store
+__pycache__
+*.pyc
+tests/
+docs/template/

@@ -1,0 +1,188 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ client.first_name }} {{ client.last_name }} - Tourcube Guide Portal{% endblock %}
+
+{% block page_content %}
+<!-- Breadcrumb -->
+<nav class="mb-3">
+    <ul class="breadcrumb breadcrumb-arrow">
+        <li class="breadcrumb-item"><a href="{% if request.session.get('user_role') == 'Vendor' %}/vendor/home{% else %}/guide/home{% endif %}">Home</a></li>
+        {% if from_page == 'trip_departure' and trip_id and departure_id %}
+            <li class="breadcrumb-item"><a href="/trip/{{ trip_id }}">{{ trip_name if trip_name else 'Trip' }}</a></li>
+            <li class="breadcrumb-item"><a href="/departure/{{ departure_id }}">{{ trip_dates if trip_dates else 'Departure' }}</a></li>
+        {% elif from_page == 'trip' and trip_id %}
+            <li class="breadcrumb-item"><a href="/trip/{{ trip_id }}">{{ trip_name if trip_name else 'Trip' }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active">Client: {{ client.first_name }} {{ client.last_name }}</li>
+    </ul>
+</nav>
+
+<!-- Client Header Banner -->
+<div class="nk-block-head nk-block-head-sm">
+    <div class="card card-bordered">
+        <div class="card-inner bg-primary-dim">
+            <div class="row align-items-center g-3">
+                <div class="col-auto">
+                    <div class="user-avatar xl bg-primary">
+                        <span>{{ client.first_name[0] if client.first_name else 'C' }}{{ client.last_name[0] if client.last_name else '' }}</span>
+                    </div>
+                </div>
+                <div class="col">
+                    <h3 class="nk-block-title page-title mb-1">{{ client.first_name }} {{ client.last_name }}</h3>
+                    <ul class="nk-block-des list-inline">
+                        {% if client.email %}
+                        <li class="list-inline-item">
+                            <em class="icon ni ni-mail me-1"></em>
+                            <a href="mailto:{{ client.email }}" class="link link-primary">{{ client.email }}</a>
+                        </li>
+                        {% endif %}
+                        <li class="list-inline-item">
+                            <em class="icon ni ni-map-pin me-1"></em>
+                            <span>{{ client.hometown if client.hometown else 'N/A' }}</span>
+                        </li>
+                        <li class="list-inline-item">
+                            <em class="icon ni ni-user me-1"></em>
+                            <span>{% if client.gender == 'M' %}Male{% elif client.gender == 'F' %}Female{% elif client.gender %}{{ client.gender }}{% else %}N/A{% endif %}</span>
+                        </li>
+                        <li class="list-inline-item">
+                            <em class="icon ni ni-calendar me-1"></em>
+                            <span>Age: {{ client.age if client.age else 'N/A' }}</span>
+                        </li>
+                        {% if client.mobile %}
+                        <li class="list-inline-item">
+                            <em class="icon ni ni-mobile me-1"></em>
+                            <span>{{ client.mobile }}</span>
+                        </li>
+                        {% endif %}
+                        <li class="list-inline-item">
+                            <em class="icon ni ni-travel me-1"></em>
+                            <span>Past WT Trips: {{ client.number_of_trips if client.number_of_trips else '0' }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Client Information Cards -->
+<div class="nk-block">
+    <div class="card card-bordered">
+        <div class="card-inner">
+            <h6 class="overline-title mb-3">Client Details</h6>
+
+            <div class="row g-4">
+                <!-- Medical Allergies -->
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Medical Allergies:</label>
+                    <div class="form-control-wrap">
+                        {% if client.medical %}
+                        <p class="text-soft mb-0">{{ client.medical }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- General Statement of Health -->
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">General Statement of Health:</label>
+                    <div class="form-control-wrap">
+                        {% if client.fitness %}
+                        <p class="text-soft mb-0">{{ client.fitness }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Dietary Restrictions -->
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Dietary Restrictions:</label>
+                    <div class="form-control-wrap">
+                        {% if client.dietary_restrictions %}
+                        <p class="text-soft mb-0">{{ client.dietary_restrictions }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Dietary Preferences -->
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Dietary Preferences:</label>
+                    <div class="form-control-wrap">
+                        {% if client.dietary_preferences %}
+                        <p class="text-soft mb-0">{{ client.dietary_preferences }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Trip Information -->
+<div class="nk-block">
+    <div class="card card-bordered">
+        <div class="card-inner">
+            <h6 class="overline-title mb-3">Trip Information</h6>
+
+            <div class="row g-4">
+                <!-- Past Trips -->
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Past Trips:</label>
+                    <div class="form-control-wrap">
+                        {% if client.past_trips %}
+                        <p class="text-soft mb-0" style="white-space: pre-line;">{{ client.past_trips }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Past Trips with Trip Leader -->
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Past Trips with Trip Leader:</label>
+                    <div class="form-control-wrap">
+                        {% if client.past_trips_with_leader %}
+                        <p class="text-soft mb-0" style="white-space: pre-line;">{{ client.past_trips_with_leader }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Future Trips -->
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Future Trips:</label>
+                    <div class="form-control-wrap">
+                        {% if client.future_trips %}
+                        <p class="text-soft mb-0" style="white-space: pre-line;">{{ client.future_trips }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notes on Client -->
+{% if client.notes %}
+<div class="nk-block">
+    <div class="card card-bordered">
+        <div class="card-inner">
+            <h6 class="overline-title mb-3">Notes on Client</h6>
+            <p class="text-soft mb-0" style="white-space: pre-line;">{{ client.notes }}</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Back to Home Button -->
+<div class="nk-block">
+    <a href="/guide/home" class="btn btn-outline-primary">
+        <em class="icon ni ni-arrow-left"></em>
+        <span>Back to Home</span>
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Remove pointer cursor from labels that are not associated with clickable inputs */
+.form-label {
+    cursor: default;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,365 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ departure.trip_name }} - Tourcube Guide Portal{% endblock %}
+
+{% block page_content %}
+<!-- Breadcrumb -->
+<nav class="mb-3">
+    <ul class="breadcrumb breadcrumb-arrow">
+        <li class="breadcrumb-item"><a href="{% if request.session.get('user_role') == 'Vendor' %}/vendor/home{% else %}/guide/home{% endif %}">Home</a></li>
+        {% if departure.trip_id %}
+        <li class="breadcrumb-item"><a href="/trip/{{ departure.trip_id }}">{{ departure.trip_name }}</a></li>
+        <li class="breadcrumb-item active">Departure: {{ departure.trip_dates }}</li>
+        {% else %}
+        <li class="breadcrumb-item active">{{ departure.trip_name }} - {{ departure.trip_dates }}</li>
+        {% endif %}
+    </ul>
+</nav>
+
+<!-- Trip Header Banner -->
+<div class="nk-block-head nk-block-head-sm">
+    <div class="card card-bordered">
+        <div class="card-inner-group">
+            <!-- Trip Banner with Image -->
+            <div class="card-inner bg-primary-dim" style="{% if departure.thumbnail_image %}background-image: url('{{ departure.thumbnail_image }}'); background-size: cover; background-position: center; min-height: 150px;{% endif %}">
+                <div class="py-4 {% if departure.thumbnail_image %}bg-dark bg-opacity-50 rounded{% endif %}">
+                    <div class="{% if departure.thumbnail_image %}text-white{% endif %}">
+                        <p class="mb-1">{{ departure.trip_dates }}</p>
+                        <h3 class="nk-block-title page-title {% if departure.thumbnail_image %}text-white{% endif %}">{{ departure.trip_name }}</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trip Info -->
+            <div class="card-inner">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-start">
+                            <span class="sub-text me-2" style="min-width: 100px;">Trip Leaders:</span>
+                            <span class="caption-text">
+                                {% for guide in departure.guides %}
+                                <a href="mailto:{{ guide.email }}" class="link link-primary">
+                                    {{ guide.first_name }} {{ guide.last_name }}{% if not loop.last %}, {% endif %}
+                                </a>
+                                {% else %}
+                                <span class="text-soft">-</span>
+                                {% endfor %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-start">
+                            <span class="sub-text me-2" style="min-width: 100px;">Area Manager:</span>
+                            <span class="caption-text">
+                                {% if departure.trip_developer_email %}
+                                <a href="mailto:{{ departure.trip_developer_email }}" class="link link-primary">
+                                    {{ departure.trip_developer_name }}
+                                </a>
+                                {% else %}
+                                {{ departure.trip_developer_name or '-' }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-start">
+                            <span class="sub-text me-2" style="min-width: 100px;">Departure ID:</span>
+                            <span class="caption-text">{{ departure.departure_id or departure.trip_departure_id }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content with Tabs -->
+<div class="nk-block">
+    <div class="card card-bordered">
+        <div class="card-inner">
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs mt-n3" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if active_tab == 'clients' or not active_tab %}active{% endif %}"
+                       data-bs-toggle="tab"
+                       href="#tabClients"
+                       aria-selected="{% if active_tab == 'clients' or not active_tab %}true{% else %}false{% endif %}"
+                       role="tab">
+                        <em class="icon ni ni-users"></em>
+                        <span>Clients</span>
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if active_tab == 'documents' %}active{% endif %}"
+                       data-bs-toggle="tab"
+                       href="#tabDocuments"
+                       aria-selected="{% if active_tab == 'documents' %}true{% else %}false{% endif %}"
+                       role="tab"
+                       tabindex="-1">
+                        <em class="icon ni ni-file-docs"></em>
+                        <span>Documents</span>
+                    </a>
+                </li>
+                {% if departure.forms %}
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if active_tab == 'forms' %}active{% endif %}"
+                       data-bs-toggle="tab"
+                       href="#tabForms"
+                       aria-selected="{% if active_tab == 'forms' %}true{% else %}false{% endif %}"
+                       role="tab"
+                       tabindex="-1">
+                        <em class="icon ni ni-edit"></em>
+                        <span>Trip Leader Forms</span>
+                        {% if departure.forms_to_complete_count > 0 %}
+                        <span class="badge rounded-pill bg-danger ms-1">{{ departure.forms_to_complete_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- Clients Tab -->
+                <div class="tab-pane {% if active_tab == 'clients' or not active_tab %}active{% endif %}"
+                     id="tabClients"
+                     role="tabpanel">
+                    <div class="card-title-group mb-3 mt-3">
+                        <div class="card-title">
+                            <h6 class="title">Passengers ({{ departure.passengers|length }})</h6>
+                        </div>
+                    </div>
+                    {% if departure.passengers %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Client Name</th>
+                                    <th class="text-center">Age</th>
+                                    <th class="text-center">Gender</th>
+                                    <th>Hometown</th>
+                                    <th class="text-center">Past Trips</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for passenger in departure.passengers %}
+                                <tr>
+                                    <td>
+                                        <a href="/client/{{ passenger.client_id }}?from_page=trip_departure&trip_id={{ departure.trip_id }}&departure_id={{ departure.trip_departure_id }}&trip_name={{ departure.trip_name | urlencode }}&trip_dates={{ departure.trip_dates | urlencode }}" class="link link-primary fw-bold">
+                                            {{ passenger.client_name }}
+                                        </a>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="tb-sub">{{ passenger.age if passenger.age else '-' }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="tb-sub">{{ passenger.gender if passenger.gender else '-' }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="tb-sub">{{ passenger.hometown if passenger.hometown else '-' }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="tb-sub">{{ passenger.nbr_past_trips if passenger.nbr_past_trips else '0' }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="tb-sub text-soft">{{ passenger.notes if passenger.notes else '-' }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-light alert-icon">
+                        <em class="icon ni ni-info"></em>
+                        <strong>No passengers found.</strong> Passenger information will appear here once available.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Documents Tab -->
+                <div class="tab-pane {% if active_tab == 'documents' %}active{% endif %}"
+                     id="tabDocuments"
+                     role="tabpanel">
+                    <div class="mt-3">
+                        <div class="row g-4">
+                            <!-- Trip Documents -->
+                            <div class="col-md-6">
+                                <div class="card card-bordered h-100">
+                                    <div class="card-inner">
+                                        <h6 class="title mb-3">
+                                            <em class="icon ni ni-file-text me-1"></em>
+                                            Trip Documents
+                                        </h6>
+                                        {% if departure.trip_documents %}
+                                        <ul class="list-group list-group-flush">
+                                            {% for doc in departure.trip_documents %}
+                                            <li class="list-group-item px-0">
+                                                <a href="{{ doc.document_url }}" target="_blank" class="link link-primary">
+                                                    <em class="icon ni ni-file-pdf me-1"></em>
+                                                    {{ doc.description }}
+                                                </a>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% else %}
+                                        <p class="text-soft">No trip documents available.</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Departure Documents -->
+                            <div class="col-md-6">
+                                <div class="card card-bordered h-100">
+                                    <div class="card-inner">
+                                        <h6 class="title mb-3">
+                                            <em class="icon ni ni-file-text me-1"></em>
+                                            Departure Documents
+                                        </h6>
+                                        {% if departure.departure_documents %}
+                                        <ul class="list-group list-group-flush">
+                                            {% for doc in departure.departure_documents %}
+                                            <li class="list-group-item px-0">
+                                                <a href="{{ doc.document_url }}" target="_blank" class="link link-primary">
+                                                    <em class="icon ni ni-file-pdf me-1"></em>
+                                                    {{ doc.description }}
+                                                </a>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% else %}
+                                        <p class="text-soft">No departure documents available.</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trip Leader Forms Tab -->
+                {% if departure.forms %}
+                <div class="tab-pane {% if active_tab == 'forms' %}active{% endif %}"
+                     id="tabForms"
+                     role="tabpanel">
+                    <div class="card-title-group mb-3 mt-3">
+                        <div class="card-title">
+                            <h6 class="title">Forms Requiring Attention</h6>
+                        </div>
+                        {% if departure.forms_to_complete_count > 0 %}
+                        <div class="card-tools">
+                            <span class="badge bg-danger">{{ departure.forms_to_complete_count }} form(s) to complete</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row g-gs">
+                        {% for form in departure.forms %}
+                        <div class="col-md-6 col-xxl-4">
+                            <div class="card card-bordered h-100 {% if form.status and form.status.status == 'expired' %}border-danger{% elif form.status and form.status.status == 'completed' %}border-success{% endif %}">
+                                <div class="card-inner">
+                                    <h6 class="title">{{ form.form_name }}</h6>
+
+                                    <!-- Due Date -->
+                                    {% if form.due_date %}
+                                    <div class="badge-list mb-3">
+                                        <span class="badge bg-outline-{% if form.status and form.status.status == 'expired' %}danger{% elif form.status and form.status.status == 'completed' %}success{% else %}primary{% endif %}">
+                                            Due: {{ form.due_date.strftime('%b %d, %Y') }}
+                                        </span>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Contact Information -->
+                                    {% if form.contact_name or form.contact_email %}
+                                    <div class="text-soft small mb-3">
+                                        <p class="mb-1 fw-bold">Contact:</p>
+                                        {% if form.contact_name %}
+                                        <p class="mb-0">{{ form.contact_name }}</p>
+                                        {% endif %}
+                                        {% if form.contact_email %}
+                                        <p class="mb-0">
+                                            <a href="mailto:{{ form.contact_email }}">{{ form.contact_email }}</a>
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Action Button -->
+                                    {% if form.status %}
+                                        {% if form.status.is_clickable %}
+                                        <a href="{{ form.status.url }}" class="btn btn-block {{ form.status.button_class }}" target="_blank">
+                                            {{ form.status.button_text }}
+                                        </a>
+                                        {% else %}
+                                        <button class="btn btn-block {{ form.status.button_class }}" disabled>
+                                            {{ form.status.button_text }}
+                                        </button>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Back to Home Button -->
+<div class="nk-block">
+    <a href="/guide/home" class="btn btn-outline-primary">
+        <em class="icon ni ni-arrow-left"></em>
+        <span>Back to Home</span>
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Form button styles */
+.btn-form-pending {
+    background-color: #0062cc;
+    border-color: #0062cc;
+    color: #fff;
+}
+.btn-form-pending:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+    color: #fff;
+}
+
+.btn-form-complete {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: #fff;
+}
+.btn-form-complete:hover {
+    background-color: #218838;
+    border-color: #218838;
+    color: #fff;
+}
+
+.btn-form-expired {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
+}
+.btn-form-expired:hover {
+    background-color: #c82333;
+    border-color: #c82333;
+    color: #fff;
+}
+
+.btn-form-disabled {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #fff;
+    cursor: not-allowed;
+}
+</style>
+{% endblock %}

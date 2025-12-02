@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block body_content %}
+<div class="nk-wrap">
+    <!-- Header with horizontal navigation -->
+    {% include "components/header.html" %}
+
+    <!-- Main Content -->
+    <div class="nk-content nk-content-fluid">
+        <div class="container-xl wide-xl">
+            <div class="nk-content-inner">
+                <div class="nk-content-body">
+                    {% block page_content %}{% endblock %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="nk-footer">
+        <div class="container-xl wide-xl">
+            <div class="nk-footer-wrap">
+                <div class="nk-footer-copyright">
+                    &copy; 2024 Tourcube Guide Portal. All Rights Reserved.
+                </div>
+                <div class="nk-footer-links">
+                    <ul class="nav nav-sm">
+                        <li class="nav-item"><a class="nav-link" href="/help">Help</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/contact">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

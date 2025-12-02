@@ -1,0 +1,73 @@
+<!-- Top Navigation Bar -->
+<div class="nk-header nk-header-fixed is-light">
+    <div class="container-fluid">
+        <div class="nk-header-wrap">
+            <div class="nk-menu-trigger d-xl-none ms-n1">
+                <a href="#" class="nk-nav-toggle nk-quick-nav-icon" data-target="sidebarMenu">
+                    <em class="icon ni ni-menu"></em>
+                </a>
+            </div>
+
+            <div class="nk-header-brand d-xl-none">
+                <a href="/" class="logo-link">
+                    <img class="logo-light logo-img" src="{{ url_for('static', path='/images/logo.png') }}" alt="Tourcube">
+                    <img class="logo-dark logo-img" src="{{ url_for('static', path='/images/logo.png') }}" alt="Tourcube">
+                </a>
+            </div>
+
+            <div class="nk-header-tools">
+                <ul class="nk-quick-nav">
+                    <!-- User Dropdown -->
+                    <li class="dropdown user-dropdown">
+                        <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">
+                            <div class="user-toggle">
+                                <div class="user-avatar sm">
+                                    {% if guide and guide.guide_image %}
+                                    <img src="{{ guide.guide_image }}" alt="{{ guide.guide_name }}">
+                                    {% else %}
+                                    <em class="icon ni ni-user-alt"></em>
+                                    {% endif %}
+                                </div>
+                                <div class="user-info d-none d-md-block">
+                                    {% if guide %}
+                                    <div class="user-name dropdown-indicator">{{ guide.guide_name }}</div>
+                                    {% else %}
+                                    <div class="user-name dropdown-indicator">Guide</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-md dropdown-menu-end dropdown-menu-s1">
+                            <div class="dropdown-inner user-card-wrap bg-lighter d-none d-md-block">
+                                <div class="user-card">
+                                    <div class="user-avatar">
+                                        {% if guide and guide.guide_image %}
+                                        <img src="{{ guide.guide_image }}" alt="{{ guide.guide_name }}">
+                                        {% else %}
+                                        <span>{{ guide.guide_name[0] if guide else 'G' }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="user-info">
+                                        <span class="lead-text">{{ guide.guide_name if guide else 'Guide' }}</span>
+                                        <span class="sub-text">{{ guide.guide_id if guide else '' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-inner">
+                                <ul class="link-list">
+                                    <li><a href="/guide/profile"><em class="icon ni ni-user-alt"></em><span>View Profile</span></a></li>
+                                    <li><a href="/guide/settings"><em class="icon ni ni-setting-alt"></em><span>Account Settings</span></a></li>
+                                </ul>
+                            </div>
+                            <div class="dropdown-inner">
+                                <ul class="link-list">
+                                    <li><a href="/logout"><em class="icon ni ni-signout"></em><span>Sign out</span></a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

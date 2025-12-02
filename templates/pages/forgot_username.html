@@ -1,0 +1,66 @@
+{% extends "layouts/auth.html" %}
+
+{% block title %}Forgot Username - Tourcube Guide Portal{% endblock %}
+
+{% block auth_content %}
+<div class="nk-block-head">
+    <div class="nk-block-head-content">
+        <h4 class="nk-block-title">Forgot Username</h4>
+        <div class="nk-block-des">
+            <p>Enter your email address to receive your username.</p>
+        </div>
+    </div>
+</div>
+
+{% if success == 'true' %}
+<div class="alert alert-success alert-icon" role="alert">
+    <em class="icon ni ni-check-circle"></em>
+    <strong>Email sent!</strong> If an account exists with that email address, you will receive your username shortly.
+</div>
+{% elif success == 'false' %}
+<div class="alert alert-danger alert-icon" role="alert">
+    <em class="icon ni ni-cross-circle"></em>
+    <strong>Unable to send email.</strong> Please try again or contact support if the problem persists.
+</div>
+{% endif %}
+
+<form action="/forgot-username" method="post" id="forgotUsernameForm">
+    <div class="form-group">
+        <div class="form-label-group">
+            <label class="form-label" for="email">Email Address</label>
+        </div>
+        <div class="form-control-wrap">
+            <input type="email" class="form-control form-control-lg" id="email" name="email" placeholder="Enter your email address" required autofocus>
+        </div>
+    </div>
+
+    <input type="hidden" name="company_code" value="{{ company_code }}">
+    <input type="hidden" name="mode" value="{{ mode }}">
+
+    <div class="form-group">
+        <button type="submit" class="btn btn-lg btn-primary btn-block" id="submitBtn">
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="submitSpinner"></span>
+            <span id="submitBtnText">Send Username</span>
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block auth_footer %}
+<a href="/login?company_code={{ company_code }}&mode={{ mode }}"><em class="icon ni ni-arrow-left"></em> <span>Back to Login</span></a>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Show loading spinner on form submit
+document.getElementById('forgotUsernameForm').addEventListener('submit', function() {
+    const btn = document.getElementById('submitBtn');
+    const spinner = document.getElementById('submitSpinner');
+    const btnText = document.getElementById('submitBtnText');
+
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    btnText.textContent = ' Sending...';
+});
+</script>
+{% endblock %}

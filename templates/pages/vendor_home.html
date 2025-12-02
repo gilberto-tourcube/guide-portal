@@ -1,0 +1,325 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Home - Tourcube Vendor Portal{% endblock %}
+
+{% block page_content %}
+<!-- Page Header -->
+<div class="nk-block-head nk-block-head-sm">
+    <div class="nk-block-between g-3">
+        <div class="nk-block-head-content">
+            <h3 class="nk-block-title page-title">Vendor Dashboard</h3>
+            <div class="nk-block-des text-soft">
+                <p>Your trips and forms information</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content with Two Columns -->
+<div class="nk-block">
+    <div class="row g-gs">
+        <!-- Left Column - Vendor Profile Card -->
+        <div class="col-lg-4 col-xl-4 col-xxl-3">
+            <div class="card card-bordered">
+                <div class="card-inner-group">
+                    <!-- Vendor Profile -->
+                    <div class="card-inner">
+                        <div class="user-card user-card-s2">
+                            <div class="user-avatar lg bg-primary">
+                                <span>{{ vendor.vendor_name[0] if vendor.vendor_name else 'V' }}</span>
+                            </div>
+                            <div class="user-info">
+                                <h5>{{ vendor.vendor_name }}</h5>
+                                <span class="sub-text">Service Provider</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="card-inner">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="profile-stats">
+                                    <span class="amount">{{ vendor.future_trips|length if vendor.future_trips else 0 }}</span>
+                                    <span class="sub-text">Future</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="profile-stats">
+                                    <span class="amount">{{ vendor.past_trips|length if vendor.past_trips else 0 }}</span>
+                                    <span class="sub-text">Past</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="profile-stats">
+                                    <span class="amount">{{ vendor.forms_pending_count if vendor.forms_pending_count else 0 }}</span>
+                                    <span class="sub-text">Forms</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Info -->
+                    <div class="card-inner">
+                        <h6 class="overline-title mb-2">Quick Info</h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <span class="sub-text">Total Trips</span>
+                                <span class="caption-text">{{ (vendor.future_trips|length if vendor.future_trips else 0) + (vendor.past_trips|length if vendor.past_trips else 0) }}</span>
+                            </div>
+                            <div class="col-12">
+                                <span class="sub-text">Pending Forms</span>
+                                <span class="caption-text text-{% if vendor.forms_pending_count > 0 %}danger{% else %}success{% endif %}">
+                                    {{ vendor.forms_pending_count if vendor.forms_pending_count else 0 }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Tabs and Content -->
+        <div class="col-lg-8 col-xl-8 col-xxl-9">
+            <div class="card card-bordered">
+                <div class="card-inner">
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs mt-n3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link {% if active_tab == 'future' or not active_tab %}active{% endif %}"
+                               data-bs-toggle="tab"
+                               href="#tabFutureTrips"
+                               aria-selected="{% if active_tab == 'future' or not active_tab %}true{% else %}false{% endif %}"
+                               role="tab">
+                                <em class="icon ni ni-calendar"></em>
+                                <span>My Future Trip Schedule</span>
+                            </a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link {% if active_tab == 'past' %}active{% endif %}"
+                               data-bs-toggle="tab"
+                               href="#tabPastTrips"
+                               aria-selected="{% if active_tab == 'past' %}true{% else %}false{% endif %}"
+                               role="tab"
+                               tabindex="-1">
+                                <em class="icon ni ni-history"></em>
+                                <span>My Past Trip Schedule</span>
+                            </a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link {% if active_tab == 'forms' %}active{% endif %}"
+                               data-bs-toggle="tab"
+                               href="#tabForms"
+                               aria-selected="{% if active_tab == 'forms' %}true{% else %}false{% endif %}"
+                               role="tab"
+                               tabindex="-1">
+                                <em class="icon ni ni-file-docs"></em>
+                                <span>Forms Due</span>
+                                {% if vendor.forms_pending_count > 0 %}
+                                <span class="badge rounded-pill bg-danger ms-1">{{ vendor.forms_pending_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content">
+                        <!-- Future Trips Tab -->
+                        <div class="tab-pane {% if active_tab == 'future' or not active_tab %}active{% endif %}"
+                             id="tabFutureTrips"
+                             role="tabpanel">
+                            <div class="card-title-group mb-3 mt-3">
+                                <div class="card-title">
+                                    <h6 class="title">Upcoming Trips</h6>
+                                </div>
+                            </div>
+                            {% if vendor.future_trips %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Departures</th>
+                                            <th>Trip</th>
+                                            <th>Trip Leaders</th>
+                                            <th>Clients</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for trip in vendor.future_trips %}
+                                        <tr>
+                                            <td>
+                                                {% if trip.trip_departure_id %}
+                                                <a href="/departure/{{ trip.trip_departure_id }}" class="tb-sub text-primary">{{ trip.dates }}</a>
+                                                {% else %}
+                                                <span class="tb-sub">{{ trip.dates }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if trip.trip_id %}
+                                                <a href="/trip/{{ trip.trip_id }}" class="tb-lead fw-bold text-dark">{{ trip.trip_name }}</a>
+                                                {% else %}
+                                                <span class="tb-lead fw-bold">{{ trip.trip_name }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="tb-sub">{{ trip.trip_leaders if trip.trip_leaders else '-' }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="tb-sub">{{ trip.sign_ups if trip.sign_ups else '-' }}</span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-light alert-icon">
+                                <em class="icon ni ni-info"></em>
+                                <strong>No upcoming trips scheduled.</strong> Check back later for new assignments.
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Past Trips Tab -->
+                        <div class="tab-pane {% if active_tab == 'past' %}active{% endif %}"
+                             id="tabPastTrips"
+                             role="tabpanel">
+                            <div class="card-title-group mb-3 mt-3">
+                                <div class="card-title">
+                                    <h6 class="title">Completed Trips</h6>
+                                </div>
+                            </div>
+                            {% if vendor.past_trips %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Departures</th>
+                                            <th>Trip</th>
+                                            <th>Trip Leaders</th>
+                                            <th>Clients</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for trip in vendor.past_trips %}
+                                        <tr>
+                                            <td>
+                                                {% if trip.trip_departure_id %}
+                                                <a href="/departure/{{ trip.trip_departure_id }}" class="tb-sub text-primary">{{ trip.dates }}</a>
+                                                {% else %}
+                                                <span class="tb-sub">{{ trip.dates }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if trip.trip_id %}
+                                                <a href="/trip/{{ trip.trip_id }}" class="tb-lead fw-bold text-dark">{{ trip.trip_name }}</a>
+                                                {% else %}
+                                                <span class="tb-lead fw-bold">{{ trip.trip_name }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="tb-sub">{{ trip.trip_leaders if trip.trip_leaders else '-' }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="tb-sub">{{ trip.sign_ups if trip.sign_ups else '-' }}</span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-light alert-icon">
+                                <em class="icon ni ni-info"></em>
+                                <strong>No past trips found.</strong>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Forms Due Tab -->
+                        <div class="tab-pane {% if active_tab == 'forms' %}active{% endif %}"
+                             id="tabForms"
+                             role="tabpanel">
+                            <div class="card-title-group mb-3 mt-3">
+                                <div class="card-title">
+                                    <h6 class="title">Forms Requiring Attention</h6>
+                                </div>
+                            </div>
+                            {% if vendor.forms %}
+                            <div class="row g-gs">
+                                {% for form in vendor.forms %}
+                                <div class="col-md-6 col-xxl-4">
+                                    <div class="card card-bordered h-100 {% if form.status.status == 'overdue' %}border-danger{% endif %}">
+                                        <div class="card-inner">
+                                            <h6 class="title">{{ form.form_name }}</h6>
+
+                                            <!-- Due Date -->
+                                            {% if form.due_date %}
+                                            <div class="badge-list mb-3">
+                                                <span class="badge bg-outline-{% if form.status.status == 'overdue' %}danger{% else %}primary{% endif %}">
+                                                    Due: {{ form.due_date.strftime('%b %d, %Y') if form.due_date else '-' }}
+                                                </span>
+                                            </div>
+                                            {% endif %}
+
+                                            <!-- Trip Info -->
+                                            {% if form.trip_info %}
+                                            <div class="text-soft small mb-2">
+                                                <em class="icon ni ni-map-pin-fill"></em> {{ form.trip_info }}
+                                            </div>
+                                            {% endif %}
+
+                                            <!-- Contact Information -->
+                                            <div class="text-soft small mb-3">
+                                                <p class="mb-1 fw-bold">Contact:</p>
+                                                {% if form.ops_name %}
+                                                <p class="mb-0">Trip Contact - {{ form.ops_name }}</p>
+                                                {% elif form.dev_name %}
+                                                <p class="mb-0">Trip Developer - {{ form.dev_name }}</p>
+                                                {% endif %}
+                                                {% if form.ops_email %}
+                                                <p class="mb-0">
+                                                    <a href="mailto:{{ form.ops_email }}">{{ form.ops_email }}</a>
+                                                </p>
+                                                {% elif form.dev_email %}
+                                                <p class="mb-0">
+                                                    <a href="mailto:{{ form.dev_email }}">{{ form.dev_email }}</a>
+                                                </p>
+                                                {% endif %}
+                                                {% if form.ops_phone %}
+                                                <p class="mb-0">{{ form.ops_phone }}</p>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Action Button -->
+                                            {% if form.status.is_clickable %}
+                                            <a href="{{ form.status.url }}" class="btn btn-block {{ form.status.button_class }}" target="_blank">
+                                                {{ form.status.button_text }}
+                                            </a>
+                                            {% else %}
+                                            <button class="btn btn-block {{ form.status.button_class }}" disabled>
+                                                {{ form.status.button_text }}
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="alert alert-success alert-icon">
+                                <em class="icon ni ni-check-circle"></em>
+                                <strong>All caught up!</strong> You have no forms requiring attention at this time.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}

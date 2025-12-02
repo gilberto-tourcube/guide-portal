@@ -1,0 +1,346 @@
+# Tourcube Guide Portal
+
+A modern web portal built with FastAPI and Jinja2, designed for tour guides management using the DashLite v3.3 Bootstrap 5 admin template.
+
+## 📋 Overview
+
+The Tourcube Guide Portal is a web application that consumes external APIs to provide a comprehensive interface for managing tour guides, bookings, and related operations. This project is a modernization of a legacy system, built with clean architecture principles and modern web technologies.
+
+## 🏗️ Architecture
+
+### Tech Stack
+
+- **Backend Framework**: FastAPI 0.109+
+- **Template Engine**: Jinja2 3.1+
+- **Frontend Theme**: DashLite v3.3 (Bootstrap 5)
+- **HTTP Client**: HTTPX (async)
+- **Configuration**: Pydantic Settings
+- **Python Version**: 3.11+
+
+### Key Architectural Decisions
+
+1. **No Database**: This application is stateless and consumes external APIs only
+2. **Template-Based Rendering**: Server-side rendering with Jinja2 for optimal SEO and initial load
+3. **Async-First**: All API calls use async/await for better performance
+4. **Clean Separation**: Clear separation between routes, services, and presentation layers
+
+## 📁 Project Structure
+```
+guide-portal/
+├── app/                           # Application core
+│   ├── __init__.py
+│   ├── main.py                    # FastAPI application setup and configuration
+│   ├── routes/                    # Route handlers (controllers)
+│   │   ├── __init__.py
+│   │   ├── home.py               # Home and dashboard routes
+│   │   └── api_routes.py         # API endpoints
+│   ├── services/                  # Business logic and external API clients
+│   │   ├── __init__.py
+│   │   └── api_client.py         # HTTP client for external APIs
+│   ├── models/                    # Pydantic models (DTOs and schemas)
+│   │   ├── __init__.py
+│   │   └── schemas.py            # Request/Response models
+│   └── config.py                  # Application settings and environment variables
+│
+├── static/                        # Static assets (served by FastAPI)
+│   ├── css/                      # Stylesheets
+│   │   ├── dashlite.css         # DashLite core styles
+│   │   ├── theme.css            # Theme variables and overrides
+│   │   └── custom.css           # Project-specific styles
+│   ├── js/                       # JavaScript files
+│   │   ├── bundle.js            # DashLite core scripts
+│   │   └── custom.js            # Project-specific scripts
+│   └── images/                   # Images and icons
+│       ├── logo.png
+│       └── favicon.ico
+│
+├── templates/                     # Jinja2 templates
+│   ├── base.html                 # Base layout with common structure
+│   ├── layouts/                  # Layout variations
+│   │   ├── dashboard.html       # Dashboard layout (with sidebar)
+│   │   └── auth.html            # Authentication layout (centered)
+│   ├── pages/                    # Page templates
+│   │   ├── index.html           # Home/Dashboard page
+│   │   ├── guides.html          # Guides listing
+│   │   └── bookings.html        # Bookings management
+│   ├── components/               # Reusable template components
+│   │   ├── navbar.html          # Top navigation bar
+│   │   ├── sidebar.html         # Side navigation menu
+│   │   ├── footer.html          # Footer component
+│   │   └── modals/              # Modal dialogs
+│   │       └── confirm.html
+│   └── macros/                   # Jinja2 macros (reusable functions)
+│       ├── forms.html           # Form input macros
+│       ├── tables.html          # Table component macros
+│       └── cards.html           # Card component macros
+│
+├── docs/                          # Project documentation
+│   ├── README.md                 # Documentation index
+│   ├── template/                 # DashLite template documentation
+│   │   ├── dashlite-v3.3/       # Original template files and docs
+│   │   ├── CUSTOMIZATIONS.md    # Template customizations made
+│   │   └── COMPONENTS_USED.md   # Components utilized in project
+│   ├── legacy-project/           # Legacy system documentation
+│   │   ├── README.md            # Legacy system overview
+│   │   ├── architecture/        # Legacy architecture diagrams and flows
+│   │   ├── business-rules/      # Business rules documentation
+│   │   ├── apis/                # Legacy API documentation
+│   │   └── migration/           # Migration notes and mapping
+│   │       ├── mapping.md       # Screen and feature mapping
+│   │       ├── differences.md   # Key differences between systems
+│   │       └── checklist.md     # Migration checklist
+│   └── current-project/          # Current project documentation
+│       ├── SETUP.md             # Setup and installation guide
+│       ├── ARCHITECTURE.md      # Architectural decisions and patterns
+│       ├── API.md               # Routes and API documentation
+│       └── DEPLOY.md            # Deployment instructions
+│
+├── tests/                         # Test suite (optional but recommended)
+│   ├── __init__.py
+│   ├── test_routes.py           # Route testing
+│   └── test_services.py         # Service layer testing
+│
+├── .env                          # Environment variables (not in git)
+├── .env.example                  # Environment variables template
+├── .gitignore                    # Git ignore rules
+├── requirements.txt              # Python dependencies
+├── README.md                     # This file
+└── run.py                        # Application entry point (optional)
+```
+
+## 🎯 Layer Responsibilities
+
+### Routes Layer (`app/routes/`)
+- Handle HTTP requests and responses
+- Request validation
+- Call service layer for business logic
+- Render templates with data
+- Handle form submissions
+
+### Services Layer (`app/services/`)
+- External API communication
+- Business logic implementation
+- Data transformation
+- Error handling and retry logic
+- Cache management (if needed)
+
+### Models Layer (`app/models/`)
+- Pydantic models for request validation
+- Response schemas
+- Data transfer objects (DTOs)
+- Type definitions
+
+### Templates Layer (`templates/`)
+- HTML presentation
+- Jinja2 template inheritance
+- Reusable components and macros
+- Client-side interactivity setup
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Create a `.env` file in the root directory:
+```env
+# API Configuration
+API_BASE_URL=https://api.example.com
+API_KEY=your_api_key_here
+API_TIMEOUT=30
+
+# Application Settings
+DEBUG=false
+APP_NAME=Tourcube Guide Portal
+APP_VERSION=1.0.0
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000
+RELOAD=false
+```
+
+### Key Configuration Points
+
+- All settings managed through `app/config.py` using Pydantic Settings
+- Environment-specific configurations via `.env` files
+- Sensitive data never committed to repository
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Python 3.11 or higher
+- pip or poetry for dependency management
+- Access to the external API (credentials required)
+
+### Installation
+
+1. **Clone the repository**
+```bash
+git clone <repository-url>
+cd guide-portal
+```
+
+2. **Create virtual environment**
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. **Install dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+4. **Configure environment**
+```bash
+cp .env.example .env
+# Edit .env with your API credentials and settings
+```
+
+5. **Run the application**
+```bash
+uvicorn app.main:app --reload
+```
+
+6. **Access the application**
+- Application: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+## 📦 Dependencies
+
+### Core Dependencies
+```
+fastapi==0.109.0          # Web framework
+uvicorn[standard]==0.27.0 # ASGI server
+jinja2==3.1.3             # Template engine
+httpx==0.26.0             # Async HTTP client
+pydantic-settings==2.1.0  # Settings management
+python-dotenv==1.0.0      # Environment variables
+```
+
+### Development Dependencies (Optional)
+```
+pytest==7.4.0             # Testing framework
+black==23.12.0            # Code formatter
+ruff==0.1.9               # Linter
+```
+
+## 🎨 Template System
+
+### DashLite Integration
+
+The project uses DashLite v3.3, a premium Bootstrap 5 admin template. Key features:
+
+- **Responsive Design**: Mobile-first, fully responsive
+- **Component Library**: Rich set of pre-built components
+- **Customizable**: Easy theme customization via CSS variables
+- **Modern UI/UX**: Clean and professional interface
+
+### Template Inheritance
+```
+base.html (Core structure, meta tags, assets)
+    ├── layouts/dashboard.html (Dashboard layout with sidebar)
+    │   ├── pages/index.html
+    │   ├── pages/guides.html
+    │   └── pages/bookings.html
+    └── layouts/auth.html (Authentication layout)
+        ├── pages/login.html
+        └── pages/register.html
+```
+
+### Reusable Components
+
+Use Jinja2 macros for consistent UI components:
+```jinja2
+{% from 'macros/forms.html' import text_input, select_input %}
+{% from 'macros/tables.html' import data_table %}
+{% from 'macros/cards.html' import info_card %}
+```
+
+## 🔄 Development Workflow
+
+### Adding a New Feature
+
+1. **Define the route** in `app/routes/`
+2. **Create service methods** in `app/services/` for API calls
+3. **Define Pydantic models** in `app/models/schemas.py`
+4. **Create templates** in `templates/pages/`
+5. **Add static assets** if needed in `static/`
+6. **Update documentation** in `docs/`
+
+### Code Style
+
+- Follow PEP 8 guidelines
+- Use type hints for all functions
+- Document complex logic with comments
+- Keep functions focused and small
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **Setup Guide**: `docs/current-project/SETUP.md`
+- **Architecture Details**: `docs/current-project/ARCHITECTURE.md`
+- **API Documentation**: `docs/current-project/API.md`
+- **Deployment Guide**: `docs/current-project/DEPLOY.md`
+- **Legacy System Reference**: `docs/legacy-project/`
+- **Template Customizations**: `docs/template/CUSTOMIZATIONS.md`
+
+## 🧪 Testing
+
+Run tests with pytest:
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=app tests/
+
+# Run specific test file
+pytest tests/test_routes.py
+```
+
+## 🚢 Deployment
+
+See `docs/current-project/DEPLOY.md` for detailed deployment instructions.
+
+### Quick Deploy
+```bash
+# Using Docker
+docker build -t guide-portal .
+docker run -p 8000:8000 --env-file .env guide-portal
+
+# Using systemd service
+sudo systemctl start guide-portal
+```
+
+## 🤝 Contributing
+
+1. Follow the project structure guidelines
+2. Maintain code quality standards
+3. Update documentation for new features
+4. Test thoroughly before submitting
+
+## 📄 License
+
+[Your License Here]
+
+## 👥 Team
+
+- **Project Lead**: [Name]
+- **Backend Developer**: [Name]
+- **Frontend Developer**: [Name]
+
+## 📞 Support
+
+For questions or issues:
+- Email: support@tourcube.com
+- Documentation: See `docs/` directory
+- Issue Tracker: [Link to issue tracker]
+
+---
+
+**Version**: 1.0.0  
+**Last Updated**: 2024-11-19  
+**Status**: In Development

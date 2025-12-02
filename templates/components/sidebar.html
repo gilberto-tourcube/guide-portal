@@ -1,0 +1,69 @@
+<!-- Sidebar Navigation -->
+<div class="nk-sidebar nk-sidebar-fixed is-light" data-content="sidebarMenu">
+    <div class="nk-sidebar-element nk-sidebar-head">
+        <div class="nk-sidebar-brand">
+            <a href="/guide/home" class="logo-link nk-sidebar-logo">
+                {% if company_logo %}
+                <img class="logo-light logo-img" src="{{ url_for('static', path='/images/' + company_logo) }}" alt="Tourcube Guide Portal">
+                <img class="logo-dark logo-img" src="{{ url_for('static', path='/images/' + company_logo) }}" alt="Tourcube Guide Portal">
+                {% else %}
+                <img class="logo-light logo-img" src="{{ url_for('static', path='/images/logo.png') }}" alt="Tourcube Guide Portal">
+                <img class="logo-dark logo-img" src="{{ url_for('static', path='/images/logo.png') }}" alt="Tourcube Guide Portal">
+                {% endif %}
+                <span class="nio-version">Guide Portal</span>
+            </a>
+        </div>
+        <div class="nk-menu-trigger me-n2">
+            <a href="#" class="nk-nav-toggle nk-quick-nav-icon d-xl-none" data-target="sidebarMenu">
+                <em class="icon ni ni-arrow-left"></em>
+            </a>
+        </div>
+    </div>
+
+    <div class="nk-sidebar-element">
+        <div class="nk-sidebar-content">
+            <div class="nk-sidebar-menu" data-simplebar>
+                <ul class="nk-menu">
+                    <!-- Home -->
+                    <li class="nk-menu-item">
+                        <a href="/guide/home" class="nk-menu-link">
+                            <span class="nk-menu-icon"><em class="icon ni ni-home"></em></span>
+                            <span class="nk-menu-text">Home</span>
+                        </a>
+                    </li>
+
+                    <!-- Trips Section -->
+                    <li class="nk-menu-heading">
+                        <h6 class="overline-title text-primary-alt">Trips</h6>
+                    </li>
+                    <li class="nk-menu-item">
+                        <a href="/guide/home?tab=future" class="nk-menu-link">
+                            <span class="nk-menu-icon"><em class="icon ni ni-calendar"></em></span>
+                            <span class="nk-menu-text">Future Trips</span>
+                        </a>
+                    </li>
+                    <li class="nk-menu-item">
+                        <a href="/guide/home?tab=past" class="nk-menu-link">
+                            <span class="nk-menu-icon"><em class="icon ni ni-history"></em></span>
+                            <span class="nk-menu-text">Past Trips</span>
+                        </a>
+                    </li>
+
+                    <!-- Forms Section -->
+                    <li class="nk-menu-heading">
+                        <h6 class="overline-title text-primary-alt">Forms</h6>
+                    </li>
+                    <li class="nk-menu-item">
+                        <a href="/guide/home?tab=forms" class="nk-menu-link">
+                            <span class="nk-menu-icon"><em class="icon ni ni-file-docs"></em></span>
+                            <span class="nk-menu-text">Forms Due</span>
+                            {% if guide and guide.forms_pending_count > 0 %}
+                            <span class="nk-menu-badge">{{ guide.forms_pending_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
