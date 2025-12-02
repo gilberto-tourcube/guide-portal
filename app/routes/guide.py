@@ -1,19 +1,39 @@
 """Guide-related route handlers"""
 
-from fastapi import APIRouter, Request, HTTPException, status
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from app.services.guide_service import guide_service
+import logging
+from typing import Optional
+
 import httpx
+from fastapi import APIRouter, Query, Request, HTTPException, status
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+
+from app.config import settings
+from app.services.guide_service import guide_service
 
 router = APIRouter(prefix="/guide", tags=["guide"])
 
 # Jinja2 templates
 templates = Jinja2Templates(directory="templates")
+logger = logging.getLogger(__name__)
 
 
 @router.get("/home", response_class=HTMLResponse)
-async def guide_home(request: Request):
+async def guide_home(
+    request: Request,
+    guide_hash: Optional[str] = Query(
+        None,
+        alias="guide_hash",
+        description="Guide hash for support access"
+    ),
+    guide_hash_alt: Optional[str] = Query(
+        None,
+        alias="guideHash",
+        description="Guide hash for support access (camelCase compatibility)"
+    ),
+    company_code: Optional[str] = Query(None, description="Company identifier override"),
+    mode: Optional[str] = Query(None, description="Test or Production")
+):
     """
     Guide homepage displaying trips and forms
 
@@ -29,34 +49,78 @@ async def guide_home(request: Request):
         HTTPException 401: If user is not authenticated
         HTTPException 500: If API call fails
     """
-    # Get guide info from session
-    # TODO: Implement proper session management
-    guide_id = request.session.get("guide_id")
-    company_code = request.session.get("company_code")
-    mode = request.session.get("mode")
+    # Resolve company/mode preference
+    resolved_company_code = (
+        company_code
+        or request.session.get("company_code")
+        or settings.company_code
+    )
+    resolved_mode = (
+        mode
+        or request.session.get("mode")
+        or settings.mode
+    )
 
-    if not guide_id or not company_code or not mode:
-        # Redirect to login if not authenticated
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
+    guide_id = request.session.get("guide_id")
+
+    # If not authenticated and guide_hash is provided, resolve and bootstrap session
+    resolved_hash = guide_hash or guide_hash_alt
+
+    if not guide_id and resolved_hash:
+        try:
+            guide_id = await guide_service.get_guide_id_by_hash(
+                guide_hash=resolved_hash,
+                company_code=resolved_company_code,
+                mode=resolved_mode
+            )
+            request.session.update(
+                {
+                    "authenticated": True,
+                    "user_type": 1,
+                    "user_role": "Guide",
+                    "guide_id": guide_id,
+                    "company_code": resolved_company_code,
+                    "mode": resolved_mode,
+                }
+            )
+        except Exception as exc:
+            logger.error("Failed to resolve guideHash: %s", exc)
+            request.session.clear()
+            return RedirectResponse(
+                url=(
+                    f"/auth/login?company_code={resolved_company_code}"
+                    f"&mode={resolved_mode}&error=invalid_guide_link"
+                ),
+                status_code=302
+            )
+
+    if not guide_id or not resolved_company_code or not resolved_mode:
+        request.session.clear()
+        return RedirectResponse(
+            url=(
+                f"/auth/login?company_code={resolved_company_code}"
+                f"&mode={resolved_mode}&error=unauthorized"
+            ),
+            status_code=302
         )
 
     try:
         # Get company configuration for logo and branding
         from app.config import settings
-        company_config = settings.get_company_config(company_code, mode)
+        company_config = settings.get_company_config(resolved_company_code, resolved_mode)
 
         # Fetch guide homepage data
         homepage_data = await guide_service.get_guide_homepage(
             guide_id=guide_id,
-            company_code=company_code,
-            mode=mode
+            company_code=resolved_company_code,
+            mode=resolved_mode
         )
 
         # Save guide image to session for use in header across all pages
         if homepage_data.guide_image:
             request.session["user_image"] = str(homepage_data.guide_image)
+        if homepage_data.guide_name:
+            request.session["user_name"] = homepage_data.guide_name
 
         # Render template with data
         return templates.TemplateResponse(
@@ -65,7 +129,7 @@ async def guide_home(request: Request):
                 "request": request,
                 "guide": homepage_data,
                 "company_logo": company_config.logo,
-                "company_code": company_code,
+                "company_code": resolved_company_code,
                 "skin_name": company_config.skin_name,
                 "active_tab": request.query_params.get("tab", "future")
             }

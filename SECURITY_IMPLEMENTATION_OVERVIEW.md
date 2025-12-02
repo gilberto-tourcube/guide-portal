@@ -1,6 +1,6 @@
 # Tourcube Guide Portal - Security Implementation Overview
 
-**Document Version**: 1.0
+**Document Version**: 1.2
 **Date**: December 2, 2025
 **Target Audience**: Security Team / Infrastructure Team
 **Project Status**: Development Complete, Ready for Production Deployment
@@ -11,23 +11,21 @@
 
 The Tourcube Guide Portal is a modern web application built with FastAPI (Python) that serves as a multi-tenant portal for tour guides and vendors. This document outlines the security architecture, implementation decisions, and deployment requirements for security review and infrastructure planning.
 
-**⚠️ SECURITY AUDIT FINDINGS**: This document has been updated based on an external security audit that identified several critical gaps between the documented and actual security implementation. See Section 5.1 for details.
-
-**Actual Security Implementation Status**:
+**Actual Security Implementation Status** (post-remediation):
 - ✅ Stateless architecture (no database, API-only)
-- ⚠️ **Session management** - Cookies are **signed** (not encrypted), `Secure` flag not explicitly set
+- ✅ **Session management** - Cookies are signed (not encrypted), `Secure` via https_only + `SameSite=Lax`
 - ✅ Multi-company isolation
-- ⚠️ **Role-based access control** - Session checked, but user ID not sent to API for authorization
-- ❌ **HTTPS enforcement** - No HTTP→HTTPS redirect, no HSTS headers
-- ❌ **Input validation** - Login form uses raw Form params without Pydantic validation
+- ⚠️ **Role-based access control** - Session checked and `userId` forwarded to API; backend still must enforce ownership
+- ✅ **HTTPS enforcement** - HTTP→HTTPS redirect and HSTS middleware (skipped in debug)
+- ✅ **Input validation** - Login form uses Pydantic + length/regex checks
 - ✅ Secure credential storage (git-ignored config files)
 
-**Critical Security Gaps Identified**:
-1. 🔴 **Session cookies not configured as Secure** (High severity)
-2. 🔴 **No HTTPS enforcement or HSTS** (High severity)
-3. 🔴 **User ID not sent in API calls** - backend cannot verify resource ownership (High severity)
-4. 🟡 **Input validation minimal** - no Pydantic validation on login form (Medium severity)
-5. 🟡 **CORS wildcard** - allows any origin (Medium severity)
+**Remediated Audit Items (Section 5.1)**:
+1. 🔄 **Session cookies** - now `https_only=True`, `SameSite=Lax`; still signed (not encrypted)
+2. 🔄 **HTTPS enforcement** - redirect + HSTS middleware added
+3. 🔄 **User ID forwarding** - `userId` sent on resource API calls
+4. 🔄 **Input validation** - login handled via Pydantic model
+5. 🔄 **CORS** - allow-list via settings (default: same-origin only)
 
 ---
 
@@ -40,7 +38,7 @@ The Tourcube Guide Portal is a modern web application built with FastAPI (Python
 | **Backend Framework** | FastAPI | 0.121.3 | Web framework with async support |
 | **Template Engine** | Jinja2 | 3.1.6 | Server-side HTML rendering |
 | **HTTP Client** | HTTPX | 0.28.1 | Async API communication |
-| **Session Management** | Starlette SessionMiddleware | 0.50.0 | Encrypted cookie-based sessions |
+| **Session Management** | Starlette SessionMiddleware | 0.50.0 | Signed, Secure, SameSite=Lax cookies (not encrypted) |
 | **Data Validation** | Pydantic | 2.12.4 | Request/response validation |
 | **ASGI Server** | Uvicorn | 0.38.0 | ASGI server (development) |
 | **WSGI Server** | Gunicorn | 23.0.0 | Production server |
@@ -62,7 +60,7 @@ User Browser
 [Azure App Service / Reverse Proxy]
     ↓ X-Forwarded-Proto: https
 [FastAPI Application]
-    ↓ Session Cookie (Encrypted)
+    ↓ Session Cookie (Signed, Secure)
 [Session Middleware]
     ↓ Validation
 [Route Handlers]
@@ -89,7 +87,7 @@ User Browser
    ↓
 4. User submits credentials (username + password)
    ↓
-5. POST to /auth/login (handler accepts raw Form parameters)
+5. POST to /auth/login (Pydantic-validated form: length + regex)
    ↓
 6. POST to /tourcube/guidePortal/login with API key (header: "tc-api-key")
    ↓
@@ -97,11 +95,14 @@ User Browser
    - Type 1 = Guide
    - Type 2 = Vendor
    ↓
-8. Create signed session cookie (not encrypted, just HMAC signed)
+8. Create signed session cookie (https_only, SameSite=Lax; not encrypted)
    ↓
 9. Redirect to appropriate homepage:
    - Guide → /guide/home
    - Vendor → /vendor/home
+
+**Optional Support Link (guide_hash)**:
+- If the query includes `guide_hash`, `/guide/home` resolves it via `/tourcube/v1/clientHash/{guide_hash}` to obtain `guide_id` and bootstraps a guide session (bypassing form login) for support staff.
 ```
 
 #### Session Management
@@ -140,7 +141,9 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=settings.secret_key,
     session_cookie=settings.session_cookie_name,
-    max_age=settings.session_max_age
+    max_age=settings.session_max_age,
+    https_only=not settings.debug,
+    same_site="lax"
 )
 ```
 
@@ -149,16 +152,13 @@ app.add_middleware(
 - **SESSION_COOKIE_NAME**: Default `guide_portal_session`
 - **SESSION_MAX_AGE**: Default `86400` (24 hours)
 
-**Cookie Attributes** (Starlette SessionMiddleware defaults):
+**Cookie Attributes**:
 - `HttpOnly`: Yes (prevents JavaScript access)
-- `Secure`: **No** - Not explicitly set (⚠️ **Security Gap**)
-- `SameSite`: Default behavior (not explicitly configured)
+- `Secure`: Yes in production (`https_only=True` when not in debug)
+- `SameSite`: Lax (explicitly configured)
 - `Max-Age`: 86400 seconds (configurable)
 
-**⚠️ Security Note**: Cookies are **signed** (not encrypted) and the `Secure` flag is not explicitly enabled. This means:
-- Session data is base64-encoded and signed with HMAC, but readable if intercepted
-- Cookies may be sent over HTTP if `Secure` flag is not set by the platform
-- Azure App Service may add `Secure` flag at the platform level for HTTPS connections
+**Security Note**: Cookies are **signed** (not encrypted). `https_only=True` sets the Secure flag; session contents remain readable if intercepted in plaintext.
 
 #### Authorization Model
 
@@ -176,18 +176,13 @@ user_id = request.session.get("guide_id") or request.session.get("vendor_id")
 if not user_id:
     return RedirectResponse(url="/login")
 
-# ⚠️ LIMITATION: Service layer does NOT send user_id to API for most resources
+# user_id forwarded to service layer to include in downstream API calls
 ```
 
-**Resource Isolation** (⚠️ **Security Gaps**):
-- ❌ **User ID not sent to API**: Most resource requests (trip, client) do not include the authenticated user's ID in API calls
-- ❌ **No backend authorization check**: The portal checks session exists, but the API does not verify the user owns the resource
-- ⚠️ **Relies on API-side validation**: Assumes the backend API enforces access control based on session/context
-- ✅ **Session validation**: Portal does validate that user is authenticated before allowing access
-
-**Actual Implementation** (from `app/services/guide_service.py`):
-- API calls to `/getTripPage/{tripID}` and `/getClientPage/{clientID}` do NOT include `guide_id` or `vendor_id`
-- Authorization relies entirely on backend API logic (if any)
+**Resource Isolation**:
+- ✅ `userId` forwarded on trip, departure, and client API calls
+- ⚠️ Backend API must still enforce ownership/authorization using the forwarded ID
+- ✅ Session validation performed before calling services
 
 ---
 
@@ -233,35 +228,30 @@ if not user_id:
 
 #### Pydantic Models
 
-**Limited Pydantic Validation** (from `app/models/schemas.py` and `app/routes/auth.py`):
+**Login Validation (implemented)**:
 
 ```python
-# Only login response is validated with Pydantic
 class LoginRequest(BaseModel):
-    username: str
-    password: str
-```
+    username: str = Field(..., min_length=1, max_length=100)
+    password: str = Field(..., min_length=1, max_length=100)
+    company_code: str = Field(..., min_length=1, max_length=50)
+    mode: str = Field(..., pattern="^(Test|Production)$")
 
-**Actual Validation Coverage** (⚠️ **Security Gaps**):
-- ⚠️ **Login inputs NOT validated with Pydantic**: The login handler accepts raw `Form(...)` parameters without Pydantic validation
-- ⚠️ **No regex/length checks on login**: `company_code` and `mode` are accepted as-is without validation
-- ⚠️ **Query parameters unvalidated**: Most routes accept bare query params without Pydantic validation
-- ✅ **API response validation**: Some API responses are validated with Pydantic models
-- ✅ **SQL injection prevention**: No database access (stateless architecture)
-- ✅ **XSS prevention**: Jinja2 auto-escaping enabled by default
-
-**Actual Login Handler** (from `app/routes/auth.py`):
-```python
 @router.post("/login")
 async def login_submit(
     request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
-    company_code: str = Form(...),
-    mode: str = Form(...)
+    form_data: LoginRequest = Depends(_login_form_dependency)
 ):
-    # No Pydantic validation, no length checks, no regex patterns
+    ...
 ```
+
+**Validation Coverage**:
+- ✅ Login form validated with Pydantic (length + regex)
+- ✅ `company_code` and `mode` validated via Query/Forms
+- ✅ API responses validated with Pydantic models
+- ✅ SQL injection prevention: No database access (stateless)
+- ✅ XSS prevention: Jinja2 auto-escaping enabled
+- ⚠️ Other routes use parameter typing only (no dedicated Pydantic models)
 
 #### Template Security
 
@@ -281,38 +271,38 @@ async def login_submit(
 
 #### HTTPS Enforcement
 
-**⚠️ Limited HTTPS Enforcement**:
-
 **Outbound SSL Verification** (from `.env.example`):
 ```env
 SSL_VERIFY=true  # Enforce SSL certificate verification for API calls
 ```
 
-**Implementation** (from `app/services/api_client.py`):
-```python
-httpx.AsyncClient(
-    verify=settings.ssl_verify,  # Always True in production
-    timeout=30.0
-)
-```
-
-**Scheme Rewriting (NOT Enforcement)** (from `app/main.py`):
+**Implementation** (from `app/main.py`):
 ```python
 @app.middleware("http")
-async def force_https_scheme(request, call_next):
-    """Rewrite scheme to HTTPS when behind Azure proxy"""
-    # Only rewrites the scheme, does NOT redirect HTTP to HTTPS
+async def enforce_https_and_hsts(request, call_next):
     if request.headers.get("x-forwarded-proto") == "https":
         request.scope["scheme"] = "https"
+
+    is_https = request.scope.get("scheme") == "https"
+    if not is_https and not settings.debug:
+        https_url = request.url.replace(scheme="https")
+        return RedirectResponse(url=str(https_url), status_code=307)
+
     response = await call_next(request)
+
+    if is_https and not settings.debug:
+        response.headers.setdefault(
+            "Strict-Transport-Security",
+            "max-age=31536000; includeSubDomains; preload"
+        )
+
     return response
 ```
 
-**⚠️ Security Gaps**:
-- ❌ **No HTTP→HTTPS redirect**: Application accepts both HTTP and HTTPS requests
-- ❌ **No HSTS headers**: Strict-Transport-Security header not set
-- ⚠️ **Relies on Azure**: Assumes Azure App Service handles HTTPS enforcement
-- ✅ **URL generation**: Ensures generated URLs use HTTPS when behind proxy
+**Notes**:
+- ✅ HTTP→HTTPS redirect enforced when not in debug mode
+- ✅ HSTS added on HTTPS responses (skipped in debug)
+- ✅ Proxy-aware via `X-Forwarded-Proto`
 
 #### API Key Management
 
@@ -355,15 +345,18 @@ headers = {
 **Implementation** (from `app/routes/auth.py`):
 ```python
 try:
-    result = await auth_service.login(credentials)
+    login_response = await auth_service.login(...)
+except httpx.HTTPError as e:
+    logger.error("Login API error: %s", e)  # Server log only
+    return RedirectResponse(
+        url=f"/auth/login?company_code={...}&mode={...}&error=api_error",
+        status_code=303
+    )
 except Exception as e:
-    logger.error(f"Login failed: {str(e)}")  # Server log only
-    return templates.TemplateResponse(
-        "pages/login.html",
-        {
-            "error": "Invalid credentials or system error",  # Generic
-            ...
-        }
+    logger.error("Login error: %s", e)  # Server log only
+    return RedirectResponse(
+        url=f"/auth/login?company_code={...}&mode={...}&error=unexpected_error",
+        status_code=303
     )
 ```
 
@@ -475,6 +468,7 @@ RELOAD=false
 
 # Security (Optional - has default)
 SSL_VERIFY=true
+ALLOWED_ORIGINS=[]  # JSON list of allowed origins for CORS
 ```
 
 **Generate Secret Key**:
@@ -525,7 +519,7 @@ chmod 755 app/
 | Port | Protocol | Source | Purpose | Notes |
 |------|----------|--------|---------|-------|
 | 443 | HTTPS | Internet | Web traffic | Azure App Service handles SSL |
-| 80 | HTTP | Internet | Redirects to HTTPS | Azure App Service auto-redirects |
+| 80 | HTTP | Internet | Redirects to HTTPS | Application middleware + Azure redirect to HTTPS |
 
 #### Outbound Traffic
 
@@ -549,14 +543,14 @@ chmod 755 app/
 ```python
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: Configure properly for production
+    allow_origins=settings.allowed_origins,  # Default: [] (same-origin only)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 ```
 
-**Production Recommendation**: Restrict `allow_origins` to specific domains
+**Production Configuration**: Set `ALLOWED_ORIGINS` environment variable (JSON list) to the approved domains.
 
 #### Static Files
 
@@ -596,7 +590,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
   - [ ] SCM_DO_BUILD_DURING_DEPLOYMENT = true (for Oryx build)
 
 - [ ] **CORS Configuration**
-  - [ ] Update `allow_origins` in `app/main.py` to restrict domains
+  - [ ] Set `ALLOWED_ORIGINS` to approved domains (JSON list)
 
 ### 4.2 Post-Deployment Validation
 
@@ -615,24 +609,22 @@ openssl s_client -connect guideportal.azurewebsites.net:443
 
 # 4. Session cookie attributes
 # Open browser DevTools → Application → Cookies
-# Expected: HttpOnly=true
-# Note: Secure flag may be set by Azure, not explicitly by application
-# Note: SameSite not explicitly configured (uses browser/platform default)
+# Expected: HttpOnly=true, Secure=true, SameSite=Lax
 ```
 
 ---
 
 ## 5. Known Security Considerations
 
-### 5.1 Critical Security Gaps (From Security Audit)
+### 5.1 Audit Items (Current Status)
 
-| Item | Severity | Current State | Impact | Recommended Fix |
-|------|----------|---------------|--------|-----------------|
-| **Session Cookies Not Secure** | 🔴 High | Cookies are signed but not encrypted; `Secure` flag not explicitly set | Cookies may be sent over HTTP; session data readable if intercepted | Add `https_only=True, secure=True` to SessionMiddleware |
-| **No HTTPS Enforcement** | 🔴 High | No HTTP→HTTPS redirect; no HSTS headers | Users can access site over HTTP; vulnerable to downgrade attacks | Add middleware to redirect HTTP→HTTPS; add HSTS header |
-| **Input Validation Missing** | 🟡 Medium | Login form params not validated with Pydantic; no length/regex checks | Potential for injection attacks; malformed inputs not rejected | Add Pydantic validation to all form inputs |
-| **No User ID in API Calls** | 🔴 High | Trip/client API calls don't include authenticated user ID | Backend cannot verify user owns resource; potential unauthorized access | Send `user_id` in all resource API requests |
-| **CORS Wildcard** | 🟡 Medium | `allow_origins=["*"]` allows any origin | Cross-origin attacks possible; CSRF vulnerability | Restrict to specific domains |
+| Item | Severity | Current State | Impact | Status/Action |
+|------|----------|---------------|--------|---------------|
+| **Session Cookies Security** | 🔴→🟡 | Signed (not encrypted), `https_only=True`, `SameSite=Lax` | Contents readable if intercepted in plaintext; Secure flag now enforced | Mitigated via Secure + SameSite; encryption not implemented (accepted) |
+| **HTTPS Enforcement** | 🔴→🟢 | Middleware redirects HTTP→HTTPS and sets HSTS (non-debug) | Downgrade risk addressed | Implemented |
+| **Input Validation** | 🟡→🟢 | Login form validated with Pydantic + regex/length | Malformed input rejected | Implemented |
+| **User ID in API Calls** | 🔴→🟡 | `userId` forwarded on trip/departure/client requests | Backend must enforce ownership with provided ID | Forwarding implemented; backend enforcement required |
+| **CORS Wildcard** | 🟡→🟢 | `allowed_origins` allow-list from settings (default: []) | Cross-origin limited to configured domains | Implemented |
 
 ### 5.2 Additional Limitations
 
@@ -649,11 +641,11 @@ openssl s_client -connect guideportal.azurewebsites.net:443
 ### 5.3 Recommended Enhancements
 
 #### Phase 1 (Critical - Security Audit Findings)
-1. **Fix Session Cookie Security**: Add `https_only=True, secure=True, samesite="lax"` to SessionMiddleware
-2. **Implement HTTPS Enforcement**: Add middleware to redirect HTTP→HTTPS and set HSTS headers
-3. **Add Input Validation**: Implement Pydantic validation for all form inputs (especially login)
-4. **Send User ID to API**: Include authenticated user ID in all resource API requests
-5. **Restrict CORS**: Update `allow_origins` in `app/main.py` to specific domains only
+1. **Fix Session Cookie Security**: ✅ `https_only=True`, `SameSite=Lax` (still signed, not encrypted)
+2. **Implement HTTPS Enforcement**: ✅ Redirect + HSTS middleware (non-debug)
+3. **Add Input Validation**: ✅ Pydantic validation for login form
+4. **Send User ID to API**: ✅ `userId` forwarded on resource requests; backend must enforce
+5. **Restrict CORS**: ✅ Allow-list via settings (`ALLOWED_ORIGINS`)
 
 #### Phase 2 (High Priority)
 6. **Authentication Middleware**: Implement `@require_auth` decorator
@@ -679,6 +671,7 @@ openssl s_client -connect guideportal.azurewebsites.net:443
 ```
 POST /tourcube/guidePortal/login
 GET  /tourcube/guidePortal/forgotUserName/{email}
+GET  /tourcube/v1/clientHash/{guide_hash}   # guide_hash -> guide_id (support bypass)
 ```
 
 ### Guide Endpoints
@@ -797,16 +790,18 @@ GET  /tourcube/guidePortal/getClientPage/{clientID}
 |---------|------|---------|--------|
 | 1.0 | 2025-12-02 | Initial document creation | Development Team |
 | 1.1 | 2025-12-02 | **Security audit corrections** - Updated to reflect actual implementation vs. documented claims | Development Team |
+| 1.2 | 2025-12-02 | Implemented remediation (HTTPS redirect + HSTS, Secure cookies, login validation, userId forwarding, CORS allow-list) | Development Team |
 
-### Key Corrections in v1.1
-1. **Session cookies**: Changed from "encrypted + Secure" to "signed (not encrypted), Secure flag not explicitly set"
-2. **HTTPS enforcement**: Changed from "enforced" to "scheme rewriting only, no redirect or HSTS"
-3. **Input validation**: Changed from "all inputs validated with Pydantic" to "minimal validation, login uses raw Form params"
-4. **Authorization**: Clarified that user ID is NOT sent to API in most resource requests
+### Key Corrections in v1.1/v1.2
+1. **Session cookies**: Clarified as signed (not encrypted) and now set Secure via `https_only` + `SameSite=Lax`
+2. **HTTPS enforcement**: Added middleware for HTTP→HTTPS redirect + HSTS (non-debug)
+3. **Input validation**: Login now validated with Pydantic + regex/length checks
+4. **Authorization**: `userId` now forwarded on resource API requests
 5. **API header**: Corrected header name from `TourcubeAPIKey` to `tc-api-key`
 6. **Login URL**: Corrected from `/login` to `/auth/login`
 7. **Health check response**: Corrected from `{"status": "ok"}` to `{"status": "healthy", "version": "..."}`
 8. **Session data**: Corrected vendor session structure (no separate `vendor_name` field)
+9. **Security remediations**: Added HTTPS redirect + HSTS, Secure + SameSite cookies, Pydantic login validation, `userId` forwarding, and CORS allow-list configuration
 
 ### Recommendation
 **Before production deployment**, address the 5 critical security gaps identified in Section 5.1. These are not theoretical vulnerabilities but actual implementation gaps discovered through code review.

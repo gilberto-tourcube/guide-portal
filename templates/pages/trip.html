@@ -228,7 +228,7 @@
 
 <!-- Back to Home Button -->
 <div class="nk-block">
-    <a href="/guide/home" class="btn btn-outline-primary">
+    <a href="{% if request.session.get('user_role') == 'Vendor' %}/vendor/home{% else %}/guide/home{% endif %}" class="btn btn-outline-primary">
         <em class="icon ni ni-arrow-left"></em>
         <span>Back to Home</span>
     </a>

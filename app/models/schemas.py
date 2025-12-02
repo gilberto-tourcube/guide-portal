@@ -157,8 +157,10 @@ class GuideHomepageData(BaseModel):
 
 class LoginRequest(BaseModel):
     """Login request payload for form submission"""
-    username: str = Field(..., min_length=1, description="Guide username or email")
-    password: str = Field(..., min_length=1, description="Guide password")
+    username: str = Field(..., min_length=1, max_length=100, description="Portal username or email")
+    password: str = Field(..., min_length=1, max_length=100, description="Portal password")
+    company_code: str = Field(..., min_length=1, max_length=50, description="Company identifier")
+    mode: str = Field(..., pattern="^(Test|Production)$", description="Environment mode")
 
 
 class LoginAPIRequest(BaseModel):

@@ -1,19 +1,22 @@
 """Authentication routes for login, logout, and password recovery"""
 
-from fastapi import APIRouter, Request, Form, HTTPException, status, Query
+import logging
+from typing import Optional
+
+import httpx
+from fastapi import APIRouter, Request, Form, HTTPException, status, Query, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from typing import Optional
-import httpx
 
-from app.services.auth_service import auth_service
-from app.models.schemas import ForgotUsernameRequest
 from app.config import settings, InvalidCompanyCodeError
+from app.models.schemas import LoginRequest
+from app.services.auth_service import auth_service
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 # Jinja2 templates
 templates = Jinja2Templates(directory="templates")
+logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -28,8 +31,8 @@ async def root(request: Request):
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(
     request: Request,
-    company_code: str = Query(..., description="Company identifier"),
-    mode: str = Query(..., description="Test or Production"),
+    company_code: str = Query(..., description="Company identifier", min_length=1, max_length=50),
+    mode: str = Query(..., description="Test or Production", pattern="^(Test|Production)$"),
     error: Optional[str] = Query(None)
 ):
     """
@@ -70,13 +73,24 @@ async def login_page(
     )
 
 
+def _login_form_dependency(
+    username: str = Form(..., min_length=1, max_length=100),
+    password: str = Form(..., min_length=1, max_length=100),
+    company_code: str = Form(..., min_length=1, max_length=50),
+    mode: str = Form(..., pattern="^(Test|Production)$")
+) -> LoginRequest:
+    return LoginRequest(
+        username=username,
+        password=password,
+        company_code=company_code,
+        mode=mode
+    )
+
+
 @router.post("/login")
 async def login_submit(
     request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
-    company_code: str = Form(...),
-    mode: str = Form(...)
+    form_data: LoginRequest = Depends(_login_form_dependency)
 ):
     """
     Process login form submission
@@ -90,25 +104,25 @@ async def login_submit(
     try:
         # Call authentication service
         login_response = await auth_service.login(
-            username=username,
-            password=password,
-            company_code=company_code,
-            mode=mode
+            username=form_data.username,
+            password=form_data.password,
+            company_code=form_data.company_code,
+            mode=form_data.mode
         )
 
         # Check if login failed
         if login_response.login_failed:
             # Redirect back to login with error
             return RedirectResponse(
-                url=f"/auth/login?company_code={company_code}&mode={mode}&error=invalid_credentials",
+                url=f"/auth/login?company_code={form_data.company_code}&mode={form_data.mode}&error=invalid_credentials",
                 status_code=303
             )
 
         # Login successful - create session
         request.session["authenticated"] = True
         request.session["user_type"] = login_response.type
-        request.session["company_code"] = company_code
-        request.session["mode"] = mode
+        request.session["company_code"] = form_data.company_code
+        request.session["mode"] = form_data.mode
 
         # Store user-specific data based on type
         if login_response.type == 1:  # Guide
@@ -135,13 +149,13 @@ async def login_submit(
             try:
                 vendor_info = await auth_service.get_vendor_info(
                     vendor_id=login_response.guide_vendor_id,
-                    company_code=company_code,
-                    mode=mode
+                    company_code=form_data.company_code,
+                    mode=form_data.mode
                 )
                 vendor_name = vendor_info["vendor_name"]
             except Exception as e:
                 # If fetching vendor info fails, use a default name
-                print(f"Warning: Could not fetch vendor info: {e}")
+                logger.warning("Could not fetch vendor info: %s", e)
                 vendor_name = "Vendor"
 
             # Store normalized user data
@@ -164,14 +178,14 @@ async def login_submit(
         # API call failed
         print(f"Login API error: {e}")
         return RedirectResponse(
-            url=f"/auth/login?company_code={company_code}&mode={mode}&error=api_error",
+            url=f"/auth/login?company_code={form_data.company_code}&mode={form_data.mode}&error=api_error",
             status_code=303
         )
     except Exception as e:
         # Unexpected error
-        print(f"Login error: {e}")
+        logger.error("Login error: %s", e)
         return RedirectResponse(
-            url=f"/auth/login?company_code={company_code}&mode={mode}&error=unexpected_error",
+            url=f"/auth/login?company_code={form_data.company_code}&mode={form_data.mode}&error=unexpected_error",
             status_code=303
         )
 

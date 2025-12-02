@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 
 class InvalidCompanyCodeError(Exception):
@@ -53,6 +53,7 @@ class Settings(BaseSettings):
 
     # Security
     ssl_verify: bool = True  # Enable SSL certificate verification (fixed from legacy)
+    allowed_origins: List[str] = []  # CORS allow-list (empty = same-origin only)
 
     # Company Configuration - Default/Fallback Values
     # These values are used when:

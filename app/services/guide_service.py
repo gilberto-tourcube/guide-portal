@@ -32,6 +32,46 @@ class GuideService:
     def __init__(self):
         self.api_client = api_client
 
+    async def get_guide_id_by_hash(
+        self,
+        guide_hash: str,
+        company_code: str,
+        mode: str
+    ) -> int:
+        """
+        Resolve a guideHash to a guide_id using the Tourcube clientHash endpoint.
+        """
+        company_config = settings.get_company_config(company_code, mode)
+        self.api_client.base_url = company_config.api_url
+        self.api_client.api_key = company_config.api_key
+
+        result = await self.api_client.get(
+            f"/tourcube/v1/clientHash/{guide_hash}"
+        )
+
+        # API may return a bare integer or a dict with various key names
+        if isinstance(result, (int, str)):
+            guide_id = result
+        elif isinstance(result, dict):
+            guide_id = (
+                result.get("guide_id")
+                or result.get("GuideID")
+                or result.get("guideID")
+                or result.get("client_id")
+                or result.get("ClientID")
+                or result.get("clientID")
+            )
+        else:
+            guide_id = None
+
+        if guide_id is None:
+            raise ValueError("guideHash could not be resolved to a guide ID")
+
+        try:
+            return int(guide_id)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("guideHash returned an invalid guide ID") from exc
+
     async def get_guide_homepage(
         self,
         guide_id: int,
@@ -392,7 +432,8 @@ class GuideService:
 
         # Fetch departure page data from API (GP_DeparturePage)
         departure_response = await self.api_client.get(
-            f"/tourcube/guidePortal/getDeparturePage/{trip_departure_id}"
+            f"/tourcube/guidePortal/getDeparturePage/{trip_departure_id}",
+            params={"userId": guide_id}
         )
 
         # Parse guides
@@ -543,7 +584,8 @@ class GuideService:
 
         # Fetch trip page data from API (GP_TripPage)
         trip_response = await self.api_client.get(
-            f"/tourcube/guidePortal/getTripPage/{trip_id}"
+            f"/tourcube/guidePortal/getTripPage/{trip_id}",
+            params={"userId": guide_id}
         )
 
         # Parse documents
@@ -618,6 +660,7 @@ class GuideService:
     async def get_client_details(
         self,
         client_id: int,
+        guide_id: int,
         company_code: str,
         mode: str
     ) -> ClientData:
@@ -644,7 +687,8 @@ class GuideService:
 
         # Fetch client data from API (GP_GetClient)
         client_response = await self.api_client.get(
-            f"/tourcube/guidePortal/getClientPage/{client_id}"
+            f"/tourcube/guidePortal/getClientPage/{client_id}",
+            params={"userId": guide_id}
         )
 
         # Calculate age from birthDate if age is 0 or None

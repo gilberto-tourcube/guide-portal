@@ -4,6 +4,8 @@ These routes are accessible by both guides and vendors.
 Access control is handled at the service layer.
 """
 
+import logging
+
 from fastapi import APIRouter, Request, HTTPException, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -15,6 +17,7 @@ router = APIRouter(tags=["resources"])
 
 # Jinja2 templates
 templates = Jinja2Templates(directory="templates")
+logger = logging.getLogger(__name__)
 
 
 @router.get("/departure/{trip_departure_id}", response_class=HTMLResponse)
@@ -81,14 +84,14 @@ async def departure_details(request: Request, trip_departure_id: int):
 
     except httpx.HTTPError as e:
         # Log error and show user-friendly message
-        print(f"API Error fetching trip departure: {e}")
+        logger.error("API Error fetching trip departure: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unable to load trip information. Please try again later."
         )
     except Exception as e:
         # Catch any other errors
-        print(f"Unexpected error in trip_details: {e}")
+        logger.exception("Unexpected error in trip_details: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred"
@@ -156,14 +159,14 @@ async def trip_page(request: Request, trip_id: int):
 
     except httpx.HTTPError as e:
         # Log error and show user-friendly message
-        print(f"API Error fetching trip page: {e}")
+        logger.error("API Error fetching trip page: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unable to load trip information. Please try again later."
         )
     except Exception as e:
         # Catch any other errors
-        print(f"Unexpected error in trip_page: {e}")
+        logger.exception("Unexpected error in trip_page: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred"
@@ -226,6 +229,7 @@ async def client_page(
         # Fetch client details
         client_data = await guide_service.get_client_details(
             client_id=client_id,
+            guide_id=user_id,
             company_code=company_code,
             mode=mode
         )
@@ -249,14 +253,14 @@ async def client_page(
 
     except httpx.HTTPError as e:
         # Log error and show user-friendly message
-        print(f"API Error fetching client details: {e}")
+        logger.error("API Error fetching client details: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unable to load client information. Please try again later."
         )
     except Exception as e:
         # Catch any other errors
-        print(f"Unexpected error in client_page: {e}")
+        logger.exception("Unexpected error in client_page: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred"
