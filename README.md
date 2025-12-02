@@ -12,29 +12,47 @@ The Tourcube Guide Portal is a web application that consumes external APIs to pr
 
 #### Authentication System
 - Multi-company login support with dynamic branding
-- Dynamic DashLite skin theming per company
+- Dynamic DashLite skin theming per company (7 themes available)
 - Separate routes for login, logout, forgot password, and forgot username
 - Session-based authentication with encrypted cookies
 - Support for both Guide (Type 1) and Vendor (Type 2) users
 - Password visibility toggle and loading spinners
 - Improved error messaging
+- Forgot username functionality with email lookup
 
-#### Guide Homepage
-- Three-tab interface (Future Trips | Past Trips | Forms Due)
-- Responsive data tables for trips
+#### Guide Features
+- **Guide Homepage**: Three-tab interface (Future Trips | Past Trips | Forms Due)
+- **Trip Details Page**: Complete trip information with departure list
+- **Trip Departure Page**: Detailed departure information with passenger list
+- **Client Details Page**: Comprehensive client information with trip context
+- Responsive data tables with mobile optimization
 - Smart form status system with color-coded buttons
 - Pending forms counter
 - Business logic from legacy system preserved
-- Mobile-responsive design
 
-### 🚧 In Progress
-- Vendor homepage (placeholder redirect exists)
-- Trip details page
+#### Vendor Features
+- **Vendor Homepage**: Two-tab interface (Future Trips | Past Trips)
+- Responsive trip tables with clickable trip/departure links
+- Full integration with resource pages (trips, departures, clients)
+
+#### Resource-Based Routing Architecture ✨ **NEW**
+- RESTful resource routes without user-type prefixes
+- Generic routes: `/trip/{id}`, `/departure/{id}`, `/client/{id}`
+- User-specific routes only for homepages: `/guide/home`, `/vendor/home`
+- Access control in service layer (not in routes)
+- Eliminates code duplication
+- Scalable for new user types
+
+#### Dynamic Navigation
+- **Dynamic Breadcrumbs**: Automatically adjust based on user role (Guide/Vendor)
+- Context-aware navigation with trip/departure information
+- Consistent navigation patterns across all pages
 
 ### 📝 Pending
-- Forgot password user lookup implementation
+- Forgot password backend implementation
 - Authentication middleware/decorators
 - Error pages (404, 500)
+- Forms Due tab for vendor homepage (if needed)
 - Additional legacy page migrations
 
 ## 🏗️ Architecture
@@ -53,10 +71,12 @@ The Tourcube Guide Portal is a web application that consumes external APIs to pr
 
 1. **No Database**: Stateless application consuming external APIs only
 2. **Multi-Company Architecture**: Dynamic configuration per company (logos, skins, API credentials)
-3. **Template-Based Rendering**: Server-side rendering with Jinja2 for optimal SEO
-4. **Async-First**: All API calls use async/await for better performance
-5. **Clean Separation**: Clear separation between routes, services, and presentation layers
-6. **Dynamic Theming**: Company-specific DashLite skins loaded at runtime
+3. **Resource-Based Routing**: URLs represent resources (trips, departures, clients), not user types
+4. **Template-Based Rendering**: Server-side rendering with Jinja2 for optimal SEO
+5. **Async-First**: All API calls use async/await for better performance
+6. **Clean Separation**: Clear separation between routes, services, and presentation layers
+7. **Dynamic Theming**: Company-specific DashLite skins loaded at runtime
+8. **Access Control in Services**: Permission logic in service layer, not routes
 
 ## 📁 Project Structure
 
@@ -72,12 +92,15 @@ guide-portal/
 │   ├── routes/                    # Route handlers (controllers)
 │   │   ├── __init__.py
 │   │   ├── auth.py               # Authentication routes
-│   │   └── guide.py              # Guide routes
+│   │   ├── guide.py              # Guide-specific routes (/guide/home)
+│   │   ├── vendor.py             # Vendor-specific routes (/vendor/home)
+│   │   └── resources.py          # Generic resource routes (trips, departures, clients)
 │   ├── services/                  # Business logic and API clients
 │   │   ├── __init__.py
 │   │   ├── api_client.py         # HTTP client wrapper
 │   │   ├── auth_service.py       # Authentication service
-│   │   └── guide_service.py      # Guide business logic
+│   │   ├── guide_service.py      # Guide business logic
+│   │   └── vendor_service.py     # Vendor business logic
 │   └── models/                    # Pydantic models (DTOs and schemas)
 │       ├── __init__.py
 │       └── schemas.py            # Request/Response models
@@ -92,11 +115,13 @@ guide-portal/
 │   │   ├── theme.css            # Theme variables
 │   │   ├── custom.css           # Custom styles
 │   │   └── skins/               # DashLite skin variants
-│   │       ├── theme-bluelite.css
-│   │       ├── theme-egyptian.css
-│   │       ├── theme-green.css
-│   │       ├── theme-purple.css
-│   │       └── theme-red.css
+│   │       ├── theme-bluelite.css  # Default (#29347a)
+│   │       ├── theme-darkblue.css  # (#021628)
+│   │       ├── theme-egyptian.css  # (#02274d)
+│   │       ├── theme-purple.css    # (#36206a)
+│   │       ├── theme-green.css     # (#064936)
+│   │       ├── theme-red.css       # (#5f2525)
+│   │       └── theme-blue.css      # (#0a2d6c)
 │   ├── js/
 │   │   ├── bundle.js            # DashLite core scripts
 │   │   └── scripts.js           # DashLite additional scripts
@@ -114,7 +139,11 @@ guide-portal/
 │   │   ├── navbar.html          # Top navigation bar
 │   │   └── sidebar.html         # Side navigation menu
 │   └── pages/
-│       ├── guide_home.html      # Guide homepage
+│       ├── guide_home.html      # Guide homepage (3 tabs)
+│       ├── vendor_home.html     # Vendor homepage (2 tabs)
+│       ├── trip.html            # Trip details page
+│       ├── trip_departure.html  # Trip departure details
+│       ├── client.html          # Client details page
 │       ├── login.html           # Login page
 │       ├── forgot_password.html # Password recovery
 │       └── forgot_username.html # Username recovery
@@ -143,6 +172,8 @@ guide-portal/
 - Render templates with data
 - Session management
 - Error handling and redirects
+- **Resource Routes** (`resources.py`): Generic routes for shared resources (trips, departures, clients)
+- **User Routes** (`guide.py`, `vendor.py`): User-specific routes (homepages only)
 
 ### Services Layer (`app/services/`)
 - External API communication
@@ -278,11 +309,13 @@ itsdangerous==2.1.2       # Session encryption
 The application supports company-specific DashLite themes via the `SkinName` configuration:
 
 ### Available Skins
-- `theme-bluelite` - Light blue theme
-- `theme-egyptian` - Egyptian color palette
-- `theme-green` - Green theme
-- `theme-purple` - Purple theme
-- `theme-red` - Red theme
+- `theme-bluelite` - Light blue theme (Default - #29347a)
+- `theme-darkblue` - Dark blue theme (#021628)
+- `theme-egyptian` - Egyptian color palette (#02274d)
+- `theme-purple` - Purple theme (#36206a)
+- `theme-green` - Green theme (#064936)
+- `theme-red` - Red theme (#5f2525)
+- `theme-blue` - Blue theme (#0a2d6c)
 
 ### How It Works
 
@@ -327,7 +360,49 @@ session["guide_email"]
 
 # For Vendors (Type 2):
 session["vendor_id"]
+session["vendor_name"]
 ```
+
+## 🏛️ Routing Architecture
+
+### Resource-Based Routing (RESTful Design)
+
+The application follows a **resource-based routing architecture** instead of user-based routes:
+
+#### ✅ Current Architecture (Resource-Based)
+```
+# User-specific routes (different homepages)
+/guide/home          → Guide homepage
+/vendor/home         → Vendor homepage
+
+# Resource routes (shared by all user types)
+/trip/{id}           → Trip details page (guides + vendors)
+/departure/{id}      → Departure details page (guides + vendors)
+/client/{id}         → Client details page (guides + vendors)
+```
+
+#### ❌ Previous Architecture (User-Based - Rejected)
+```
+/guide/home          → Guide homepage
+/guide/trip/{id}     → Trip page (guides only) - DUPLICATION!
+/guide/departure/{id} → Departure page (guides only) - DUPLICATION!
+
+/vendor/home         → Vendor homepage
+/vendor/trip/{id}    → Trip page (vendors only) - DUPLICATION!
+/vendor/departure/{id} → Departure page (vendors only) - DUPLICATION!
+```
+
+#### Architectural Principles
+1. **Routes = Resources, not Users**: URLs represent entities (trips, departures, clients), not who accesses them
+2. **Access Control in Service Layer**: Permission logic is in services, not routes
+3. **DRY (Don't Repeat Yourself)**: One route per resource, not one per user type
+4. **Scalability**: Adding new user types doesn't require duplicating all routes
+
+#### Implementation
+- **Generic Routes**: `app/routes/resources.py` contains `/trip/{id}`, `/departure/{id}`, `/client/{id}`
+- **User-Specific Routes**: `app/routes/guide.py` and `app/routes/vendor.py` contain only homepage routes
+- **Authentication**: `user_id = request.session.get("guide_id") or request.session.get("vendor_id")`
+- **Service Routing**: Calls `guide_service` or `vendor_service` as needed based on user type
 
 ## 🌐 API Endpoints
 
@@ -344,8 +419,36 @@ session["vendor_id"]
 ### Guide Routes
 - `GET /guide/home` - Guide homepage (requires authentication)
 
+### Vendor Routes
+- `GET /vendor/home` - Vendor homepage (requires authentication)
+
+### Resource Routes (Accessible by Guides and Vendors)
+- `GET /trip/{id}` - Trip details page
+- `GET /departure/{id}` - Trip departure details page
+- `GET /client/{id}` - Client details page
+
 ### System Routes
 - `GET /health` - Health check endpoint
+
+### External API Endpoints Consumed
+
+```bash
+# Authentication
+POST /tourcube/guidePortal/login
+GET  /tourcube/guidePortal/forgotUserName/{email}
+
+# Guide Endpoints
+GET  /tourcube/guidePortal/getGuideHomepage/{guideID}
+GET  /tourcube/guidePortal/getGuideForms/{guideID}/{tripDepartureID}
+
+# Vendor Endpoints
+GET  /tourcube/guidePortal/getVendorHomepage/{vendorID}
+
+# Resource Endpoints (accessible by both guides and vendors)
+GET  /tourcube/guidePortal/getDeparturePage/{tripDepartureID}
+GET  /tourcube/guidePortal/getTripPage/{tripID}
+GET  /tourcube/guidePortal/getClientPage/{clientID}
+```
 
 ## 🔄 Development Workflow
 
@@ -439,25 +542,38 @@ docker run -p 8000:8000 --env-file .env guide-portal
 ### Phase 1: Core Authentication ✅
 - ✅ Login system
 - ✅ Multi-company support
-- ✅ Dynamic theming
+- ✅ Dynamic theming (7 skins)
 - ✅ Session management
+- ✅ Forgot username functionality
 
 ### Phase 2: Guide Features ✅
-- ✅ Guide homepage
-- ✅ Future/past trips display
-- ✅ Forms management
+- ✅ Guide homepage (3 tabs: Future Trips, Past Trips, Forms Due)
+- ✅ Trip details page
+- ✅ Trip departure details page
+- ✅ Client details page
+- ✅ Forms management system
+- ✅ Responsive tables with mobile optimization
 
-### Phase 3: Enhanced Features 🚧
-- [ ] Vendor homepage
-- [ ] Trip details page
-- [ ] Form submission/editing
+### Phase 3: Vendor Features ✅
+- ✅ Vendor homepage (2 tabs: Future Trips, Past Trips)
+- ✅ Resource-based routing architecture
+- ✅ Dynamic breadcrumb navigation
+- ✅ Full integration with resource pages
+
+### Phase 4: Enhanced Features 🚧
+- [ ] Forgot password backend implementation
+- [ ] Authentication middleware/decorators
+- [ ] Error pages (404, 500, 403)
+- [ ] Forms Due tab for vendors (if needed)
+- [ ] Form submission/editing functionality
 - [ ] User profile page
 
-### Phase 4: Complete Migration 📝
-- [ ] All legacy pages migrated
-- [ ] Full feature parity
-- [ ] Performance optimization
-- [ ] Comprehensive testing
+### Phase 5: Complete Migration 📝
+- [ ] All remaining legacy pages migrated
+- [ ] Full feature parity with legacy system
+- [ ] Performance optimization (caching, bundle size)
+- [ ] Comprehensive testing (unit, integration, E2E)
+- [ ] Monitoring and logging implementation
 
 ## 🤝 Contributing
 
@@ -485,6 +601,18 @@ For questions or issues:
 
 ---
 
-**Version**: 1.0.0
-**Last Updated**: 2025-11-19
-**Status**: Authentication and Guide Homepage Implemented
+## 📊 Project Metrics
+
+- **Backend Files**: 11 core files (routes, services, models)
+- **Frontend Templates**: 13 templates (layouts, components, pages)
+- **Available Themes**: 7 DashLite skins
+- **Completed Features**: 20+ features across authentication, guide, vendor, and resource pages
+- **Lines of Code**: ~2500+ (backend) + ~2000+ (templates)
+- **Architecture**: Resource-based RESTful routing
+
+---
+
+**Version**: 2.0.0
+**Last Updated**: 2025-11-28
+**Status**: ✅ Multi-User Portal (Guides + Vendors) with Resource-Based Architecture
+**Branch**: v0.20251126
