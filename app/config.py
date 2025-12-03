@@ -22,6 +22,8 @@ class CompanyConfig(BaseModel):
     test_url: str
     production_api_key: str
     production_url: str
+    test_domains: List[str] = []
+    production_domains: List[str] = []
 
     # Active configuration based on mode
     api_url: str
@@ -66,6 +68,7 @@ class Settings(BaseSettings):
 
     # Cache for company configurations
     _company_configs: Optional[Dict[str, CompanyConfig]] = None
+    _domain_map: Optional[Dict[str, tuple[str, str]]] = None  # host -> (company_id, mode)
 
     class Config:
         env_file = ".env"
@@ -87,7 +90,8 @@ class Settings(BaseSettings):
         with open(api_key_path, 'r') as f:
             data = json.load(f)
 
-        configs = {}
+        configs: Dict[str, CompanyConfig] = {}
+        domain_map: Dict[str, tuple[str, str]] = {}
         for company in data.get('TourcubeAPIKey', []):
             company_id = company.get('CompanyID')
             if not company_id:
@@ -111,7 +115,7 @@ class Settings(BaseSettings):
                 else:
                     skin_name = 'theme-bluelite'  # Default theme
 
-            configs[company_id] = CompanyConfig(
+            company_config = CompanyConfig(
                 company_id=company_id,
                 logo=company.get('Logo', 'logo.png'),
                 tourcube_online=company.get('TourcubeOnline', True),
@@ -120,12 +124,26 @@ class Settings(BaseSettings):
                 test_url=company.get('TestURL', ''),
                 production_api_key=company.get('Production', ''),
                 production_url=company.get('ProductionURL', ''),
+                test_domains=company.get('TestDomains', []),
+                production_domains=company.get('ProductionDomains', []),
                 # Initialize with Test credentials by default
                 api_url=company.get('TestURL', ''),
                 api_key=company.get('Test', '')
             )
+            configs[company_id] = company_config
+
+            # Map domains to company/mode for lookup by host header
+            for domain in company_config.test_domains:
+                norm = self._normalize_host(domain)
+                if norm:
+                    domain_map[norm] = (company_id, "Test")
+            for domain in company_config.production_domains:
+                norm = self._normalize_host(domain)
+                if norm:
+                    domain_map[norm] = (company_id, "Production")
 
         self._company_configs = configs
+        self._domain_map = domain_map
         return configs
 
     def get_company_config(self, company_code: str, mode: Optional[str] = None) -> CompanyConfig:
@@ -159,6 +177,41 @@ class Settings(BaseSettings):
             config.api_key = config.test_api_key
 
         return config
+
+    def resolve_company_and_mode(
+        self,
+        company_code: Optional[str] = None,
+        mode: Optional[str] = None,
+        host: Optional[str] = None
+    ) -> tuple[str, str]:
+        """
+        Resolve company_code and mode using precedence:
+        1. Explicit parameters if provided
+        2. Domain mapping (host header)
+        3. Defaults from settings
+        """
+        # Explicit values win
+        if company_code and mode:
+            return company_code, mode
+
+        # Try host mapping
+        norm_host = self._normalize_host(host)
+        if norm_host and self._domain_map and norm_host in self._domain_map:
+            mapped_company, mapped_mode = self._domain_map[norm_host]
+            return mapped_company, mapped_mode
+
+        # Fall back to defaults
+        return company_code or self.company_code, mode or self.mode
+
+    @staticmethod
+    def _normalize_host(host: Optional[str]) -> Optional[str]:
+        """Normalize host by lowercasing and stripping port."""
+        if not host:
+            return None
+        host = host.strip().lower()
+        if ':' in host:
+            host = host.split(':', 1)[0]
+        return host
 
     def get_api_credentials(
         self,

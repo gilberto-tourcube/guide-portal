@@ -103,6 +103,7 @@ User Browser
 
 **Optional Support Link (guide_hash)**:
 - If the query includes `guide_hash`, `/guide/home` resolves it via `/tourcube/v1/clientHash/{guide_hash}` to obtain `guide_id` and bootstraps a guide session (bypassing form login) for support staff.
+- Company/mode resolution order: query params > domain mapping (`TestDomains`/`ProductionDomains`) > defaults from `.env`.
 ```
 
 #### Session Management
@@ -203,7 +204,9 @@ if not user_id:
       "Test": "TEST_API_KEY_HERE",
       "TestURL": "https://test-api.tourcube.com",
       "Production": "PRODUCTION_API_KEY_HERE",
-      "ProductionURL": "https://api.tourcube.com"
+      "ProductionURL": "https://api.tourcube.com",
+      "TestDomains": ["test.company.com"],
+      "ProductionDomains": ["portal.company.com"]
     }
   ]
 }
@@ -214,6 +217,7 @@ if not user_id:
 - Caching mechanism prevents repeated file reads
 - Invalid company codes raise `InvalidCompanyCodeError`
 - Theme extraction from `SkinName` or `HTMLHeader` fields
+- Domain resolution: maps `Host`/`X-Forwarded-Host` to `CompanyID` and mode using `TestDomains`/`ProductionDomains`
 
 **Security Notes**:
 - API keys stored in file outside version control (`.gitignore`)

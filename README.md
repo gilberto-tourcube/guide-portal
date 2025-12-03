@@ -198,26 +198,12 @@ guide-portal/
 
 ### Multi-Company Configuration
 
-The application supports multiple companies with different configurations via `config/apikey.json`:
+The application supports multiple companies with different configurations via `config/apikey.json` (git-ignored, restored from the `APIKEY_JSON` secret in CI):
 
-```json
-{
-  "TourcubeAPIKey": [
-    {
-      "CompanyID": "WTGUIDE",
-      "Logo": "wilderness-travel-logo.png",
-      "TourcubeOnline": true,
-      "SkinName": "theme-bluelite",
-      "Test": "TEST_API_KEY",
-      "TestURL": "https://test-api.tourcube.com",
-      "Production": "PRODUCTION_API_KEY",
-      "ProductionURL": "https://api.tourcube.com"
-    }
-  ]
-}
-```
-
-**Note**: This file is git-ignored for security. Each deployment must create it manually.
+- Keys/URLs: `Test`/`Production` and `TestURL`/`ProductionURL`
+- Branding: `Logo`, `SkinName`, `TourcubeOnline`
+- **Domain mapping**: `TestDomains` and `ProductionDomains` let you resolve company/mode from the request host when `company_code`/`mode` are not in the query. Resolution order: query params > host mapping > defaults (`COMPANY_CODE`/`MODE`).
+- Distribution: `config/apikey.json` is git-ignored and reconstructed in CI from the `APIKEY_JSON` secret (see `.github/workflows/main_guideportal.yml`).
 
 ### Environment Variables
 

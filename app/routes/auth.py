@@ -31,8 +31,8 @@ async def root(request: Request):
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(
     request: Request,
-    company_code: str = Query(..., description="Company identifier", min_length=1, max_length=50),
-    mode: str = Query(..., description="Test or Production", pattern="^(Test|Production)$"),
+    company_code: Optional[str] = Query(None, description="Company identifier", min_length=1, max_length=50),
+    mode: Optional[str] = Query(None, description="Test or Production", pattern="^(Test|Production)$"),
     error: Optional[str] = Query(None)
 ):
     """
@@ -51,9 +51,17 @@ async def login_page(
         elif user_type == 2:  # Vendor
             return RedirectResponse(url="/vendor/home", status_code=302)
 
+    # Resolve company and mode from query or host
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    company_code_resolved, mode_resolved = settings.resolve_company_and_mode(
+        company_code=company_code,
+        mode=mode,
+        host=host
+    )
+
     # Get company configuration with mode
     try:
-        company_config = settings.get_company_config(company_code, mode)
+        company_config = settings.get_company_config(company_code_resolved, mode_resolved)
     except InvalidCompanyCodeError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -66,8 +74,8 @@ async def login_page(
             "request": request,
             "company_logo": company_config.logo,
             "skin_name": company_config.skin_name,
-            "company_code": company_code,
-            "mode": mode,
+            "company_code": company_code_resolved,
+            "mode": mode_resolved,
             "error": error
         }
     )
@@ -210,13 +218,21 @@ async def logout(request: Request):
 @router.get("/forgot-password", response_class=HTMLResponse)
 async def forgot_password_page(
     request: Request,
-    company_code: str = Query(..., description="Company identifier"),
-    mode: str = Query(..., description="Test or Production")
+    company_code: Optional[str] = Query(None, description="Company identifier"),
+    mode: Optional[str] = Query(None, description="Test or Production")
 ):
     """Display forgot password form"""
+    # Resolve company and mode from query or host
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    company_code_resolved, mode_resolved = settings.resolve_company_and_mode(
+        company_code=company_code,
+        mode=mode,
+        host=host
+    )
+
     # Get company configuration with mode
     try:
-        company_config = settings.get_company_config(company_code, mode)
+        company_config = settings.get_company_config(company_code_resolved, mode_resolved)
     except InvalidCompanyCodeError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -229,8 +245,8 @@ async def forgot_password_page(
             "request": request,
             "company_logo": company_config.logo,
             "skin_name": company_config.skin_name,
-            "company_code": company_code,
-            "mode": mode
+            "company_code": company_code_resolved,
+            "mode": mode_resolved
         }
     )
 
@@ -263,14 +279,22 @@ async def forgot_password_submit(
 @router.get("/forgot-username", response_class=HTMLResponse)
 async def forgot_username_page(
     request: Request,
-    company_code: str = Query(..., description="Company identifier"),
-    mode: str = Query(..., description="Test or Production"),
+    company_code: Optional[str] = Query(None, description="Company identifier"),
+    mode: Optional[str] = Query(None, description="Test or Production"),
     success: Optional[bool] = Query(None)
 ):
     """Display forgot username form"""
+    # Resolve company and mode from query or host
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    company_code_resolved, mode_resolved = settings.resolve_company_and_mode(
+        company_code=company_code,
+        mode=mode,
+        host=host
+    )
+
     # Get company configuration with mode
     try:
-        company_config = settings.get_company_config(company_code, mode)
+        company_config = settings.get_company_config(company_code_resolved, mode_resolved)
     except InvalidCompanyCodeError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -283,8 +307,8 @@ async def forgot_username_page(
             "request": request,
             "company_logo": company_config.logo,
             "skin_name": company_config.skin_name,
-            "company_code": company_code,
-            "mode": mode,
+            "company_code": company_code_resolved,
+            "mode": mode_resolved,
             "success": success
         }
     )

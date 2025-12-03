@@ -19,7 +19,7 @@ This guide explains how to deploy the Guide Portal application to Azure App Serv
    - **Resource Group**: Create new or select existing
    - **Name**: `guide-portal` (or your preferred name)
    - **Publish**: Code
-   - **Runtime stack**: Python 3.11
+   - **Runtime stack**: Python 3.13
    - **Operating System**: Linux
    - **Region**: Choose closest to your users
    - **Pricing Plan**: Select appropriate tier (B1 or higher recommended)
@@ -31,18 +31,16 @@ After the App Service is created:
 
 1. Go to your App Service in Azure Portal
 2. Navigate to **Configuration** → **Application settings**
-3. Add the following environment variables:
+3. Add the following environment variables (Application settings):
 
    ```
-   SECRET_KEY=<your-secret-key>
+   SECRET_KEY=<your-secret-key>              # required
    APP_NAME=Tourcube Guide Portal
    DEBUG=False
-   COMPANY_CODE=<default-company-code>
-   MODE=Production
-
-   # Add company-specific API configurations
-   WT_PRODUCTION_API_URL=<your-api-url>
-   WT_PRODUCTION_API_KEY=<your-api-key>
+   COMPANY_CODE=<default-company-code>       # fallback
+   MODE=Production                           # fallback
+   SSL_VERIFY=true
+   ALLOWED_ORIGINS=[]                        # JSON list, e.g., ["https://portal.example.com"]
    ```
 
 4. Navigate to **Configuration** → **General settings**
@@ -53,7 +51,7 @@ After the App Service is created:
 
 1. In your App Service, click **Get publish profile** (top menu)
 2. Download the `.PublishSettings` file
-3. Open the file and copy its entire contents
+3. Open the file and copy its entire contents (XML)
 4. You'll need this for GitHub Secrets
 
 ## GitHub Actions Setup
@@ -63,26 +61,23 @@ After the App Service is created:
 1. Go to your GitHub repository
 2. Navigate to **Settings** → **Secrets and variables** → **Actions**
 3. Click **New repository secret**
-4. Add the following secret:
-   - **Name**: `AZURE_WEBAPP_PUBLISH_PROFILE`
-   - **Value**: Paste the entire contents of the publish profile file
+4. Add the following secrets:
+   - **Name**: `AZURE_WEBAPP_PUBLISH_PROFILE` (or the name referenced in the workflow)  
+     **Value**: full publish profile (.PublishSettings/.xml)
+   - **Name**: `APIKEY_JSON`  
+     **Value**: full contents of `config/apikey.json` (including `TestDomains` and `ProductionDomains`)
 5. Click **Add secret**
 
 ### 2. Update Workflow Configuration
 
-Edit `.github/workflows/azure-deploy.yml`:
-
-1. Update `AZURE_WEBAPP_NAME` to match your Azure App Service name:
-   ```yaml
-   env:
-     AZURE_WEBAPP_NAME: guide-portal  # Change this to your app name
-   ```
-
-2. Update `PYTHON_VERSION` if needed (currently set to 3.11)
+Workflow used: `.github/workflows/main_guideportal.yml`
+- `publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}` — confirm the secret name.
+- Step “Restore apikey.json from secret” writes `config/apikey.json` from `APIKEY_JSON`.
+- Python set to 3.13.
 
 ### 3. Customize Deployment Branches
 
-The workflow is triggered on pushes to `main` and `production` branches. To change this:
+The workflow runs on pushes to `main` (default). To change:
 
 ```yaml
 on:
@@ -172,7 +167,7 @@ The deployment uses these files:
 guide-portal/
 ├── .github/
 │   └── workflows/
-│       └── azure-deploy.yml      # GitHub Actions workflow
+│       └── main_guideportal.yml  # GitHub Actions workflow
 ├── .deployment                    # Azure deployment config
 ├── startup.sh                     # Azure startup script
 ├── requirements.txt               # Python dependencies
