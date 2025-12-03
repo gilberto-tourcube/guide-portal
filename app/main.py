@@ -69,10 +69,24 @@ app.include_router(vendor.router)     # Vendor-specific routes (/vendor/home)
 
 
 @app.get("/")
-async def root():
-    """Redirect root to login page with default parameters"""
+async def root(request: Request):
+    """
+    Redirect root to login or guide home (when guide_hash is provided).
+    """
+    params = request.query_params
+    guide_hash = params.get("guide_hash") or params.get("guideHash")
+    company_code = params.get("company_code") or settings.company_code
+    mode = params.get("mode") or settings.mode
+
+    if guide_hash:
+        # If guide_hash is present, go straight to guide home (login bypass)
+        return RedirectResponse(
+            url=f"/guide/home?company_code={company_code}&mode={mode}&guide_hash={guide_hash}",
+            status_code=302
+        )
+
     return RedirectResponse(
-        url=f"/auth/login?company_code={settings.company_code}&mode={settings.mode}",
+        url=f"/auth/login?company_code={company_code}&mode={mode}",
         status_code=302
     )
 
