@@ -155,4 +155,4 @@ logs/
 .claude/
 docs/
 checkpoint.md
-# config/apikey.json
+config/apikey.json
