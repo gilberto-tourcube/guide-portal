@@ -7,10 +7,11 @@ Access control is handled at the service layer.
 import logging
 
 from fastapi import APIRouter, Request, HTTPException, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.services.guide_service import guide_service
 import httpx
+from app.config import settings
 
 # Generic resources router (no prefix, resources at root level)
 router = APIRouter(tags=["resources"])
@@ -51,14 +52,16 @@ async def departure_details(request: Request, trip_departure_id: int):
     mode = request.session.get("mode")
 
     if not user_id or not company_code or not mode:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
+        # Redirect to login with error
+        company_code = company_code or settings.company_code
+        mode = mode or settings.mode
+        return RedirectResponse(
+            url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
+            status_code=302
         )
 
     try:
         # Get company configuration for logo and branding
-        from app.config import settings
         company_config = settings.get_company_config(company_code, mode)
 
         # Fetch trip departure data (API accepts both guide_id and vendor_id in same parameter)
@@ -126,14 +129,15 @@ async def trip_page(request: Request, trip_id: int):
     mode = request.session.get("mode")
 
     if not user_id or not company_code or not mode:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
+        company_code = company_code or settings.company_code
+        mode = mode or settings.mode
+        return RedirectResponse(
+            url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
+            status_code=302
         )
 
     try:
         # Get company configuration for logo and branding
-        from app.config import settings
         company_config = settings.get_company_config(company_code, mode)
 
         # Fetch trip page data (API accepts both guide_id and vendor_id in same parameter)
@@ -216,14 +220,15 @@ async def client_page(
     mode = request.session.get("mode")
 
     if not user_id or not company_code or not mode:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
+        company_code = company_code or settings.company_code
+        mode = mode or settings.mode
+        return RedirectResponse(
+            url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
+            status_code=302
         )
 
     try:
         # Get company configuration for logo and branding
-        from app.config import settings
         company_config = settings.get_company_config(company_code, mode)
 
         # Fetch client details
