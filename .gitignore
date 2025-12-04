@@ -156,3 +156,4 @@ logs/
 docs/
 checkpoint.md
 config/apikey.json
+.env_test
