@@ -16,6 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read #This is required for actions/checkout
+    env:
+      TOURCUBE_GUIDE_USERNAME: ${{ secrets.TOURCUBE_GUIDE_USERNAME }}
+      TOURCUBE_GUIDE_PASSWORD: ${{ secrets.TOURCUBE_GUIDE_PASSWORD }}
+      TOURCUBE_VENDOR_USERNAME: ${{ secrets.TOURCUBE_VENDOR_USERNAME }}
+      TOURCUBE_VENDOR_PASSWORD: ${{ secrets.TOURCUBE_VENDOR_PASSWORD }}
+      TOURCUBE_COMPANY_CODE: ${{ secrets.TOURCUBE_COMPANY_CODE }}
+      TOURCUBE_MODE: ${{ secrets.TOURCUBE_MODE }}
 
     steps:
       - uses: actions/checkout@v4
@@ -47,15 +54,15 @@ jobs:
           pytest
 
       - name: Run Tourcube live integration tests (optional)
-        if: ${{ secrets.TOURCUBE_GUIDE_USERNAME != '' && secrets.TOURCUBE_GUIDE_PASSWORD != '' && secrets.TOURCUBE_VENDOR_USERNAME != '' && secrets.TOURCUBE_VENDOR_PASSWORD != '' }}
+        if: ${{ env.TOURCUBE_GUIDE_USERNAME != '' && env.TOURCUBE_GUIDE_PASSWORD != '' && env.TOURCUBE_VENDOR_USERNAME != '' && env.TOURCUBE_VENDOR_PASSWORD != '' }}
         env:
           RUN_TOURCUBE_LIVE: "1"
-          TOURCUBE_GUIDE_USERNAME: ${{ secrets.TOURCUBE_GUIDE_USERNAME }}
-          TOURCUBE_GUIDE_PASSWORD: ${{ secrets.TOURCUBE_GUIDE_PASSWORD }}
-          TOURCUBE_VENDOR_USERNAME: ${{ secrets.TOURCUBE_VENDOR_USERNAME }}
-          TOURCUBE_VENDOR_PASSWORD: ${{ secrets.TOURCUBE_VENDOR_PASSWORD }}
-          TOURCUBE_COMPANY_CODE: ${{ secrets.TOURCUBE_COMPANY_CODE || 'WTGUIDE' }}
-          TOURCUBE_MODE: ${{ secrets.TOURCUBE_MODE || 'Test' }}
+          TOURCUBE_GUIDE_USERNAME: ${{ env.TOURCUBE_GUIDE_USERNAME }}
+          TOURCUBE_GUIDE_PASSWORD: ${{ env.TOURCUBE_GUIDE_PASSWORD }}
+          TOURCUBE_VENDOR_USERNAME: ${{ env.TOURCUBE_VENDOR_USERNAME }}
+          TOURCUBE_VENDOR_PASSWORD: ${{ env.TOURCUBE_VENDOR_PASSWORD }}
+          TOURCUBE_COMPANY_CODE: ${{ env.TOURCUBE_COMPANY_CODE != '' && env.TOURCUBE_COMPANY_CODE || 'WTGUIDE' }}
+          TOURCUBE_MODE: ${{ env.TOURCUBE_MODE != '' && env.TOURCUBE_MODE || 'Test' }}
         run: |
           source antenv/bin/activate
           pytest -m integration
