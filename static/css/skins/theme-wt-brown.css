@@ -50,6 +50,9 @@ body,
   background: #F5F0E6;
   border-bottom-color: #E0E0E0;
 }
+.nk-header.bg-white {
+  background: #ffffff !important;
+}
 .nk-header.is-dark:not([class*=bg-]) {
   background: #382E24;
 }
