@@ -251,7 +251,7 @@
                                             </div>
                                             {% elif form.due_date %}
                                             <div class="badge-list mb-3">
-                                                <span class="badge bg-outline-{% if form.status.status == 'expired' %}danger{% else %}primary{% endif %}">
+                                                <span class="badge bg-outline-danger">
                                                     Due: {{ form.due_date.strftime('%b %d, %Y') if form.due_date else '-' }}
                                                 </span>
                                             </div>
