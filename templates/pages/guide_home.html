@@ -8,9 +8,6 @@
     <div class="nk-block-between g-3">
         <div class="nk-block-head-content">
             <h3 class="nk-block-title page-title">Guide Dashboard</h3>
-            <div class="nk-block-des text-soft">
-                <p>Your trips and forms information</p>
-            </div>
         </div>
     </div>
 </div>
@@ -42,40 +39,17 @@
                     <!-- Statistics -->
                     <div class="card-inner">
                         <div class="row text-center">
-                            <div class="col-4">
+                            <div class="col-6">
                                 <div class="profile-stats">
                                     <span class="amount">{{ guide.future_trips|length if guide.future_trips else 0 }}</span>
-                                    <span class="sub-text">Future</span>
+                                    <span class="sub-text">Future Trips</span>
                                 </div>
                             </div>
-                            <div class="col-4">
-                                <div class="profile-stats">
-                                    <span class="amount">{{ guide.past_trips|length if guide.past_trips else 0 }}</span>
-                                    <span class="sub-text">Past</span>
-                                </div>
-                            </div>
-                            <div class="col-4">
+                            <div class="col-6">
                                 <div class="profile-stats">
                                     <span class="amount">{{ guide.forms_pending_count if guide.forms_pending_count else 0 }}</span>
-                                    <span class="sub-text">Forms</span>
+                                    <span class="sub-text">Pending Forms</span>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Info -->
-                    <div class="card-inner">
-                        <h6 class="overline-title mb-2">Quick Info</h6>
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <span class="sub-text">Total Trips</span>
-                                <span class="caption-text">{{ (guide.future_trips|length if guide.future_trips else 0) + (guide.past_trips|length if guide.past_trips else 0) }}</span>
-                            </div>
-                            <div class="col-12">
-                                <span class="sub-text">Pending Forms</span>
-                                <span class="caption-text text-{% if guide.forms_pending_count > 0 %}danger{% else %}success{% endif %}">
-                                    {{ guide.forms_pending_count if guide.forms_pending_count else 0 }}
-                                </span>
                             </div>
                         </div>
                     </div>
@@ -153,7 +127,7 @@
                                         {% for trip in guide.future_trips %}
                                         <tr>
                                             <td>
-                                                <a href="/departure/{{ trip.trip_departure_id }}" class="link link-primary">
+                                                <a href="/departure/{{ trip.trip_departure_id }}" class="link link-dark fw-bold">
                                                     {{ trip.dates }}
                                                 </a>
                                             </td>
@@ -213,7 +187,7 @@
                                         {% for trip in guide.past_trips %}
                                         <tr>
                                             <td>
-                                                <a href="/departure/{{ trip.trip_departure_id }}" class="link link-primary">
+                                                <a href="/departure/{{ trip.trip_departure_id }}" class="link link-dark fw-bold">
                                                     {{ trip.dates }}
                                                 </a>
                                             </td>
@@ -292,14 +266,7 @@
 
                                             <!-- Contact Information -->
                                             <div class="text-soft small mb-3">
-                                                <p class="mb-1 fw-bold">Contact:</p>
-                                                <p class="mb-0">{{ form.contact.name }}</p>
-                                                <p class="mb-0">
-                                                    <a href="mailto:{{ form.contact.email }}">{{ form.contact.email }}</a>
-                                                </p>
-                                                {% if form.contact.phone %}
-                                                <p class="mb-0">{{ form.contact.phone }}</p>
-                                                {% endif %}
+                                                <p class="mb-0"><span class="fw-bold">Contact:</span> <a href="mailto:{{ form.contact.email }}">{{ form.contact.name }}</a></p>
                                             </div>
 
                                             <!-- Action Button -->

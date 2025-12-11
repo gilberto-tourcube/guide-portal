@@ -220,7 +220,7 @@ body,
 }
 
 a:hover {
-  color: #8d6843;
+  color: #333333;
 }
 
 .text-primary, .link-primary {
@@ -228,7 +228,7 @@ a:hover {
 }
 
 .link-primary:hover, a.text-primary:hover, a.text-primary:focus, .chat-upload-option a:hover {
-  color: #8d6843 !important;
+  color: #333333 !important;
 }
 
 .border-primary, .nk-kycfm-control:checked ~ .nk-kycfm-label {

@@ -146,7 +146,7 @@
                                 {% for passenger in departure.passengers %}
                                 <tr>
                                     <td>
-                                        <a href="/client/{{ passenger.client_id }}?from_page=trip_departure&trip_id={{ departure.trip_id }}&departure_id={{ departure.trip_departure_id }}&trip_name={{ departure.trip_name | urlencode }}&trip_dates={{ departure.trip_dates | urlencode }}" class="link link-primary fw-bold">
+                                        <a href="/client/{{ passenger.client_id }}?from_page=trip_departure&trip_id={{ departure.trip_id }}&departure_id={{ departure.trip_departure_id }}&trip_name={{ departure.trip_name | urlencode }}&trip_dates={{ departure.trip_dates | urlencode }}" class="link link-dark fw-bold">
                                             {{ passenger.client_name }}
                                         </a>
                                     </td>

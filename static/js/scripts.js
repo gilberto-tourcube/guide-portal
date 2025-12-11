@@ -568,15 +568,28 @@
   // Dark Mode Switch @since v2.0
   NioApp.ModeSwitch = function () {
     var toggle = $('.dark-switch');
-    if ($body.hasClass('dark-mode')) {
+
+    // Check localStorage for saved dark mode preference
+    var isDarkMode = localStorage.getItem('darkMode') === 'true';
+
+    // Apply saved preference on page load
+    if (isDarkMode) {
+      $body.addClass('dark-mode');
       toggle.addClass('active');
     } else {
+      $body.removeClass('dark-mode');
       toggle.removeClass('active');
     }
+
+    // Toggle dark mode and save preference
     toggle.on('click', function (e) {
       e.preventDefault();
       $(this).toggleClass('active');
       $body.toggleClass('dark-mode');
+
+      // Save the new state to localStorage
+      var newDarkMode = $body.hasClass('dark-mode');
+      localStorage.setItem('darkMode', newDarkMode);
     });
   };
 
