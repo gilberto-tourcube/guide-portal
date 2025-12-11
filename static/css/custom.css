@@ -64,8 +64,8 @@
 }
 
 .btn-form-pending {
-    background-color: #007bff !important;
-    border-color: #007bff !important;
+    background-color: var(--bs-primary) !important;
+    border-color: var(--bs-primary) !important;
     color: white !important;
 }
 

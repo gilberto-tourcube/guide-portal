@@ -19,7 +19,7 @@
             <div class="card-inner p-0 bg-primary-dim position-relative" style="{% if trip.thumbnail_image %}background-image: url('{{ trip.thumbnail_image }}'); background-size: cover; background-position: center; min-height: 150px;{% endif %}">
                 <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center py-4 px-3 {% if trip.thumbnail_image %}bg-dark bg-opacity-50{% endif %}">
                     <div class="{% if trip.thumbnail_image %}text-white{% endif %}">
-                        <h3 class="nk-block-title page-title {% if trip.thumbnail_image %}text-white{% endif %}">{{ trip.trip_name }}</h3>
+                        <h3 class="nk-block-title {% if trip.thumbnail_image %}page-title-dark{% else %}page-title{% endif %} {% if trip.thumbnail_image %}text-white{% endif %}">{{ trip.trip_name }}</h3>
                     </div>
                 </div>
             </div>
