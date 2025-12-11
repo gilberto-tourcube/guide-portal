@@ -16,8 +16,8 @@
     <div class="card card-bordered">
         <div class="card-inner-group">
             <!-- Trip Banner with Image -->
-            <div class="card-inner bg-primary-dim" style="{% if trip.thumbnail_image %}background-image: url('{{ trip.thumbnail_image }}'); background-size: cover; background-position: center; min-height: 150px;{% endif %}">
-                <div class="py-4 {% if trip.thumbnail_image %}bg-dark bg-opacity-50 rounded{% endif %}">
+            <div class="card-inner p-0 bg-primary-dim position-relative" style="{% if trip.thumbnail_image %}background-image: url('{{ trip.thumbnail_image }}'); background-size: cover; background-position: center; min-height: 150px;{% endif %}">
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center py-4 px-3 {% if trip.thumbnail_image %}bg-dark bg-opacity-50{% endif %}">
                     <div class="{% if trip.thumbnail_image %}text-white{% endif %}">
                         <h3 class="nk-block-title page-title {% if trip.thumbnail_image %}text-white{% endif %}">{{ trip.trip_name }}</h3>
                     </div>
@@ -99,7 +99,7 @@
                                 <tr>
                                     <td>
                                         {% if departure.is_guide_on_trip %}
-                                        <a href="/departure/{{ departure.trip_departure_id }}" class="link link-primary fw-bold">
+                                        <a href="/departure/{{ departure.trip_departure_id }}" class="link link-dark fw-bold">
                                             {{ departure.dates }}
                                         </a>
                                         {% else %}
@@ -151,7 +151,7 @@
                                 <tr>
                                     <td>
                                         {% if departure.is_guide_on_trip %}
-                                        <a href="/departure/{{ departure.trip_departure_id }}" class="link link-primary">
+                                        <a href="/departure/{{ departure.trip_departure_id }}" class="link link-dark fw-bold">
                                             {{ departure.dates }}
                                         </a>
                                         {% else %}

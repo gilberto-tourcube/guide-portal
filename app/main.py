@@ -99,7 +99,8 @@ app.add_middleware(
     session_cookie=settings.session_cookie_name,
     max_age=settings.session_max_age,
     https_only=not settings.debug,
-    same_site="lax"
+    same_site="lax",
+    path="/"
 )
 
 # Add middleware to enforce HTTPS and set HSTS when appropriate

@@ -21,8 +21,8 @@
     <div class="card card-bordered">
         <div class="card-inner-group">
             <!-- Trip Banner with Image -->
-            <div class="card-inner bg-primary-dim" style="{% if departure.thumbnail_image %}background-image: url('{{ departure.thumbnail_image }}'); background-size: cover; background-position: center; min-height: 150px;{% endif %}">
-                <div class="py-4 {% if departure.thumbnail_image %}bg-dark bg-opacity-50 rounded{% endif %}">
+            <div class="card-inner p-0 bg-primary-dim position-relative" style="{% if departure.thumbnail_image %}background-image: url('{{ departure.thumbnail_image }}'); background-size: cover; background-position: center; min-height: 150px;{% endif %}">
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center py-4 px-3 {% if departure.thumbnail_image %}bg-dark bg-opacity-50{% endif %}">
                     <div class="{% if departure.thumbnail_image %}text-white{% endif %}">
                         <p class="mb-1">{{ departure.trip_dates }}</p>
                         <h3 class="nk-block-title page-title {% if departure.thumbnail_image %}text-white{% endif %}">{{ departure.trip_name }}</h3>
@@ -146,7 +146,7 @@
                                 {% for passenger in departure.passengers %}
                                 <tr>
                                     <td>
-                                        <a href="/client/{{ passenger.client_id }}?from_page=trip_departure&trip_id={{ departure.trip_id }}&departure_id={{ departure.trip_departure_id }}&trip_name={{ departure.trip_name | urlencode }}&trip_dates={{ departure.trip_dates | urlencode }}" class="link link-primary fw-bold">
+                                        <a href="/client/{{ passenger.client_id }}?from_page=trip_departure&trip_id={{ departure.trip_id }}&departure_id={{ departure.trip_departure_id }}&trip_name={{ departure.trip_name | urlencode }}&trip_dates={{ departure.trip_dates | urlencode }}" class="link link-dark fw-bold">
                                             {{ passenger.client_name }}
                                         </a>
                                     </td>
@@ -162,8 +162,12 @@
                                     <td class="text-center">
                                         <span class="tb-sub">{{ passenger.nbr_past_trips if passenger.nbr_past_trips else '0' }}</span>
                                     </td>
-                                    <td>
-                                        <span class="tb-sub text-soft">{{ passenger.notes if passenger.notes else '-' }}</span>
+                                    <td style="max-width: 300px;">
+                                        {% if passenger.notes and passenger.notes != '-' %}
+                                        <span class="tb-sub text-truncate d-block note-cell" data-note="{{ passenger.notes }}">{{ passenger.notes }}</span>
+                                        {% else %}
+                                        <span class="tb-sub text-soft">-</span>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -362,4 +366,38 @@
     cursor: not-allowed;
 }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Add tooltip only for truncated notes
+document.addEventListener('DOMContentLoaded', function() {
+    var noteCells = document.querySelectorAll('.note-cell');
+
+    noteCells.forEach(function(cell) {
+        // Check if the element is truncated (scrollWidth > clientWidth means overflow)
+        if (cell.scrollWidth > cell.clientWidth) {
+            // Dispose any existing tooltip instance to prevent duplicates
+            var existingTooltip = bootstrap.Tooltip.getInstance(cell);
+            if (existingTooltip) {
+                existingTooltip.dispose();
+            }
+
+            // Get the note content and convert \r\n to actual line breaks for tooltip
+            var noteContent = cell.getAttribute('data-note');
+            var formattedNote = noteContent.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
+
+            // Add attributes and create new tooltip with formatted content
+            cell.setAttribute('title', formattedNote);
+            cell.setAttribute('data-bs-toggle', 'tooltip');
+            cell.setAttribute('data-bs-placement', 'top');
+
+            // Initialize single tooltip instance with white-space: pre-line for line breaks
+            new bootstrap.Tooltip(cell, {
+                template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner" style="white-space: pre-line; text-align: left;"></div></div>'
+            });
+        }
+    });
+});
+</script>
 {% endblock %}
