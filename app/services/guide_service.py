@@ -707,7 +707,7 @@ class GuideService:
             first_name=client_response.get("firstName", ""),
             last_name=client_response.get("lastName", ""),
             email=client_response.get("email"),
-            hometown=client_response.get("homeTown"),
+            hometown=client_response.get("hometown"),
             gender=client_response.get("gender"),
             age=age,
             mobile=client_response.get("mobile"),
@@ -719,7 +719,7 @@ class GuideService:
             past_trips=client_response.get("pastTrips"),
             past_trips_with_leader=client_response.get("pastTripsWithLeader"),
             future_trips=client_response.get("futureTrips"),
-            notes=client_response.get("tripLeaderNotes")
+            notes=client_response.get("notes")
         )
 
 
