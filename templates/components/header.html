@@ -1,14 +1,7 @@
-<!-- Top Header - White Background with Logo -->
+<!-- Main Header - White Background with Logo and User Menu -->
 <div class="nk-header nk-header-fluid bg-white border-bottom">
     <div class="container-xl wide-xl">
         <div class="nk-header-wrap">
-            <!-- Mobile Menu Trigger -->
-            <div class="nk-menu-trigger me-sm-2 d-lg-none">
-                <a href="#" class="nk-nav-toggle nk-quick-nav-icon text-base" data-target="headerNav">
-                    <em class="icon ni ni-menu"></em>
-                </a>
-            </div>
-
             <!-- Logo/Brand -->
             <div class="nk-header-brand">
                 {% set home_url = '/vendor/home' if request.session.get('user_role') == 'Vendor' else '/guide/home' %}
@@ -20,14 +13,7 @@
                     {% endif %}
                 </a>
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- Main Header - Theme Background with User Menu -->
-<div class="nk-header nk-header-fluid is-theme">
-    <div class="container-xl wide-xl">
-        <div class="nk-header-wrap">
             <!-- Spacer to push user menu to the right -->
             <div class="nk-header-menu"></div>
 
@@ -36,7 +22,7 @@
                 <ul class="nk-quick-nav">
                     <!-- Logout Link -->
                     <li class="hide-mb-sm">
-                        <a href="/auth/logout" class="nk-quick-nav-icon" title="Sign Out">
+                        <a href="/auth/logout" class="nk-quick-nav-icon text-base" title="Sign Out">
                             <em class="icon ni ni-signout"></em>
                         </a>
                     </li>
@@ -57,7 +43,7 @@
                                     {% endif %}
                                 </div>
                                 <div class="user-info d-none d-xl-block">
-                                    <div class="user-name dropdown-indicator">{{ user_name }}</div>
+                                    <div class="user-name dropdown-indicator text-base">{{ user_name }}</div>
                                 </div>
                             </div>
                         </a>

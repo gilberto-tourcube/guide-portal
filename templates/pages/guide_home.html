@@ -238,9 +238,6 @@
                                     <div class="card card-bordered h-100 {% if form.status.status == 'expired' %}border-danger{% endif %}">
                                         <div class="card-inner">
                                             <h6 class="title">{{ form.form_name }}</h6>
-                                            {% if form.description %}
-                                            <p class="text-soft small">{{ form.description }}</p>
-                                            {% endif %}
 
                                             <!-- Due Date -->
                                             {% if form.received %}
