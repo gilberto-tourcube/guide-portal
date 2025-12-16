@@ -222,8 +222,16 @@ class GuideService:
         due_date = self._parse_date(due_date_str) if due_date_str else None
         departure_date = self._parse_date(departure_date_str) if departure_date_str else None
 
-        # Determine contact based on company code
-        contact = self._get_form_contact(company_code)
+        # Determine contact based on company code and form data
+        contact = self._get_form_contact(
+            company_code=company_code,
+            dev_name=dev_name,
+            dev_email=dev_email,
+            dev_phone=dev_phone,
+            ops_name=ops_name,
+            ops_email=ops_email,
+            ops_phone=ops_phone
+        )
 
         # Calculate form status
         status = self._calculate_form_status(
@@ -339,9 +347,18 @@ class GuideService:
                     url=url
                 )
 
-    def _get_form_contact(self, company_code: str) -> FormContact:
+    def _get_form_contact(
+        self,
+        company_code: str,
+        dev_name: Optional[str] = None,
+        dev_email: Optional[str] = None,
+        dev_phone: Optional[str] = None,
+        ops_name: Optional[str] = None,
+        ops_email: Optional[str] = None,
+        ops_phone: Optional[str] = None
+    ) -> FormContact:
         """
-        Get form contact information based on company code
+        Get form contact information based on company code and API data
 
         Business rule from legacy:
         - WT and WTGUIDE companies → Developer contact
@@ -349,21 +366,29 @@ class GuideService:
 
         Args:
             company_code: Company identifier
+            dev_name: Developer name from API
+            dev_email: Developer email from API
+            dev_phone: Developer phone from API
+            ops_name: Operations name from API
+            ops_email: Operations email from API
+            ops_phone: Operations phone from API
 
         Returns:
-            FormContact with appropriate contact info
+            FormContact with appropriate contact info from API data
         """
         if company_code in ["WT", "WTGUIDE"]:
+            # Use Developer contact for WT companies
             return FormContact(
-                name="Development Team",
-                email="developer@tourcube.com",
-                phone="555-0100"
+                name=dev_name or "Development Team",
+                email=dev_email or "developer@tourcube.com",
+                phone=dev_phone or ""
             )
         else:
+            # Use Operations contact for other companies
             return FormContact(
-                name="Operations Team",
-                email="operations@tourcube.com",
-                phone="555-0200"
+                name=ops_name or "Operations Team",
+                email=ops_email or "operations@tourcube.com",
+                phone=ops_phone or ""
             )
 
     def _parse_date(self, date_str: Optional[str]) -> Optional[date]:
