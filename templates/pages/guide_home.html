@@ -262,9 +262,11 @@
                                             {% endif %}
 
                                             <!-- Contact Information -->
+                                            {% if form.show_contact and form.contact_label %}
                                             <div class="text-soft small mb-3">
-                                                <p class="mb-0"><span class="fw-bold">Contact:</span> <a href="mailto:{{ form.contact.email }}">{{ form.contact.name }}</a></p>
+                                                <p class="mb-0"><a href="mailto:{{ form.contact.email }}">{{ form.contact_label }}</a></p>
                                             </div>
+                                            {% endif %}
 
                                             <!-- Action Button -->
                                             {% if form.status.is_clickable %}
