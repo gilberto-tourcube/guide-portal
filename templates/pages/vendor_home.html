@@ -249,14 +249,20 @@
                             <div class="row g-gs">
                                 {% for form in vendor.forms %}
                                 <div class="col-md-6 col-xxl-4">
-                                    <div class="card card-bordered h-100 {% if form.status.status == 'overdue' %}border-danger{% endif %}">
+                                    <div class="card card-bordered h-100 {% if form.status.status == 'expired' %}border-danger{% endif %}">
                                         <div class="card-inner">
                                             <h6 class="title">{{ form.form_name }}</h6>
 
                                             <!-- Due Date -->
-                                            {% if form.due_date %}
+                                            {% if form.received %}
                                             <div class="badge-list mb-3">
-                                                <span class="badge bg-outline-{% if form.status.status == 'overdue' %}danger{% else %}primary{% endif %}">
+                                                <span class="badge bg-outline-success">
+                                                    Completed
+                                                </span>
+                                            </div>
+                                            {% elif form.due_date %}
+                                            <div class="badge-list mb-3">
+                                                <span class="badge bg-outline-danger">
                                                     Due: {{ form.due_date.strftime('%b %d, %Y') if form.due_date else '-' }}
                                                 </span>
                                             </div>
@@ -270,26 +276,13 @@
                                             {% endif %}
 
                                             <!-- Contact Information -->
+                                            {% set contact_name = form.ops_name or form.dev_name %}
+                                            {% set contact_email = form.ops_email or form.dev_email %}
+                                            {% if contact_name or contact_email %}
                                             <div class="text-soft small mb-3">
-                                                <p class="mb-1 fw-bold">Contact:</p>
-                                                {% if form.ops_name %}
-                                                <p class="mb-0">Trip Contact - {{ form.ops_name }}</p>
-                                                {% elif form.dev_name %}
-                                                <p class="mb-0">Trip Developer - {{ form.dev_name }}</p>
-                                                {% endif %}
-                                                {% if form.ops_email %}
-                                                <p class="mb-0">
-                                                    <a href="mailto:{{ form.ops_email }}">{{ form.ops_email }}</a>
-                                                </p>
-                                                {% elif form.dev_email %}
-                                                <p class="mb-0">
-                                                    <a href="mailto:{{ form.dev_email }}">{{ form.dev_email }}</a>
-                                                </p>
-                                                {% endif %}
-                                                {% if form.ops_phone %}
-                                                <p class="mb-0">{{ form.ops_phone }}</p>
-                                                {% endif %}
+                                                <p class="mb-0"><span class="fw-bold">Contact:</span> <a href="mailto:{{ contact_email }}">{{ contact_name }}</a></p>
                                             </div>
+                                            {% endif %}
 
                                             <!-- Action Button -->
                                             {% if form.status.is_clickable %}

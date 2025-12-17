@@ -1,8 +1,10 @@
 """Business logic for vendor-related operations"""
 
+import logging
 from datetime import date, datetime
 from typing import List, Optional
 from app.services.api_client import api_client
+from app.utils.sentry_utils import capture_exception_with_context
 from app.models.schemas import (
     VendorHomepageData,
     VendorTripSummary,
@@ -11,6 +13,9 @@ from app.models.schemas import (
     VendorHomepageAPIResponse
 )
 from app.config import settings
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class VendorService:
@@ -77,16 +82,20 @@ class VendorService:
             )
 
             # Parse forms API response
-            # The API may return forms as a JSON string, so we need to parse it
-            if isinstance(forms_response, str):
-                import json
-                forms_response = json.loads(forms_response)
+            # The API returns: {'forms': '[{...}, {...}]', 'requestStatus': 'OK'}
+            # where 'forms' is a JSON string that needs to be parsed
+            import json
 
-            # If forms_response is a list, wrap it in a dict
-            if isinstance(forms_response, list):
-                forms_list = forms_response
-            else:
-                forms_list = forms_response if isinstance(forms_response, list) else []
+            # Extract the forms field from the response dict
+            forms_list = forms_response.get("forms", []) if isinstance(forms_response, dict) else forms_response
+
+            # If forms_list is a JSON string, parse it
+            if isinstance(forms_list, str):
+                forms_list = json.loads(forms_list)
+
+            # Ensure we have a list
+            if not isinstance(forms_list, list):
+                forms_list = []
 
             for form_dict in forms_list:
                 form = self._parse_vendor_form(form_dict, company_code)
@@ -97,7 +106,8 @@ class VendorService:
                     forms_pending_count += 1
         except Exception as e:
             # Log the error but continue without forms
-            print(f"Warning: Could not fetch vendor forms: {e}")
+            logger.warning("Failed to fetch vendor forms for vendor %s: %s", vendor_id, e)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
             # forms list remains empty
 
         # Build the complete response

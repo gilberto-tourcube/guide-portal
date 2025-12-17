@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import settings
 from app.services.guide_service import guide_service
+from app.utils.sentry_utils import capture_exception_with_context
 
 router = APIRouter(prefix="/guide", tags=["guide"])
 
@@ -85,6 +86,7 @@ async def guide_home(
             )
         except Exception as exc:
             logger.error("Failed to resolve guideHash: %s", exc)
+            capture_exception_with_context(exc, mode=resolved_mode, company_code=resolved_company_code)
             request.session.clear()
             return RedirectResponse(
                 url=(
@@ -137,14 +139,16 @@ async def guide_home(
 
     except httpx.HTTPError as e:
         # Log error and show user-friendly message
-        print(f"API Error fetching guide homepage: {e}")
+        logger.error("API Error fetching guide homepage for guide %s: %s", guide_id, e)
+        capture_exception_with_context(e, request=request)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unable to load guide information. Please try again later."
         )
     except Exception as e:
         # Catch any other errors
-        print(f"Unexpected error in guide_home: {e}")
+        logger.error("Unexpected error in guide_home for guide %s: %s", guide_id, e)
+        capture_exception_with_context(e, request=request)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred"
