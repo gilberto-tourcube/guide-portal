@@ -42,10 +42,13 @@ async def test_departure_renders_with_session(monkeypatch, secure_client, sessio
     captured = {}
     _patch_template(monkeypatch, captured)
 
-    async def fake_get_trip_departure(trip_departure_id, guide_id, company_code, mode):
+    async def fake_get_trip_departure(
+        trip_departure_id=None, user_id=None, user_role=None, company_code=None, mode=None
+    ):
         captured["service_args"] = {
             "trip_departure_id": trip_departure_id,
-            "guide_id": guide_id,
+            "user_id": user_id,
+            "user_role": user_role,
             "company_code": company_code,
             "mode": mode,
         }
@@ -57,6 +60,7 @@ async def test_departure_renders_with_session(monkeypatch, secure_client, sessio
         {
             "authenticated": True,
             "guide_id": 9,
+            "user_role": "Guide",
             "company_code": settings.company_code,
             "mode": settings.mode,
         }
@@ -71,7 +75,8 @@ async def test_departure_renders_with_session(monkeypatch, secure_client, sessio
     assert captured["context"]["active_tab"] == "forms"
     assert captured["service_args"] == {
         "trip_departure_id": 321,
-        "guide_id": 9,
+        "user_id": 9,
+        "user_role": "Guide",
         "company_code": settings.company_code,
         "mode": settings.mode,
     }
@@ -95,7 +100,9 @@ async def test_trip_renders_with_vendor_session(monkeypatch, secure_client, sess
     captured = {}
     _patch_template(monkeypatch, captured)
 
-    async def fake_get_trip_page(trip_id, guide_id, company_code, mode):
+    async def fake_get_trip_page(
+        *, trip_id=None, guide_id=None, company_code=None, mode=None
+    ):
         captured["service_args"] = {
             "trip_id": trip_id,
             "guide_id": guide_id,
@@ -148,7 +155,9 @@ async def test_client_renders_with_session(monkeypatch, secure_client, session_c
     captured = {}
     _patch_template(monkeypatch, captured)
 
-    async def fake_get_client_details(client_id, guide_id, company_code, mode):
+    async def fake_get_client_details(
+        *, client_id=None, guide_id=None, company_code=None, mode=None
+    ):
         captured["service_args"] = {
             "client_id": client_id,
             "guide_id": guide_id,
