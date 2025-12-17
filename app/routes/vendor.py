@@ -1,15 +1,18 @@
 """Vendor-related route handlers"""
 
+import logging
+import httpx
 from fastapi import APIRouter, Request, HTTPException, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from app.services.vendor_service import vendor_service
-import httpx
+from app.utils.sentry_utils import capture_exception_with_context
 
 router = APIRouter(prefix="/vendor", tags=["vendor"])
 
 # Jinja2 templates
 templates = Jinja2Templates(directory="templates")
+logger = logging.getLogger(__name__)
 
 
 @router.get("/home", response_class=HTMLResponse)
@@ -68,14 +71,16 @@ async def vendor_home(request: Request):
 
     except httpx.HTTPError as e:
         # Log error and show user-friendly message
-        print(f"API Error fetching vendor homepage: {e}")
+        logger.error("API Error fetching vendor homepage for vendor %s: %s", vendor_id, e)
+        capture_exception_with_context(e, request=request)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unable to load vendor information. Please try again later."
         )
     except Exception as e:
         # Catch any other errors
-        print(f"Unexpected error in vendor_home: {e}")
+        logger.error("Unexpected error in vendor_home for vendor %s: %s", vendor_id, e)
+        capture_exception_with_context(e, request=request)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred"

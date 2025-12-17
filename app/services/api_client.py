@@ -3,6 +3,7 @@
 import httpx
 import logging
 import json as json_module
+import sentry_sdk
 from typing import Optional, Dict, Any
 from app.config import settings
 
@@ -69,22 +70,39 @@ class APIClient:
         logger.info(f"cURL equivalent:\n{curl_cmd}")
         logger.info("="*80)
 
-        async with httpx.AsyncClient(
-            headers=headers,
-            timeout=self.timeout,
-            verify=self.verify_ssl
-        ) as client:
-            response = await client.get(url, params=params)
+        try:
+            async with httpx.AsyncClient(
+                headers=headers,
+                timeout=self.timeout,
+                verify=self.verify_ssl
+            ) as client:
+                response = await client.get(url, params=params)
 
-            # Log response details
-            logger.info("="*80)
-            logger.info("API GET RESPONSE")
-            logger.info(f"Status Code: {response.status_code}")
-            logger.info(f"Response Body:\n{json_module.dumps(response.json(), indent=2, ensure_ascii=False)}")
-            logger.info("="*80)
+                # Log response details
+                logger.info("="*80)
+                logger.info("API GET RESPONSE")
+                logger.info(f"Status Code: {response.status_code}")
+                logger.info(f"Response Body:\n{json_module.dumps(response.json(), indent=2, ensure_ascii=False)}")
+                logger.info("="*80)
 
-            response.raise_for_status()
-            return response.json()
+                response.raise_for_status()
+                return response.json()
+        except httpx.TimeoutException as e:
+            logger.error("API GET timeout for %s: %s", url, e)
+            sentry_sdk.capture_exception(e)
+            raise
+        except httpx.HTTPStatusError as e:
+            logger.error("API GET HTTP error for %s: %s (status: %s)", url, e, e.response.status_code)
+            sentry_sdk.capture_exception(e)
+            raise
+        except httpx.RequestError as e:
+            logger.error("API GET request error for %s: %s", url, e)
+            sentry_sdk.capture_exception(e)
+            raise
+        except Exception as e:
+            logger.error("API GET unexpected error for %s: %s", url, e)
+            sentry_sdk.capture_exception(e)
+            raise
 
     async def post(
         self,
@@ -130,22 +148,39 @@ class APIClient:
         logger.info(f"cURL equivalent:\n{curl_cmd}")
         logger.info("="*80)
 
-        async with httpx.AsyncClient(
-            headers=headers,
-            timeout=self.timeout,
-            verify=self.verify_ssl
-        ) as client:
-            response = await client.post(url, data=data, json=json)
+        try:
+            async with httpx.AsyncClient(
+                headers=headers,
+                timeout=self.timeout,
+                verify=self.verify_ssl
+            ) as client:
+                response = await client.post(url, data=data, json=json)
 
-            # Log response details
-            logger.info("="*80)
-            logger.info("API POST RESPONSE")
-            logger.info(f"Status Code: {response.status_code}")
-            logger.info(f"Response Body:\n{json_module.dumps(response.json(), indent=2, ensure_ascii=False)}")
-            logger.info("="*80)
+                # Log response details
+                logger.info("="*80)
+                logger.info("API POST RESPONSE")
+                logger.info(f"Status Code: {response.status_code}")
+                logger.info(f"Response Body:\n{json_module.dumps(response.json(), indent=2, ensure_ascii=False)}")
+                logger.info("="*80)
 
-            response.raise_for_status()
-            return response.json()
+                response.raise_for_status()
+                return response.json()
+        except httpx.TimeoutException as e:
+            logger.error("API POST timeout for %s: %s", url, e)
+            sentry_sdk.capture_exception(e)
+            raise
+        except httpx.HTTPStatusError as e:
+            logger.error("API POST HTTP error for %s: %s (status: %s)", url, e, e.response.status_code)
+            sentry_sdk.capture_exception(e)
+            raise
+        except httpx.RequestError as e:
+            logger.error("API POST request error for %s: %s", url, e)
+            sentry_sdk.capture_exception(e)
+            raise
+        except Exception as e:
+            logger.error("API POST unexpected error for %s: %s", url, e)
+            sentry_sdk.capture_exception(e)
+            raise
 
 
 # Global API client instance

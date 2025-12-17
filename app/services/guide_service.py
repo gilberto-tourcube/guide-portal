@@ -1,8 +1,10 @@
 """Business logic for guide-related operations"""
 
+import logging
 from datetime import date, datetime
 from typing import List, Optional
 from app.services.api_client import api_client
+from app.utils.sentry_utils import capture_exception_with_context
 from app.models.schemas import (
     GuideHomepageData,
     TripSummary,
@@ -24,6 +26,9 @@ from app.models.schemas import (
     ClientAPIResponse
 )
 from app.config import settings
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class GuideService:
@@ -429,7 +434,8 @@ class GuideService:
     async def get_trip_departure(
         self,
         trip_departure_id: int,
-        guide_id: int,
+        user_id: int,
+        user_role: str,
         company_code: str,
         mode: str
     ) -> TripDepartureData:
@@ -438,7 +444,8 @@ class GuideService:
 
         Args:
             trip_departure_id: Unique trip departure identifier
-            guide_id: Guide's unique identifier (for forms)
+            user_id: User's unique identifier (guide_id or vendor_id)
+            user_role: User role ("Guide" or "Vendor")
             company_code: Company code for business rule customization
             mode: "Test" or "Production"
 
@@ -458,7 +465,7 @@ class GuideService:
         # Fetch departure page data from API (GP_DeparturePage)
         departure_response = await self.api_client.get(
             f"/tourcube/guidePortal/getDeparturePage/{trip_departure_id}",
-            params={"userId": guide_id}
+            params={"userId": user_id}
         )
 
         # Parse guides
@@ -504,10 +511,24 @@ class GuideService:
             else:
                 departure_documents.append(doc)
 
-        # Fetch forms data from API (GP_GetGuideForms)
-        forms_response = await self.api_client.get(
-            f"/tourcube/guidePortal/getGuideForms/{guide_id}/{trip_departure_id}"
-        )
+        # Fetch forms data from API - use different endpoint based on user role
+        # Wrap in try/except to handle API errors gracefully
+        forms_response = {}
+        try:
+            if user_role == "Vendor":
+                forms_response = await self.api_client.get(
+                    f"/tourcube/guidePortal/getVendorForms/{user_id}/{trip_departure_id}"
+                )
+            else:
+                forms_response = await self.api_client.get(
+                    f"/tourcube/guidePortal/getGuideForms/{user_id}/{trip_departure_id}"
+                )
+        except Exception as e:
+            # Log the error but continue with empty forms list
+            logger.warning("Failed to fetch forms for %s %s: %s", user_role, user_id, e)
+            # Report to Sentry for tracking with context
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            forms_response = {"forms": []}
 
         # Parse forms
         forms = []

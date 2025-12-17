@@ -57,6 +57,11 @@ class Settings(BaseSettings):
     ssl_verify: bool = True  # Enable SSL certificate verification (fixed from legacy)
     allowed_origins: List[str] = []  # CORS allow-list (empty = same-origin only)
 
+    # Sentry Configuration
+    sentry_enabled: bool = True  # Enable/disable Sentry error tracking
+    sentry_dsn: str = "https://48cf3c57b373f08326c0298b1445933a@o4510551040458752.ingest.us.sentry.io/4510551042490368"
+    app_env: str = "test"  # Application environment for Sentry (test/production)
+
     # Company Configuration - Default/Fallback Values
     # These values are used when:
     # 1. User accesses root (/) without parameters

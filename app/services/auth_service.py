@@ -1,9 +1,14 @@
 """Authentication service for guide portal login"""
 
+import logging
 import httpx
 from typing import Optional, Dict, Any
 from app.models.schemas import LoginAPIRequest, LoginAPIResponse
 from app.config import settings
+from app.utils.sentry_utils import capture_exception_with_context
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -48,23 +53,36 @@ class AuthService:
         endpoint = f"{company_config.api_url}/tourcube/guidePortal/login"
 
         # Make API call
-        async with httpx.AsyncClient(
-            timeout=self.timeout,
-            verify=self.ssl_verify
-        ) as client:
-            response = await client.post(
-                endpoint,
-                json=login_request.model_dump(by_alias=True),
-                headers={
-                    "tc-api-key": company_config.api_key,
-                    "Content-Type": "application/json"
-                }
-            )
-            response.raise_for_status()
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout,
+                verify=self.ssl_verify
+            ) as client:
+                response = await client.post(
+                    endpoint,
+                    json=login_request.model_dump(by_alias=True),
+                    headers={
+                        "tc-api-key": company_config.api_key,
+                        "Content-Type": "application/json"
+                    }
+                )
+                response.raise_for_status()
 
-            # Parse response
-            data = response.json()
-            return LoginAPIResponse(**data)
+                # Parse response
+                data = response.json()
+                return LoginAPIResponse(**data)
+        except httpx.TimeoutException as e:
+            logger.error("Login API timeout for user %s: %s", username, e)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
+        except httpx.HTTPStatusError as e:
+            logger.error("Login API HTTP error for user %s: %s (status: %s)", username, e, e.response.status_code)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
+        except Exception as e:
+            logger.error("Login API unexpected error for user %s: %s", username, e)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
 
     async def get_vendor_info(
         self,
@@ -96,22 +114,35 @@ class AuthService:
         endpoint = f"{company_config.api_url}/tourcube/guidePortal/getVendorHomepage/{vendor_id}"
 
         # Make API call
-        async with httpx.AsyncClient(
-            timeout=self.timeout,
-            verify=self.ssl_verify
-        ) as client:
-            response = await client.get(
-                endpoint,
-                headers={"tc-api-key": company_config.api_key}
-            )
-            response.raise_for_status()
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout,
+                verify=self.ssl_verify
+            ) as client:
+                response = await client.get(
+                    endpoint,
+                    headers={"tc-api-key": company_config.api_key}
+                )
+                response.raise_for_status()
 
-            # Parse response and extract vendor info
-            data = response.json()
-            return {
-                "vendor_name": data.get("name", "Vendor"),
-                "vendor_id": vendor_id
-            }
+                # Parse response and extract vendor info
+                data = response.json()
+                return {
+                    "vendor_name": data.get("name", "Vendor"),
+                    "vendor_id": vendor_id
+                }
+        except httpx.TimeoutException as e:
+            logger.error("Get vendor info API timeout for vendor %s: %s", vendor_id, e)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
+        except httpx.HTTPStatusError as e:
+            logger.error("Get vendor info API HTTP error for vendor %s: %s (status: %s)", vendor_id, e, e.response.status_code)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
+        except Exception as e:
+            logger.error("Get vendor info API unexpected error for vendor %s: %s", vendor_id, e)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
 
     async def send_temp_password(
         self,
@@ -180,17 +211,30 @@ class AuthService:
         endpoint = f"{company_config.api_url}/tourcube/guidePortal/forgotUserName/{email}"
 
         # Make API call
-        async with httpx.AsyncClient(
-            timeout=self.timeout,
-            verify=self.ssl_verify
-        ) as client:
-            response = await client.get(
-                endpoint,
-                headers={"tc-api-key": company_config.api_key}
-            )
-            response.raise_for_status()
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout,
+                verify=self.ssl_verify
+            ) as client:
+                response = await client.get(
+                    endpoint,
+                    headers={"tc-api-key": company_config.api_key}
+                )
+                response.raise_for_status()
 
-            return response.text
+                return response.text
+        except httpx.TimeoutException as e:
+            logger.error("Forgot username API timeout for email %s: %s", email, e)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
+        except httpx.HTTPStatusError as e:
+            logger.error("Forgot username API HTTP error for email %s: %s (status: %s)", email, e, e.response.status_code)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
+        except Exception as e:
+            logger.error("Forgot username API unexpected error for email %s: %s", email, e)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
 
 
 # Global auth service instance

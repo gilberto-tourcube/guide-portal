@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from app.config import settings, InvalidCompanyCodeError
 from app.models.schemas import LoginRequest
 from app.services.auth_service import auth_service
+from app.utils.sentry_utils import capture_exception_with_context
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -184,14 +185,16 @@ async def login_submit(
 
     except httpx.HTTPError as e:
         # API call failed
-        print(f"Login API error: {e}")
+        logger.error("Login API error for user %s: %s", form_data.username, e)
+        capture_exception_with_context(e, mode=form_data.mode, company_code=form_data.company_code)
         return RedirectResponse(
             url=f"/auth/login?company_code={form_data.company_code}&mode={form_data.mode}&error=api_error",
             status_code=303
         )
     except Exception as e:
         # Unexpected error
-        logger.error("Login error: %s", e)
+        logger.error("Login unexpected error for user %s: %s", form_data.username, e)
+        capture_exception_with_context(e, mode=form_data.mode, company_code=form_data.company_code)
         return RedirectResponse(
             url=f"/auth/login?company_code={form_data.company_code}&mode={form_data.mode}&error=unexpected_error",
             status_code=303
@@ -337,7 +340,8 @@ async def forgot_username_submit(
         )
 
     except httpx.HTTPError as e:
-        print(f"Forgot username API error: {e}")
+        logger.error("Forgot username API error for email %s: %s", email, e)
+        capture_exception_with_context(e, mode=mode, company_code=company_code)
         return RedirectResponse(
             url=f"/auth/forgot-username?company_code={company_code}&mode={mode}&success=false",
             status_code=303

@@ -48,6 +48,7 @@ async def departure_details(request: Request, trip_departure_id: int):
     """
     # Get user info from session (works for both guides and vendors)
     user_id = request.session.get("guide_id") or request.session.get("vendor_id")
+    user_role = request.session.get("user_role", "Guide")
     company_code = request.session.get("company_code")
     mode = request.session.get("mode")
 
@@ -64,10 +65,11 @@ async def departure_details(request: Request, trip_departure_id: int):
         # Get company configuration for logo and branding
         company_config = settings.get_company_config(company_code, mode)
 
-        # Fetch trip departure data (API accepts both guide_id and vendor_id in same parameter)
+        # Fetch trip departure data
         departure_data = await guide_service.get_trip_departure(
             trip_departure_id=trip_departure_id,
-            guide_id=user_id,
+            user_id=user_id,
+            user_role=user_role,
             company_code=company_code,
             mode=mode
         )

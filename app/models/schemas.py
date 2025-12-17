@@ -542,6 +542,23 @@ class VendorForm(BaseModel):
     # Calculated fields (populated by service layer)
     status: Optional[FormStatus] = Field(None, description="Calculated form status")
 
+    @field_validator('departure_date', 'due_date', mode='before')
+    @classmethod
+    def parse_date_fields(cls, v):
+        """Parse date fields from various formats (e.g., '20251207' or '2025-12-07')"""
+        if v is None or v == '':
+            return None
+        if isinstance(v, date):
+            return v
+        if isinstance(v, str):
+            # Try common date formats
+            for fmt in ['%Y-%m-%d', '%Y%m%d', '%m/%d/%Y']:
+                try:
+                    return datetime.strptime(v, fmt).date()
+                except ValueError:
+                    continue
+        return None
+
     class Config:
         populate_by_name = True
         json_schema_extra = {

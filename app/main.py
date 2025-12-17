@@ -1,5 +1,8 @@
 """FastAPI application setup and configuration"""
 
+import logging
+import sentry_sdk
+
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -9,6 +12,24 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
 from app.routes import guide, auth, vendor, resources
 from app.services.guide_service import guide_service
+from app.utils.sentry_utils import capture_exception_with_context
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Initialize Sentry for error tracking (only if enabled)
+if settings.sentry_enabled and settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        # Add data like request headers and IP for users
+        send_default_pii=True,
+        # Set traces_sample_rate to capture performance data
+        traces_sample_rate=1.0,
+        # Set environment (test/production)
+        environment=settings.app_env,
+        # Set release version
+        release=f"guide-portal@{settings.app_version}",
+    )
 
 # Create FastAPI application
 app = FastAPI(
@@ -76,11 +97,13 @@ class GuideHashMiddleware(BaseHTTPMiddleware):
                     request.session["user_name"] = homepage_data.guide_name
                 if homepage_data.guide_image:
                     request.session["user_image"] = str(homepage_data.guide_image)
-            except Exception:
-                # Ignore failures here; session remains valid
-                pass
-        except Exception:
-            # On failure, clear session and redirect to login with error
+            except Exception as e:
+                # Log warning but session remains valid
+                logger.warning("Failed to load guide homepage data in middleware: %s", e)
+        except Exception as e:
+            # On failure, log error, clear session and redirect to login with error
+            logger.error("Failed to resolve guide_hash in middleware: %s", e)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
             request.session.clear()
             return RedirectResponse(
                 url=f"/auth/login?company_code={company_code}&mode={mode}&error=invalid_guide_link",
@@ -179,8 +202,10 @@ async def guide_hash_auto_login(request: Request, call_next):
                 "mode": mode,
             }
         )
-    except Exception:
-        # On failure, clear session and redirect to login with error
+    except Exception as e:
+        # On failure, log error, clear session and redirect to login with error
+        logger.error("Failed to resolve guide_hash in auto_login middleware: %s", e)
+        capture_exception_with_context(e, mode=mode, company_code=company_code)
         request.session.clear()
         return RedirectResponse(
             url=f"/auth/login?company_code={company_code}&mode={mode}&error=invalid_guide_link",
