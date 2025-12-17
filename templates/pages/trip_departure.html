@@ -262,14 +262,20 @@
                     <div class="row g-gs">
                         {% for form in departure.forms %}
                         <div class="col-md-6 col-xxl-4">
-                            <div class="card card-bordered h-100 {% if form.status and form.status.status == 'expired' %}border-danger{% elif form.status and form.status.status == 'completed' %}border-success{% endif %}">
+                            <div class="card card-bordered h-100 {% if form.status and form.status.status in ['pending', 'expired'] %}border-danger{% endif %}">
                                 <div class="card-inner">
                                     <h6 class="title">{{ form.form_name }}</h6>
 
                                     <!-- Due Date -->
-                                    {% if form.due_date %}
+                                    {% if form.received %}
                                     <div class="badge-list mb-3">
-                                        <span class="badge bg-outline-{% if form.status and form.status.status == 'expired' %}danger{% elif form.status and form.status.status == 'completed' %}success{% else %}primary{% endif %}">
+                                        <span class="badge bg-outline-success">
+                                            Completed
+                                        </span>
+                                    </div>
+                                    {% elif form.due_date %}
+                                    <div class="badge-list mb-3">
+                                        <span class="badge bg-outline-danger">
                                             Due: {{ form.due_date.strftime('%b %d, %Y') }}
                                         </span>
                                     </div>
@@ -278,23 +284,19 @@
                                     <!-- Contact Information -->
                                     {% if form.show_contact and form.contact_label %}
                                     <div class="text-soft small mb-3">
-                                        <p class="mb-0">
-                                            <a href="mailto:{{ form.contact_email }}">{{ form.contact_label }}</a>
-                                        </p>
+                                        <p class="mb-0"><a href="mailto:{{ form.contact_email }}">{{ form.contact_label }}</a></p>
                                     </div>
                                     {% endif %}
 
                                     <!-- Action Button -->
-                                    {% if form.status %}
-                                        {% if form.status.is_clickable %}
-                                        <a href="{{ form.status.url }}" class="btn btn-block {{ form.status.button_class }}" target="_blank">
-                                            {{ form.status.button_text }}
-                                        </a>
-                                        {% else %}
-                                        <button class="btn btn-block {{ form.status.button_class }}" disabled>
-                                            {{ form.status.button_text }}
-                                        </button>
-                                        {% endif %}
+                                    {% if form.status and form.status.is_clickable %}
+                                    <a href="{{ form.status.url }}" class="btn btn-block {{ form.status.button_class }}" target="_blank">
+                                        {{ form.status.button_text }}
+                                    </a>
+                                    {% elif form.status %}
+                                    <button class="btn btn-block {{ form.status.button_class }}" disabled>
+                                        {{ form.status.button_text }}
+                                    </button>
                                     {% endif %}
                                 </div>
                             </div>
@@ -318,48 +320,6 @@
 {% endblock %}
 
 {% block extra_css %}
-<style>
-/* Form button styles */
-.btn-form-pending {
-    background-color: #0062cc;
-    border-color: #0062cc;
-    color: #fff;
-}
-.btn-form-pending:hover {
-    background-color: #0056b3;
-    border-color: #0056b3;
-    color: #fff;
-}
-
-.btn-form-complete {
-    background-color: #28a745;
-    border-color: #28a745;
-    color: #fff;
-}
-.btn-form-complete:hover {
-    background-color: #218838;
-    border-color: #218838;
-    color: #fff;
-}
-
-.btn-form-expired {
-    background-color: #dc3545;
-    border-color: #dc3545;
-    color: #fff;
-}
-.btn-form-expired:hover {
-    background-color: #c82333;
-    border-color: #c82333;
-    color: #fff;
-}
-
-.btn-form-disabled {
-    background-color: #6c757d;
-    border-color: #6c757d;
-    color: #fff;
-    cursor: not-allowed;
-}
-</style>
 {% endblock %}
 
 {% block extra_js %}

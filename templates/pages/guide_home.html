@@ -235,7 +235,7 @@
                             <div class="row g-gs">
                                 {% for form in guide.forms %}
                                 <div class="col-md-6 col-xxl-4">
-                                    <div class="card card-bordered h-100 {% if form.status.status == 'expired' %}border-danger{% endif %}">
+                                    <div class="card card-bordered h-100 {% if form.status and form.status.status in ['pending', 'expired'] %}border-danger{% endif %}">
                                         <div class="card-inner">
                                             <h6 class="title">{{ form.form_name }}</h6>
 
@@ -264,7 +264,7 @@
                                             <!-- Contact Information -->
                                             {% if form.show_contact and form.contact_label %}
                                             <div class="text-soft small mb-3">
-                                                <p class="mb-0"><a href="mailto:{{ form.contact.email }}">{{ form.contact_label }}</a></p>
+                                                <p class="mb-0"><a href="mailto:{{ form.contact_email }}">{{ form.contact_label }}</a></p>
                                             </div>
                                             {% endif %}
 
