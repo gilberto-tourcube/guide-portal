@@ -106,7 +106,8 @@ async def test_live_guide_trip_and_client_data(guide_session):
 
     departure = await guide_service.get_trip_departure(
         trip_departure_id=trip.trip_departure_id,
-        guide_id=login.guide_client_id,
+        user_id=login.guide_client_id,
+        user_role="Guide",
         company_code=company_code,
         mode=mode,
     )
