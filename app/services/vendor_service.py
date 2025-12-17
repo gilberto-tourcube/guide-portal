@@ -101,8 +101,8 @@ class VendorService:
                 form = self._parse_vendor_form(form_dict, company_code)
                 forms.append(form)
 
-                # Count pending forms
-                if form.status and form.status.status == "pending":
+                # Count forms that need attention (pending or overdue)
+                if form.status and form.status.status in ("pending", "overdue"):
                     forms_pending_count += 1
         except Exception as e:
             # Log the error but continue without forms
@@ -259,7 +259,7 @@ class VendorService:
                 return FormStatus(
                     status="pending",
                     button_text="Complete Form",
-                    button_class="btn-primary",
+                    button_class="btn-danger",
                     is_clickable=True,
                     url=form.url
                 )

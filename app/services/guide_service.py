@@ -144,8 +144,8 @@ class GuideService:
             form = self._parse_guide_form(form_dict, company_code)
             forms.append(form)
 
-            # Count pending forms
-            if form.status and form.status.status == "pending":
+            # Count forms that need attention (pending or expired)
+            if form.status and form.status.status in ("pending", "expired"):
                 forms_pending_count += 1
 
         # Build complete homepage data
@@ -331,7 +331,7 @@ class GuideService:
                     return FormStatus(
                         status="disabled",
                         button_text="View Form",
-                        button_class="btn-form-disabled",
+                        button_class="btn-secondary",
                         is_clickable=False,
                         url=None
                     )
@@ -339,7 +339,7 @@ class GuideService:
                     return FormStatus(
                         status="completed",
                         button_text="Edit Form",
-                        button_class="btn-form-complete",
+                        button_class="btn-success",
                         is_clickable=True,
                         url=url
                     )
@@ -348,7 +348,7 @@ class GuideService:
                 return FormStatus(
                     status="completed",
                     button_text="View Form",
-                    button_class="btn-form-complete",
+                    button_class="btn-success",
                     is_clickable=False,
                     url=None
                 )
@@ -359,7 +359,7 @@ class GuideService:
                 return FormStatus(
                     status="expired",
                     button_text="Complete Form (Overdue)",
-                    button_class="btn-form-expired",
+                    button_class="btn-danger",
                     is_clickable=True,
                     url=url
                 )
@@ -368,7 +368,7 @@ class GuideService:
                 return FormStatus(
                     status="pending",
                     button_text="Complete Form",
-                    button_class="btn-form-pending",
+                    button_class="btn-danger",
                     is_clickable=True,
                     url=url
                 )
@@ -619,8 +619,8 @@ class GuideService:
             )
             forms.append(form)
 
-            # Count pending forms
-            if status and status.status == "pending":
+            # Count forms that need attention (pending or expired)
+            if status and status.status in ("pending", "expired"):
                 forms_to_complete_count += 1
 
         # Build complete trip departure data

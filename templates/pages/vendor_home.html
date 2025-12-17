@@ -115,7 +115,7 @@
                                tabindex="-1">
                                 <em class="icon ni ni-file-docs"></em>
                                 <span>Forms Due</span>
-                                {% if vendor.forms_pending_count > 0 %}
+                                {% if vendor.forms_pending_count and vendor.forms_pending_count > 0 %}
                                 <span class="badge rounded-pill bg-danger ms-1">{{ vendor.forms_pending_count }}</span>
                                 {% endif %}
                             </a>
@@ -249,7 +249,7 @@
                             <div class="row g-gs">
                                 {% for form in vendor.forms %}
                                 <div class="col-md-6 col-xxl-4">
-                                    <div class="card card-bordered h-100 {% if form.status.status == 'expired' %}border-danger{% endif %}">
+                                    <div class="card card-bordered h-100 {% if form.status and form.status.status in ['pending', 'overdue'] %}border-danger{% endif %}">
                                         <div class="card-inner">
                                             <h6 class="title">{{ form.form_name }}</h6>
 
