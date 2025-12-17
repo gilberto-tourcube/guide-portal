@@ -146,6 +146,28 @@ class VendorService:
         # Create the form model from the dictionary
         form = VendorForm(**form_dict)
 
+        # Determine contact visibility based on company code
+        # Legacy rule: CJ, JOB, IOT, WTAH should have contact hidden
+        hidden_contact_companies = ["CJ", "JOB", "IOT", "WTAH"]
+        form.show_contact = company_code not in hidden_contact_companies
+
+        # Determine contact and label based on company code
+        if company_code in ["WT", "WTGUIDE"]:
+            form.contact_name = form.dev_name
+            form.contact_email = form.dev_email
+            # Label: "Trip Developer: {DevName}"
+            if form.dev_name:
+                form.contact_label = f"Trip Developer: {form.dev_name}"
+        else:
+            form.contact_name = form.ops_name
+            form.contact_email = form.ops_email
+            # Label: "Trip Contact: {OpsName} / {OpsPhone}"
+            if form.ops_name:
+                if form.ops_phone:
+                    form.contact_label = f"Trip Contact: {form.ops_name} / {form.ops_phone}"
+                else:
+                    form.contact_label = f"Trip Contact: {form.ops_name}"
+
         # Calculate form status
         form.status = self._calculate_form_status(form, company_code)
 

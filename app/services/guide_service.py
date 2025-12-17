@@ -227,6 +227,25 @@ class GuideService:
         due_date = self._parse_date(due_date_str) if due_date_str else None
         departure_date = self._parse_date(departure_date_str) if departure_date_str else None
 
+        # Determine contact visibility based on company code
+        # Legacy rule: CJ, JOB, IOT, WTAH should have contact hidden
+        hidden_contact_companies = ["CJ", "JOB", "IOT", "WTAH"]
+        show_contact = company_code not in hidden_contact_companies
+
+        # Determine contact label based on company code
+        if company_code in ["WT", "WTGUIDE"]:
+            # Label: "Trip Developer: {DevName}"
+            contact_label = f"Trip Developer: {dev_name}" if dev_name else None
+        else:
+            # Label: "Trip Contact: {OpsName} / {OpsPhone}"
+            if ops_name:
+                if ops_phone:
+                    contact_label = f"Trip Contact: {ops_name} / {ops_phone}"
+                else:
+                    contact_label = f"Trip Contact: {ops_name}"
+            else:
+                contact_label = None
+
         # Determine contact based on company code and form data
         contact = self._get_form_contact(
             company_code=company_code,
@@ -266,6 +285,8 @@ class GuideService:
             dev_email=dev_email,
             dev_phone=dev_phone,
             contact=contact,
+            contact_label=contact_label,
+            show_contact=show_contact,
             status=status
         )
 
@@ -547,13 +568,32 @@ class GuideService:
             editable_after_submit = form_dict.get("EditableAfterSubmit", False)
             url = form_dict.get("URL", "")
 
-            # Determine contact based on company code
+            # Determine contact visibility based on company code
+            # Legacy rule: CJ, JOB, IOT, WTAH should have contact hidden
+            hidden_contact_companies = ["CJ", "JOB", "IOT", "WTAH"]
+            show_contact = company_code not in hidden_contact_companies
+
+            # Determine contact and label based on company code
+            ops_name = form_dict.get("OpsName")
+            ops_phone = form_dict.get("OpsPhone")
+            dev_name = form_dict.get("DevName")
+
             if company_code in ["WT", "WTGUIDE"]:
-                contact_name = form_dict.get("DevName")
+                contact_name = dev_name
                 contact_email = form_dict.get("DevEmail")
+                # Label: "Trip Developer: {DevName}"
+                contact_label = f"Trip Developer: {dev_name}" if dev_name else None
             else:
-                contact_name = form_dict.get("OpsName")
+                contact_name = ops_name
                 contact_email = form_dict.get("OpsEmail")
+                # Label: "Trip Contact: {OpsName} / {OpsPhone}"
+                if ops_name:
+                    if ops_phone:
+                        contact_label = f"Trip Contact: {ops_name} / {ops_phone}"
+                    else:
+                        contact_label = f"Trip Contact: {ops_name}"
+                else:
+                    contact_label = None
 
             # Calculate form status
             status = self._calculate_form_status(
@@ -573,6 +613,8 @@ class GuideService:
                 editable_after_submit=editable_after_submit,
                 contact_email=contact_email,
                 contact_name=contact_name,
+                contact_label=contact_label,
+                show_contact=show_contact,
                 status=status
             )
             forms.append(form)

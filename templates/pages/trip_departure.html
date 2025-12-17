@@ -276,17 +276,11 @@
                                     {% endif %}
 
                                     <!-- Contact Information -->
-                                    {% if form.contact_name or form.contact_email %}
+                                    {% if form.show_contact and form.contact_label %}
                                     <div class="text-soft small mb-3">
-                                        <p class="mb-1 fw-bold">Contact:</p>
-                                        {% if form.contact_name %}
-                                        <p class="mb-0">{{ form.contact_name }}</p>
-                                        {% endif %}
-                                        {% if form.contact_email %}
                                         <p class="mb-0">
-                                            <a href="mailto:{{ form.contact_email }}">{{ form.contact_email }}</a>
+                                            <a href="mailto:{{ form.contact_email }}">{{ form.contact_label }}</a>
                                         </p>
-                                        {% endif %}
                                     </div>
                                     {% endif %}
 

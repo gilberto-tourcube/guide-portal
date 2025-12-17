@@ -91,6 +91,8 @@ class GuideForm(BaseModel):
     contact: Optional[FormContact] = Field(None, description="Contact for questions")
 
     # Calculated fields (populated by service layer)
+    contact_label: Optional[str] = Field(None, description="Contact label with name and phone if applicable")
+    show_contact: bool = Field(True, description="Whether to show contact info (False for CJ, JOB, IOT, WTAH)")
     status: Optional[FormStatus] = Field(None, description="Calculated form status")
 
     class Config:
@@ -280,6 +282,8 @@ class DepartureForm(BaseModel):
     editable_after_submit: bool = Field(False, description="Can edit after submission")
     contact_email: Optional[str] = Field(None, description="Contact email for questions")
     contact_name: Optional[str] = Field(None, description="Contact name")
+    contact_label: Optional[str] = Field(None, description="Contact label with name and phone if applicable")
+    show_contact: bool = Field(True, description="Whether to show contact info (False for CJ, JOB, IOT, WTAH)")
     status: Optional[FormStatus] = Field(None, description="Calculated form status")
 
 
@@ -539,7 +543,11 @@ class VendorForm(BaseModel):
     dev_name: Optional[str] = Field(None, alias="DevName", description="Developer contact name")
     dev_email: Optional[str] = Field(None, alias="DevEmail", description="Developer contact email")
 
-    # Calculated fields (populated by service layer)
+    # Calculated fields (populated by service layer based on company_code)
+    contact_name: Optional[str] = Field(None, description="Selected contact name based on company_code")
+    contact_email: Optional[str] = Field(None, description="Selected contact email based on company_code")
+    contact_label: Optional[str] = Field(None, description="Contact label with name and phone if applicable")
+    show_contact: bool = Field(True, description="Whether to show contact info (False for CJ, JOB, IOT, WTAH)")
     status: Optional[FormStatus] = Field(None, description="Calculated form status")
 
     @field_validator('departure_date', 'due_date', mode='before')
