@@ -25,6 +25,15 @@
     margin-top: 0 !important;
 }
 
+/* Authentication Pages - Background Image Overlay */
+.auth-bg-overlay {
+    background: rgba(0, 0, 0, 0.4);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* Authentication Pages - Logo Size and Centering */
 .nk-wrap-nosidebar .nk-auth-body .brand-logo {
     text-align: center !important;
