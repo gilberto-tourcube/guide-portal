@@ -22,6 +22,7 @@ class CompanyConfig(BaseModel):
     test_url: str
     production_api_key: str
     production_url: str
+    login_background: str = ""
     test_domains: List[str] = []
     production_domains: List[str] = []
 
@@ -123,6 +124,7 @@ class Settings(BaseSettings):
             company_config = CompanyConfig(
                 company_id=company_id,
                 logo=company.get('Logo', 'logo.png'),
+                login_background=company.get('LoginBackground', ''),
                 tourcube_online=company.get('TourcubeOnline', True),
                 skin_name=skin_name,
                 test_api_key=company.get('Test', ''),
