@@ -1,0 +1,32 @@
+- generic [ref=e7]:
+  - generic [ref=e9]:
+    - link "logo" [ref=e11] [cursor=pointer]:
+      - /url: /
+      - img "logo" [ref=e12]
+    - generic [ref=e14]:
+      - heading "Sign-In" [level=4] [ref=e15]
+      - paragraph [ref=e17]: Access the Guide Portal using your credentials.
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e21] [cursor=pointer]: Username
+        - textbox "Username" [active] [ref=e23]:
+          - /placeholder: Enter your username
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - generic [ref=e26] [cursor=pointer]: Password
+          - link "Forgot Password?" [ref=e27] [cursor=pointer]:
+            - /url: /auth/forgot-password?company_code=WTGUIDE&mode=Test
+        - generic [ref=e28]:
+          - link "" [ref=e29] [cursor=pointer]:
+            - /url: "#"
+            - emphasis [ref=e30]: 
+            - text: 
+          - textbox "Password" [ref=e31]:
+            - /placeholder: Enter your password
+      - button "Sign in" [ref=e33] [cursor=pointer]:
+        - generic [ref=e34]: Sign in
+  - link "Forgot Username?" [ref=e36] [cursor=pointer]:
+    - /url: /auth/forgot-username?company_code=WTGUIDE&mode=Test
+    - text: Forgot
+    - strong [ref=e37]: Username
+    - text: "?"

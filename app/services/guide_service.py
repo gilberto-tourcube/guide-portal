@@ -512,25 +512,23 @@ class GuideService:
                 notes=passenger_dict.get("notes")
             ))
 
-        # Parse documents - split into trip docs and departure docs
+        # Parse documents
         trip_documents = []
         departure_documents = []
-        trip_docs_list = departure_response.get("tripDocs", [])
 
-        # According to legacy code, first half are trip docs, second half are departure docs
-        # Also add "Trip Leader Guidelines" as a trip document
-        mid_point = len(trip_docs_list) // 2
-
-        for i, doc_dict in enumerate(trip_docs_list):
-            doc = TripDocument(
+        for doc_dict in departure_response.get("tripDocs", []):
+            trip_documents.append(TripDocument(
                 description=doc_dict.get("description", ""),
                 document_url=doc_dict.get("documentURL", ""),
-                document_type="trip" if i < mid_point else "departure"
-            )
-            if i < mid_point:
-                trip_documents.append(doc)
-            else:
-                departure_documents.append(doc)
+                document_type="trip"
+            ))
+
+        for doc_dict in departure_response.get("departureDocs", []):
+            departure_documents.append(TripDocument(
+                description=doc_dict.get("description", ""),
+                document_url=doc_dict.get("documentURL", ""),
+                document_type="departure"
+            ))
 
         # Fetch forms data from API - use different endpoint based on user role
         # Wrap in try/except to handle API errors gracefully
