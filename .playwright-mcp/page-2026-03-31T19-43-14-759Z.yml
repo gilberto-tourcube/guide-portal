@@ -1,0 +1,146 @@
+- generic [ref=e3]:
+  - generic [ref=e6]:
+    - link "Tourcube Portal" [ref=e8] [cursor=pointer]:
+      - /url: /guide/home
+      - img "Tourcube Portal" [ref=e9]
+    - list [ref=e11]:
+      - listitem [ref=e12]:
+        - link "" [ref=e13] [cursor=pointer]:
+          - /url: /auth/logout
+          - emphasis [ref=e14]: 
+      - listitem [ref=e15]:
+        - link "Rob Noonan2 Rob Noonan2 " [ref=e16] [cursor=pointer]:
+          - /url: "#"
+          - generic [ref=e17]:
+            - img "Rob Noonan2" [ref=e19]
+            - generic [ref=e21]: Rob Noonan2 
+        - text:  
+  - generic [ref=e25]:
+    - navigation [ref=e26]:
+      - list [ref=e27]:
+        - listitem [ref=e28]:
+          - link "Home" [ref=e29] [cursor=pointer]:
+            - /url: /guide/home
+        - listitem [ref=e30]:
+          - text: 
+          - link "Western Greenland Expedition" [ref=e31] [cursor=pointer]:
+            - /url: /trip/10397
+        - listitem [ref=e32]: " Departure: July 28-August 4, 2026"
+    - generic [ref=e35]:
+      - generic [ref=e38]:
+        - paragraph [ref=e39]: July 28-August 4, 2026
+        - heading "Western Greenland Expedition" [level=3] [ref=e40]
+      - generic [ref=e42]:
+        - generic [ref=e44]:
+          - generic [ref=e45]: "Trip Leaders:"
+          - link "Rob Noonan2" [ref=e47] [cursor=pointer]:
+            - /url: mailto:robfnoonan@hotmail.com
+        - generic [ref=e49]:
+          - generic [ref=e50]: "Area Manager:"
+          - link "Emily Vernizzi" [ref=e52] [cursor=pointer]:
+            - /url: mailto:emilyv@wildernesstravel.com
+        - generic [ref=e54]:
+          - generic [ref=e55]: "Departure ID:"
+          - generic [ref=e56]: EXPEDGRN072826
+    - generic [ref=e59]:
+      - tablist [ref=e60]:
+        - tab " Clients" [selected] [ref=e61] [cursor=pointer]:
+          - emphasis [ref=e62]: 
+          - generic [ref=e63]: Clients
+        - tab " Documents" [ref=e64] [cursor=pointer]:
+          - emphasis [ref=e65]: 
+          - generic [ref=e66]: Documents
+        - tab " Trip Leader Forms 2" [ref=e67] [cursor=pointer]:
+          - emphasis [ref=e68]: 
+          - generic [ref=e69]: Trip Leader Forms
+          - generic [ref=e70]: "2"
+      - generic [ref=e71]:
+        - tabpanel [ref=e72]:
+          - heading "Passengers (7)" [level=6] [ref=e75]
+          - table [ref=e77]:
+            - rowgroup [ref=e78]:
+              - row "Client Name Age Gender Hometown Past Trips Notes" [ref=e79]:
+                - columnheader "Client Name" [ref=e80]
+                - columnheader "Age" [ref=e81]
+                - columnheader "Gender" [ref=e82]
+                - columnheader "Hometown" [ref=e83]
+                - columnheader "Past Trips" [ref=e84]
+                - columnheader "Notes" [ref=e85]
+            - rowgroup [ref=e86]:
+              - row "Anna Hertsberg 72 F Glencoe, Illinois 0 -" [ref=e87]:
+                - cell "Anna Hertsberg" [ref=e88]:
+                  - link "Anna Hertsberg" [ref=e89] [cursor=pointer]:
+                    - /url: /client/659770?from_page=trip_departure&trip_id=10397&departure_id=58134&trip_name=Western%20Greenland%20Expedition&trip_dates=July%2028-August%204%2C%202026
+                - cell "72" [ref=e90]
+                - cell "F" [ref=e91]
+                - cell "Glencoe, Illinois" [ref=e92]
+                - cell "0" [ref=e93]
+                - cell "-" [ref=e94]
+              - row "Mark Hertsberg 77 M Glencoe, Illinois 0 -" [ref=e95]:
+                - cell "Mark Hertsberg" [ref=e96]:
+                  - link "Mark Hertsberg" [ref=e97] [cursor=pointer]:
+                    - /url: /client/908864?from_page=trip_departure&trip_id=10397&departure_id=58134&trip_name=Western%20Greenland%20Expedition&trip_dates=July%2028-August%204%2C%202026
+                - cell "77" [ref=e98]
+                - cell "M" [ref=e99]
+                - cell "Glencoe, Illinois" [ref=e100]
+                - cell "0" [ref=e101]
+                - cell "-" [ref=e102]
+              - row "Melissa Ladvala 46 Seattle, Washington 0 -" [ref=e103]:
+                - cell "Melissa Ladvala" [ref=e104]:
+                  - link "Melissa Ladvala" [ref=e105] [cursor=pointer]:
+                    - /url: /client/906616?from_page=trip_departure&trip_id=10397&departure_id=58134&trip_name=Western%20Greenland%20Expedition&trip_dates=July%2028-August%204%2C%202026
+                - cell "46" [ref=e106]
+                - cell [ref=e107]
+                - cell "Seattle, Washington" [ref=e108]
+                - cell "0" [ref=e109]
+                - cell "-" [ref=e110]
+              - row "Janis MacNaughton 70 F Stratford, Ontario 9 -" [ref=e111]:
+                - cell "Janis MacNaughton" [ref=e112]:
+                  - link "Janis MacNaughton" [ref=e113] [cursor=pointer]:
+                    - /url: /client/511780?from_page=trip_departure&trip_id=10397&departure_id=58134&trip_name=Western%20Greenland%20Expedition&trip_dates=July%2028-August%204%2C%202026
+                - cell "70" [ref=e114]
+                - cell "F" [ref=e115]
+                - cell "Stratford, Ontario" [ref=e116]
+                - cell "9" [ref=e117]
+                - cell "-" [ref=e118]
+              - row "David Parratt 71 M Stratford, Ontario 9 -" [ref=e119]:
+                - cell "David Parratt" [ref=e120]:
+                  - link "David Parratt" [ref=e121] [cursor=pointer]:
+                    - /url: /client/511779?from_page=trip_departure&trip_id=10397&departure_id=58134&trip_name=Western%20Greenland%20Expedition&trip_dates=July%2028-August%204%2C%202026
+                - cell "71" [ref=e122]
+                - cell "M" [ref=e123]
+                - cell "Stratford, Ontario" [ref=e124]
+                - cell "9" [ref=e125]
+                - cell "-" [ref=e126]
+              - row "Meredith Sevier 26 F New York, New York 2 -" [ref=e127]:
+                - cell "Meredith Sevier" [ref=e128]:
+                  - link "Meredith Sevier" [ref=e129] [cursor=pointer]:
+                    - /url: /client/859418?from_page=trip_departure&trip_id=10397&departure_id=58134&trip_name=Western%20Greenland%20Expedition&trip_dates=July%2028-August%204%2C%202026
+                - cell "26" [ref=e130]
+                - cell "F" [ref=e131]
+                - cell "New York, New York" [ref=e132]
+                - cell "2" [ref=e133]
+                - cell "-" [ref=e134]
+              - row "Eileen Sirkin 66 F Glencoe, Illinois 0 -" [ref=e135]:
+                - cell "Eileen Sirkin" [ref=e136]:
+                  - link "Eileen Sirkin" [ref=e137] [cursor=pointer]:
+                    - /url: /client/906580?from_page=trip_departure&trip_id=10397&departure_id=58134&trip_name=Western%20Greenland%20Expedition&trip_dates=July%2028-August%204%2C%202026
+                - cell "66" [ref=e138]
+                - cell "F" [ref=e139]
+                - cell "Glencoe, Illinois" [ref=e140]
+                - cell "0" [ref=e141]
+                - cell "-" [ref=e142]
+        - text:        
+    - link " Back to Home" [ref=e144] [cursor=pointer]:
+      - /url: /guide/home
+      - emphasis [ref=e145]: 
+      - generic [ref=e146]: Back to Home
+  - generic [ref=e149]:
+    - generic [ref=e150]: © 2024 Tourcube Guide Portal. All Rights Reserved.
+    - list [ref=e152]:
+      - listitem [ref=e153]:
+        - link "Help" [ref=e154] [cursor=pointer]:
+          - /url: /help
+      - listitem [ref=e155]:
+        - link "Contact" [ref=e156] [cursor=pointer]:
+          - /url: /contact
