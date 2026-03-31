@@ -512,23 +512,33 @@ class GuideService:
                 notes=passenger_dict.get("notes")
             ))
 
-        # Parse documents
-        trip_documents = []
+        # Parse departure documents
         departure_documents = []
-
-        for doc_dict in departure_response.get("tripDocs", []):
-            trip_documents.append(TripDocument(
-                description=doc_dict.get("description", ""),
-                document_url=doc_dict.get("documentURL", ""),
-                document_type="trip"
-            ))
-
         for doc_dict in departure_response.get("departureDocs", []):
             departure_documents.append(TripDocument(
                 description=doc_dict.get("description", ""),
                 document_url=doc_dict.get("documentURL", ""),
                 document_type="departure"
             ))
+
+        # Fetch trip-level documents from getTripPage API
+        trip_documents = []
+        trip_id = departure_response.get("TripID")
+        if trip_id:
+            try:
+                trip_response = await self.api_client.get(
+                    f"/tourcube/guidePortal/getTripPage/{trip_id}",
+                    params={"userId": user_id}
+                )
+                for doc_dict in trip_response.get("documents", []):
+                    trip_documents.append(TripDocument(
+                        description=doc_dict.get("description", ""),
+                        document_url=doc_dict.get("documentURL", ""),
+                        document_type="trip"
+                    ))
+            except Exception as e:
+                logger.warning("Failed to fetch trip documents for trip %s: %s", trip_id, e)
+                capture_exception_with_context(e, mode=mode, company_code=company_code)
 
         # Fetch forms data from API - use different endpoint based on user role
         # Wrap in try/except to handle API errors gracefully
