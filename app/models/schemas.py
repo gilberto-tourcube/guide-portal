@@ -183,6 +183,7 @@ class LoginAPIResponse(BaseModel):
     guide_last_name: Optional[str] = Field(None, alias="GuideLastName")
     guide_email: Optional[str] = Field(None, alias="GuideEmail")
     guide_vendor_id: Optional[int] = Field(None, alias="GuideVendorID")
+    temp_password: Optional[bool] = Field(None, alias="TempPassword", description="True=temporary password, must change")
 
     class Config:
         populate_by_name = True

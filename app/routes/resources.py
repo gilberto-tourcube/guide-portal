@@ -46,6 +46,10 @@ async def departure_details(request: Request, trip_departure_id: int):
         HTTPException 401: If user is not authenticated
         HTTPException 500: If API call fails
     """
+    # Force password change if temp_password is set
+    if request.session.get("temp_password"):
+        return RedirectResponse(url="/auth/change-password", status_code=302)
+
     # Get user info from session (works for both guides and vendors)
     user_id = request.session.get("guide_id") or request.session.get("vendor_id")
     user_role = request.session.get("user_role", "Guide")
@@ -125,6 +129,10 @@ async def trip_page(request: Request, trip_id: int):
         HTTPException 401: If user is not authenticated
         HTTPException 500: If API call fails
     """
+    # Force password change if temp_password is set
+    if request.session.get("temp_password"):
+        return RedirectResponse(url="/auth/change-password", status_code=302)
+
     # Get user info from session (works for both guides and vendors)
     user_id = request.session.get("guide_id") or request.session.get("vendor_id")
     company_code = request.session.get("company_code")
@@ -216,6 +224,10 @@ async def client_page(
         HTTPException 401: If user is not authenticated
         HTTPException 500: If API call fails
     """
+    # Force password change if temp_password is set
+    if request.session.get("temp_password"):
+        return RedirectResponse(url="/auth/change-password", status_code=302)
+
     # Get user info from session (works for both guides and vendors)
     user_id = request.session.get("guide_id") or request.session.get("vendor_id")
     company_code = request.session.get("company_code")

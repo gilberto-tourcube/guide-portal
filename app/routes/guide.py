@@ -96,6 +96,10 @@ async def guide_home(
                 status_code=302
             )
 
+    # Force password change if temp_password is set
+    if request.session.get("temp_password"):
+        return RedirectResponse(url="/auth/change-password", status_code=302)
+
     if not guide_id or not resolved_company_code or not resolved_mode:
         request.session.clear()
         return RedirectResponse(

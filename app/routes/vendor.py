@@ -3,7 +3,7 @@
 import logging
 import httpx
 from fastapi import APIRouter, Request, HTTPException, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.services.vendor_service import vendor_service
 from app.utils.sentry_utils import capture_exception_with_context
@@ -32,6 +32,10 @@ async def vendor_home(request: Request):
         HTTPException 401: If user is not authenticated
         HTTPException 500: If API call fails
     """
+    # Force password change if temp_password is set
+    if request.session.get("temp_password"):
+        return RedirectResponse(url="/auth/change-password", status_code=302)
+
     # Get vendor info from session
     vendor_id = request.session.get("vendor_id")
     company_code = request.session.get("company_code")
