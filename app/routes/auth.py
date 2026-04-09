@@ -34,7 +34,8 @@ async def login_page(
     request: Request,
     company_code: Optional[str] = Query(None, description="Company identifier", min_length=1, max_length=50),
     mode: Optional[str] = Query(None, description="Test or Production", pattern="^(Test|Production)$"),
-    error: Optional[str] = Query(None)
+    error: Optional[str] = Query(None),
+    TempPassword: Optional[bool] = Query(None, description="Force temp password flow for testing")
 ):
     """
     Display login form
@@ -43,9 +44,13 @@ async def login_page(
         company_code: Company identifier (required)
         mode: Test or Production (required)
         error: Error message to display
+        TempPassword: Optional override to force change password flow
     """
     # Check if already authenticated
     if request.session.get("authenticated"):
+        # Force password change if temp_password is set
+        if request.session.get("temp_password"):
+            return RedirectResponse(url="/auth/change-password", status_code=302)
         user_type = request.session.get("user_type")
         if user_type == 1:  # Guide
             return RedirectResponse(url="/guide/home", status_code=302)
@@ -78,7 +83,8 @@ async def login_page(
             "skin_name": company_config.skin_name,
             "company_code": company_code_resolved,
             "mode": mode_resolved,
-            "error": error
+            "error": error,
+            "temp_password_override": TempPassword or False
         }
     )
 
@@ -100,7 +106,8 @@ def _login_form_dependency(
 @router.post("/login")
 async def login_submit(
     request: Request,
-    form_data: LoginRequest = Depends(_login_form_dependency)
+    form_data: LoginRequest = Depends(_login_form_dependency),
+    temp_password_override: Optional[str] = Form(None)
 ):
     """
     Process login form submission
@@ -110,6 +117,7 @@ async def login_submit(
         password: Portal password
         company_code: Company identifier
         mode: Test or Production
+        temp_password_override: Optional override to force change password flow
     """
     try:
         # Call authentication service
@@ -134,6 +142,11 @@ async def login_submit(
         request.session["company_code"] = form_data.company_code
         request.session["mode"] = form_data.mode
 
+        # Check if user must change temporary password
+        must_change_password = bool(login_response.temp_password) or temp_password_override == "True"
+        if must_change_password:
+            request.session["temp_password"] = True
+
         # Store user-specific data based on type
         if login_response.type == 1:  # Guide
             # Store guide-specific data
@@ -148,7 +161,9 @@ async def login_submit(
             request.session["user_image"] = None  # Will be set after loading homepage
             request.session["user_role"] = "Guide"
 
-            # Redirect to guide homepage
+            # Redirect to change password if temporary, otherwise guide homepage
+            if must_change_password:
+                return RedirectResponse(url="/auth/change-password", status_code=303)
             return RedirectResponse(url="/guide/home", status_code=303)
 
         elif login_response.type == 2:  # Vendor
@@ -174,7 +189,9 @@ async def login_submit(
             request.session["user_image"] = None  # Vendors don't have images
             request.session["user_role"] = "Vendor"
 
-            # Redirect to vendor homepage
+            # Redirect to change password if temporary, otherwise vendor homepage
+            if must_change_password:
+                return RedirectResponse(url="/auth/change-password", status_code=303)
             return RedirectResponse(url="/vendor/home", status_code=303)
 
         else:
@@ -198,6 +215,126 @@ async def login_submit(
         capture_exception_with_context(e, mode=form_data.mode, company_code=form_data.company_code)
         return RedirectResponse(
             url=f"/auth/login?company_code={form_data.company_code}&mode={form_data.mode}&error=unexpected_error",
+            status_code=303
+        )
+
+
+@router.get("/change-password", response_class=HTMLResponse)
+async def change_password_page(
+    request: Request,
+    error: Optional[str] = Query(None),
+    success: Optional[bool] = Query(None)
+):
+    """Display change password form (required when TempPassword=1)"""
+    if not request.session.get("authenticated"):
+        company_code = request.session.get("company_code", settings.company_code)
+        mode = request.session.get("mode", settings.mode)
+        return RedirectResponse(
+            url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
+            status_code=302
+        )
+
+    company_code = request.session.get("company_code", settings.company_code)
+    mode = request.session.get("mode", settings.mode)
+    user_type = request.session.get("user_type")
+
+    try:
+        company_config = settings.get_company_config(company_code, mode)
+    except InvalidCompanyCodeError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    return templates.TemplateResponse(
+        "pages/change_password.html",
+        {
+            "request": request,
+            "company_logo": company_config.logo,
+            "login_background": company_config.login_background,
+            "skin_name": company_config.skin_name,
+            "company_code": company_code,
+            "mode": mode,
+            "user_type": user_type,
+            "error": error,
+            "success": success
+        }
+    )
+
+
+@router.post("/change-password")
+async def change_password_submit(
+    request: Request,
+    new_password: str = Form(..., min_length=1),
+    confirm_password: str = Form(..., min_length=1),
+    company_code: str = Form(...),
+    mode: str = Form(...)
+):
+    """Process change password form submission"""
+    if not request.session.get("authenticated"):
+        return RedirectResponse(
+            url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
+            status_code=303
+        )
+
+    # Validate passwords match
+    if new_password != confirm_password:
+        return RedirectResponse(
+            url="/auth/change-password?error=passwords_mismatch",
+            status_code=303
+        )
+
+    # Validate minimum length
+    if len(new_password) < 6:
+        return RedirectResponse(
+            url="/auth/change-password?error=password_too_short",
+            status_code=303
+        )
+
+    user_type = request.session.get("user_type")
+
+    try:
+        if user_type == 2:  # Vendor
+            vendor_id = request.session.get("vendor_id")
+            if not vendor_id:
+                return RedirectResponse(
+                    url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
+                    status_code=303
+                )
+            await auth_service.change_vendor_password(
+                vendor_id=vendor_id,
+                new_password=new_password,
+                company_code=company_code,
+                mode=mode
+            )
+            request.session.pop("temp_password", None)
+            return RedirectResponse(url="/vendor/home", status_code=303)
+
+        else:  # Guide (type == 1)
+            guide_id = request.session.get("guide_id")
+            if not guide_id:
+                return RedirectResponse(
+                    url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
+                    status_code=303
+                )
+            await auth_service.change_password(
+                client_id=guide_id,
+                new_password=new_password,
+                company_code=company_code,
+                mode=mode
+            )
+            request.session.pop("temp_password", None)
+            return RedirectResponse(url="/guide/home", status_code=303)
+
+    except httpx.HTTPError as e:
+        logger.error("Change password API error for user type %s: %s", user_type, e)
+        capture_exception_with_context(e, mode=mode, company_code=company_code)
+        return RedirectResponse(
+            url="/auth/change-password?error=api_error",
+            status_code=303
+        )
+    except Exception as e:
+        logger.error("Change password unexpected error for user type %s: %s", user_type, e)
+        capture_exception_with_context(e, mode=mode, company_code=company_code)
+        return RedirectResponse(
+            url="/auth/change-password?error=unexpected_error",
             status_code=303
         )
 
