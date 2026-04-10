@@ -21,6 +21,9 @@ class TripSummary(BaseModel):
     trip_leaders: Optional[str] = Field(None, description="Trip leaders/guides names")
     dev_name: Optional[str] = Field(None, description="Trip developer name")
     ops_name: Optional[str] = Field(None, description="Operations contact name / Area Manager")
+    thumbnail_image: Optional[str] = Field(None, description="Trip thumbnail image URL")
+    departure_docs_count: Optional[int] = Field(None, description="Number of departure documents")
+    forms_due_count: Optional[int] = Field(None, description="Number of forms due")
 
     class Config:
         json_schema_extra = {

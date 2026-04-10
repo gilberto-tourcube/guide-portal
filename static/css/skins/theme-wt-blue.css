@@ -773,3 +773,33 @@ h1, h2, h3, h4, h5, h6,
 .user-avatar {
   border-radius: 0 !important;
 }
+
+/* Trip card label accent color */
+:root {
+  --trip-label-color: #a97c50;
+}
+.trip-label {
+  color: var(--trip-label-color);
+}
+
+/* Trip card badges — light background, border, subtle rounded corners */
+.badge.bg-outline-success,
+.badge.bg-outline-warning,
+.badge.bg-outline-danger {
+  border-radius: 6px !important;
+}
+.badge.bg-outline-success {
+  background-color: #f0fdf4 !important;
+  color: #15803d !important;
+  border-color: #16a34a !important;
+}
+.badge.bg-outline-warning {
+  background-color: #fefce8 !important;
+  color: #a16207 !important;
+  border-color: #ca8a04 !important;
+}
+.badge.bg-outline-danger {
+  background-color: #fef2f2 !important;
+  color: #b91c1c !important;
+  border-color: #dc2626 !important;
+}
