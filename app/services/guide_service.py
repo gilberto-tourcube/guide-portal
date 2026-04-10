@@ -187,7 +187,9 @@ class GuideService:
             group_size=trip_dict.get("SignUps"),
             trip_leaders=trip_dict.get("Trip_Leaders"),  # Trip leaders/guides
             dev_name=trip_dict.get("devName"),  # Area Manager (Trip Developer)
-            ops_name=trip_dict.get("opsName")  # Operations contact
+            ops_name=trip_dict.get("opsName"),  # Operations contact
+            thumbnail_image=trip_dict.get("thumbNailImage"),
+            forms_due_count=trip_dict.get("formsDue")
         )
 
     def _parse_guide_form(self, form_dict: dict, company_code: str) -> GuideForm:

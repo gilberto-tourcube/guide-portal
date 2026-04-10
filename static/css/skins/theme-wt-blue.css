@@ -66,6 +66,14 @@
   --bs-heading-color: #0A2E52;
   --bs-table-color: #0A2E52;
   --bs-primary: #0F4374;
+  --trip-label-color: #a97c50;
+  --form-border-pending: #ca8a04;
+  --form-border-submitted: #16a34a;
+  --form-border-overdue: #dc2626;
+  --form-overdue-text: #dc2626;
+  --form-icon-pending: #ca8a04;
+  --form-icon-submitted: #16a34a;
+  --form-icon-overdue: #dc2626;
 }
 
 [data-bs-theme=accent-dark] {
@@ -288,7 +296,12 @@ a:hover {
 }
 
 .bg-lighter {
-  background-color: #F9FAFF !important;
+  background-color: #F7F7F7 !important;
+}
+
+/* Table row hover */
+.table tbody tr:hover td {
+  background-color: #F0EDE4;
 }
 
 .bg-primary {
@@ -775,9 +788,6 @@ h1, h2, h3, h4, h5, h6,
 }
 
 /* Trip card label accent color */
-:root {
-  --trip-label-color: #a97c50;
-}
 .trip-label {
   color: var(--trip-label-color);
 }
@@ -803,3 +813,22 @@ h1, h2, h3, h4, h5, h6,
   color: #b91c1c !important;
   border-color: #dc2626 !important;
 }
+
+/* Form cards with colored left border and hover shadow */
+.form-card-pending,
+.form-card-submitted,
+.form-card-overdue {
+  transition: box-shadow 0.2s ease;
+}
+.form-card-pending:hover,
+.form-card-submitted:hover,
+.form-card-overdue:hover {
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.form-card-pending { border-left: 4px solid var(--form-border-pending) !important; }
+.form-card-submitted { border-left: 4px solid var(--form-border-submitted) !important; }
+.form-card-overdue { border-left: 4px solid var(--form-border-overdue) !important; }
+.form-icon-pending { color: var(--form-icon-pending); }
+.form-icon-submitted { color: var(--form-icon-submitted); }
+.form-icon-overdue { color: var(--form-icon-overdue); }
+.form-overdue-text { color: var(--form-overdue-text); }

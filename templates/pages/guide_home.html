@@ -36,6 +36,11 @@
                                 <em class="icon ni ni-alert-circle me-1"></em>{{ trip.departure_docs_count }} Departure Docs
                             </span>
                             {% endif %}
+                            {% if trip.forms_due_count is not none and trip.forms_due_count > 0 %}
+                            <span class="badge bg-outline-danger px-3 py-1 ms-1">
+                                <em class="icon ni ni-alert-circle me-1"></em>{{ trip.forms_due_count }} Forms Due
+                            </span>
+                            {% endif %}
                         </div>
 
                         <div class="flex-grow-1">
