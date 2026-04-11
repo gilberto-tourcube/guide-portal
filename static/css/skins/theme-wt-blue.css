@@ -74,7 +74,18 @@
   --form-icon-pending: #ca8a04;
   --form-icon-submitted: #16a34a;
   --form-icon-overdue: #dc2626;
+  --trip-icon-upcoming: #10b981;
+  --trip-icon-with-you: #a97c50;
+  --trip-history-border: #e0daca;
+  --client-badge-bg: #a97c50;
 }
+
+/* Client page trip history icons */
+.trip-icon-upcoming { color: var(--trip-icon-upcoming); }
+.trip-icon-with-you { color: var(--trip-icon-with-you); }
+.trip-history-item { border-bottom: 1px solid var(--trip-history-border); }
+.trip-history-item:last-child { border-bottom: none; }
+.badge.client-badge { background-color: var(--client-badge-bg); color: #fff; border-radius: 6px !important; }
 
 [data-bs-theme=accent-dark] {
   --bs-heading-color: #0A2E52;

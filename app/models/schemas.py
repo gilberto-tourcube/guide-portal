@@ -364,6 +364,16 @@ class TripDepartureAPIResponse(BaseModel):
 # Client Page Models (PAGE_ClientV2 from legacy system)
 # ============================================================================
 
+class ClientTrip(BaseModel):
+    """Single trip entry in client trip history"""
+    trip_name: str = Field(..., alias="tripName", description="Name of the trip")
+    departure_date: Optional[str] = Field(None, alias="departureDate", description="Departure date string")
+    destination: Optional[str] = Field(None, description="Trip destination")
+
+    class Config:
+        populate_by_name = True
+
+
 class ClientData(BaseModel):
     """Complete data for the Client page (PAGE_ClientV2)"""
     client_id: int = Field(..., description="Client unique ID")
@@ -382,10 +392,10 @@ class ClientData(BaseModel):
     dietary_restrictions: Optional[str] = Field(None, description="Dietary restrictions (comma-separated)")
     dietary_preferences: Optional[str] = Field(None, description="Dietary preferences (comma-separated)")
 
-    # Trip history
-    past_trips: Optional[str] = Field(None, description="Past trips (comma-separated)")
-    past_trips_with_leader: Optional[str] = Field(None, description="Past trips with current trip leader (comma-separated)")
-    future_trips: Optional[str] = Field(None, description="Future trips (comma-separated)")
+    # Trip history (structured list of ClientTrip objects)
+    past_trips: List[ClientTrip] = Field(default_factory=list, description="Past trips")
+    past_trips_with_leader: List[ClientTrip] = Field(default_factory=list, description="Past trips with current trip leader")
+    future_trips: List[ClientTrip] = Field(default_factory=list, description="Future trips")
 
     # Notes
     notes: Optional[str] = Field(None, description="Notes on client")
