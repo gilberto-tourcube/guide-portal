@@ -187,7 +187,9 @@ class GuideService:
             group_size=trip_dict.get("SignUps"),
             trip_leaders=trip_dict.get("Trip_Leaders"),  # Trip leaders/guides
             dev_name=trip_dict.get("devName"),  # Area Manager (Trip Developer)
-            ops_name=trip_dict.get("opsName")  # Operations contact
+            ops_name=trip_dict.get("opsName"),  # Operations contact
+            thumbnail_image=trip_dict.get("thumbNailImage"),
+            forms_due_count=trip_dict.get("formsDue")
         )
 
     def _parse_guide_form(self, form_dict: dict, company_code: str) -> GuideForm:
@@ -797,6 +799,12 @@ class GuideService:
                     today = date.today()
                     age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
 
+        # Parse trip lists — API returns list of dicts or None/string
+        def _parse_trip_list(value):
+            if not value or not isinstance(value, list):
+                return []
+            return value
+
         # Build ClientData from response
         return ClientData(
             client_id=client_id,
@@ -812,9 +820,9 @@ class GuideService:
             fitness=client_response.get("fitness"),
             dietary_restrictions=client_response.get("dietaryRestrictions"),
             dietary_preferences=client_response.get("dietaryPreferences"),
-            past_trips=client_response.get("pastTrips"),
-            past_trips_with_leader=client_response.get("pastTripsWithLeader"),
-            future_trips=client_response.get("futureTrips"),
+            past_trips=_parse_trip_list(client_response.get("pastTrips")),
+            past_trips_with_leader=_parse_trip_list(client_response.get("pastTripsWithLeader")),
+            future_trips=_parse_trip_list(client_response.get("futureTrips")),
             notes=client_response.get("notes")
         )
 

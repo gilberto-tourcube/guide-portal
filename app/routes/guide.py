@@ -136,8 +136,7 @@ async def guide_home(
                 "guide": homepage_data,
                 "company_logo": company_config.logo,
                 "company_code": resolved_company_code,
-                "skin_name": company_config.skin_name,
-                "active_tab": request.query_params.get("tab", "future")
+                "skin_name": company_config.skin_name
             }
         )
 

@@ -79,6 +79,7 @@ async def departure_details(request: Request, trip_departure_id: int):
         )
 
         # Render template with data
+        from datetime import date as date_today
         return templates.TemplateResponse(
             "pages/trip_departure.html",
             {
@@ -87,7 +88,8 @@ async def departure_details(request: Request, trip_departure_id: int):
                 "company_logo": company_config.logo,
                 "company_code": company_code,
                 "skin_name": company_config.skin_name,
-                "active_tab": request.query_params.get("tab", "clients")
+                "active_tab": request.query_params.get("tab", "clients"),
+                "today": date_today.today()
             }
         )
 
