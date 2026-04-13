@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
-from app.routes import guide, auth, vendor, resources
+from app.routes import guide, auth, vendor, resources, pwa
 from app.services.guide_service import guide_service
 from app.utils.sentry_utils import capture_exception_with_context
 
@@ -228,6 +228,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Include routers
 app.include_router(auth.router)
+app.include_router(pwa.router)        # PWA manifest
 app.include_router(resources.router)  # Generic resources (trips, departures, clients)
 app.include_router(guide.router)      # Guide-specific routes (/guide/home)
 app.include_router(vendor.router)     # Vendor-specific routes (/vendor/home)
