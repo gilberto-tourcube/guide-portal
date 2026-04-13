@@ -31,7 +31,7 @@
         <div class="{% if departure.thumbnail_image %}col-md-9{% else %}col-12{% endif %}">
             <h3 class="mb-3">
                 {% if departure.website_url %}
-                <a href="{{ departure.website_url }}" target="_blank" rel="noopener" class="link link-primary">{{ departure.trip_name }}</a>
+                <a href="{{ departure.website_url }}" target="_blank" rel="noopener" class="text-primary text-decoration-none">{{ departure.trip_name }}</a>
                 {% else %}
                 {{ departure.trip_name }}
                 {% endif %}
