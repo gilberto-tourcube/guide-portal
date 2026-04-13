@@ -188,7 +188,7 @@ class GuideService:
             trip_leaders=trip_dict.get("Trip_Leaders"),  # Trip leaders/guides
             dev_name=trip_dict.get("devName"),  # Area Manager (Trip Developer)
             ops_name=trip_dict.get("opsName"),  # Operations contact
-            thumbnail_image=trip_dict.get("thumbNailImage"),
+            thumbnail_image=trip_dict.get("thumbnail"),
             forms_due_count=trip_dict.get("formsDue")
         )
 
@@ -641,6 +641,7 @@ class GuideService:
             trip_name=departure_response.get("tripName", ""),
             trip_dates=departure_response.get("tripDates", ""),
             thumbnail_image=departure_response.get("thumbNailImage"),
+            website_url=departure_response.get("websiteURL"),
             guides=guides,
             trip_developer_name=departure_response.get("tripDeveloperName"),
             trip_developer_email=departure_response.get("tripDeveloperEmail"),

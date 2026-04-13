@@ -302,6 +302,7 @@ class TripDepartureData(BaseModel):
     trip_name: str = Field(..., description="Name of the trip")
     trip_dates: str = Field(..., description="Date range string (e.g., 'January 1-16, 2026')")
     thumbnail_image: Optional[str] = Field(None, description="Trip thumbnail/banner image URL")
+    website_url: Optional[str] = Field(None, description="External public trip website URL")
 
     # Contacts
     guides: List[TripGuide] = Field(default_factory=list, description="Trip leaders/guides")

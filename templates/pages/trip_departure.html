@@ -29,7 +29,13 @@
 
         <!-- Trip Info -->
         <div class="{% if departure.thumbnail_image %}col-md-9{% else %}col-12{% endif %}">
-            <h3 class="mb-3">{{ departure.trip_name }}</h3>
+            <h3 class="mb-3">
+                {% if departure.website_url %}
+                <a href="{{ departure.website_url }}" target="_blank" rel="noopener" class="link link-primary">{{ departure.trip_name }}</a>
+                {% else %}
+                {{ departure.trip_name }}
+                {% endif %}
+            </h3>
 
             <!-- Metadata Grid -->
             <div class="row g-3 mb-4">
