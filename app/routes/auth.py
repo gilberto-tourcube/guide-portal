@@ -79,6 +79,7 @@ async def login_page(
         {
             "request": request,
             "company_logo": company_config.logo,
+            "company_favicon": company_config.favicon,
             "login_background": company_config.login_background,
             "skin_name": company_config.skin_name,
             "company_code": company_code_resolved,
@@ -248,6 +249,7 @@ async def change_password_page(
         {
             "request": request,
             "company_logo": company_config.logo,
+            "company_favicon": company_config.favicon,
             "login_background": company_config.login_background,
             "skin_name": company_config.skin_name,
             "company_code": company_code,
@@ -385,6 +387,7 @@ async def forgot_password_page(
         {
             "request": request,
             "company_logo": company_config.logo,
+            "company_favicon": company_config.favicon,
             "login_background": company_config.login_background,
             "skin_name": company_config.skin_name,
             "company_code": company_code_resolved,
@@ -448,6 +451,7 @@ async def forgot_username_page(
         {
             "request": request,
             "company_logo": company_config.logo,
+            "company_favicon": company_config.favicon,
             "login_background": company_config.login_background,
             "skin_name": company_config.skin_name,
             "company_code": company_code_resolved,

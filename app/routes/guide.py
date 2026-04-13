@@ -135,6 +135,7 @@ async def guide_home(
                 "request": request,
                 "guide": homepage_data,
                 "company_logo": company_config.logo,
+                "company_favicon": company_config.favicon,
                 "company_code": resolved_company_code,
                 "skin_name": company_config.skin_name
             }

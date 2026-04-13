@@ -7,6 +7,9 @@
     a.trip-card { color: inherit; transition: box-shadow 0.2s ease; }
     a.trip-card:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
     .trip-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 400; margin-bottom: 2px; }
+    @media (min-width: 768px) {
+        .trip-thumb-col { max-width: 256px; }
+    }
 </style>
 {% endblock %}
 
@@ -19,7 +22,7 @@
         <a href="/departure/{{ trip.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3 {% if loop.index > 3 %}future-trip-extra d-none{% endif %}" style="border: none; border-radius: 0;">
             <div class="row g-0 align-items-stretch">
                 {% if trip.thumbnail_image %}
-                <div class="col-md-3" style="max-width: 256px;">
+                <div class="col-12 col-md-3 trip-thumb-col">
                     <img src="{{ trip.thumbnail_image }}" alt="{{ trip.tour_name }}" class="d-block w-100" style="object-fit: cover; height: 100%; aspect-ratio: 3/2;">
                 </div>
                 {% endif %}

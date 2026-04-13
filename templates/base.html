@@ -9,8 +9,8 @@
 
     <title>{% block title %}Tourcube Guide Portal{% endblock %}</title>
 
-    <!-- Fav Icon -->
-    <link rel="shortcut icon" href="{{ url_for('static', path='/images/favicon.ico') }}">
+    <!-- PWA + Favicon -->
+    {% include "partials/pwa_head.html" %}
 
     <!-- DashLite CSS -->
     <link rel="stylesheet" href="{{ url_for('static', path='/css/dashlite.css') }}">

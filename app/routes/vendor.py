@@ -67,6 +67,7 @@ async def vendor_home(request: Request):
                 "request": request,
                 "vendor": homepage_data,
                 "company_logo": company_config.logo,
+                "company_favicon": company_config.favicon,
                 "company_code": company_code,
                 "skin_name": company_config.skin_name,
                 "active_tab": request.query_params.get("tab", "future")

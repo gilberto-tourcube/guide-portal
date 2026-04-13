@@ -1,0 +1,19 @@
+{# PWA meta tags, manifest link, and favicon — included in base.html <head> #}
+{% set _cc = request.session.get('company_code', '') %}
+{% set _mode = request.session.get('mode', '') %}
+
+<!-- PWA -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="{{ theme_color | default('#0F4374') }}">
+<link rel="manifest" href="/manifest.json{% if _cc %}?companyCode={{ _cc }}&mode={{ _mode }}{% endif %}">
+
+<!-- Favicon -->
+{% if company_favicon %}
+<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', path='/images/' + company_favicon) }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', path='/images/' + company_favicon) }}">
+<link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', path='/images/' + company_favicon) }}">
+{% else %}
+<link rel="icon" href="{{ url_for('static', path='/images/favicon.png') }}">
+{% endif %}
