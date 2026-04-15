@@ -24,6 +24,7 @@ class CompanyConfig(BaseModel):
     production_url: str
     login_background: str = ""
     favicon: str = ""
+    offline_documents_enabled: bool = True
     test_domains: List[str] = []
     production_domains: List[str] = []
 
@@ -127,6 +128,7 @@ class Settings(BaseSettings):
                 logo=company.get('Logo', 'logo.png'),
                 login_background=company.get('LoginBackground', ''),
                 favicon=company.get('Favicon', ''),
+                offline_documents_enabled=company.get('OfflineDocumentsEnabled', True),
                 tourcube_online=company.get('TourcubeOnline', True),
                 skin_name=skin_name,
                 test_api_key=company.get('Test', ''),

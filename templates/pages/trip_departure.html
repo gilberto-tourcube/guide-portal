@@ -180,7 +180,7 @@
                                                     <td>{{ doc.description }}</td>
                                                     <td>-</td>
                                                     <td class="text-end">
-                                                        <a href="{{ doc.document_url }}" target="_blank" class="text-primary doc-download">
+                                                        <a href="{{ doc.document_url }}" target="_blank" class="text-primary doc-download" aria-label="{{ doc.description }}"{% if offline_documents_enabled %} data-offline-cache="true"{% endif %}>
                                                             <em class="icon ni ni-download"></em>
                                                         </a>
                                                     </td>
@@ -220,7 +220,7 @@
                                                     <td>{{ doc.description }}</td>
                                                     <td>-</td>
                                                     <td class="text-end">
-                                                        <a href="{{ doc.document_url }}" target="_blank" class="text-primary doc-download">
+                                                        <a href="{{ doc.document_url }}" target="_blank" class="text-primary doc-download" aria-label="{{ doc.description }}"{% if offline_documents_enabled %} data-offline-cache="true"{% endif %}>
                                                             <em class="icon ni ni-download"></em>
                                                         </a>
                                                     </td>

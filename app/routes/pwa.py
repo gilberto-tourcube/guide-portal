@@ -1,10 +1,21 @@
-"""PWA routes — manifest.json per tenant"""
+"""PWA routes — manifest.json, service worker (root scope), and document proxy."""
 
-from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
+from pathlib import Path
+from urllib.parse import unquote, urlparse
+
+import httpx
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import FileResponse, JSONResponse, Response
+
 from app.config import settings
 
 router = APIRouter()
+
+SERVICE_WORKER_PATH = Path("static/service-worker.js")
+
+# Hosts allowed when proxying document downloads (presigned URLs).
+# Restricted to S3-compatible providers used for Tourcube documents.
+ALLOWED_DOC_HOSTS = ("amazonaws.com", "wasabisys.com")
 
 # Skin name → primary color for manifest theme_color
 SKIN_COLORS = {
@@ -67,4 +78,58 @@ async def manifest(request: Request):
     return JSONResponse(
         content=manifest_data,
         media_type="application/manifest+json",
+    )
+
+
+@router.get("/service-worker.js", include_in_schema=False)
+async def service_worker():
+    """Serve the service worker at root scope.
+
+    The Service-Worker-Allowed header is required for the SW to control
+    URLs outside its directory (the file lives under /static/).
+    """
+    return FileResponse(
+        SERVICE_WORKER_PATH,
+        media_type="application/javascript",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Service-Worker-Allowed": "/",
+        },
+    )
+
+
+@router.get("/document-proxy", include_in_schema=False)
+async def document_proxy(url: str = Query(...)):
+    """Proxy presigned document URLs as same-origin so the SW can cache them.
+
+    Presigned S3/Wasabi URLs do not return CORS headers, so the browser
+    blocks the response body when fetched directly from the page. This
+    proxy serves the same bytes from our origin.
+    """
+    target = unquote(url)
+    parsed = urlparse(target)
+
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(status_code=400, detail="Invalid URL scheme")
+
+    host = parsed.hostname or ""
+    if not any(host.endswith(allowed) for allowed in ALLOWED_DOC_HOSTS):
+        raise HTTPException(status_code=403, detail="Host not allowed")
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            upstream = await client.get(target)
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"Upstream fetch failed: {e}")
+
+    if upstream.status_code != 200:
+        raise HTTPException(
+            status_code=upstream.status_code,
+            detail="Upstream returned non-200",
+        )
+
+    return Response(
+        content=upstream.content,
+        media_type=upstream.headers.get("content-type", "application/octet-stream"),
+        headers={"Cache-Control": "private, max-age=3600"},
     )

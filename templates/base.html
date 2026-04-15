@@ -37,6 +37,9 @@
     <script src="{{ url_for('static', path='/js/bundle.js') }}"></script>
     <script src="{{ url_for('static', path='/js/scripts.js') }}"></script>
 
+    <!-- PWA offline support -->
+    <script src="{{ url_for('static', path='/js/pwa-offline.js') }}"></script>
+
     <!-- Custom JavaScript -->
     {% block extra_js %}{% endblock %}
 </body>

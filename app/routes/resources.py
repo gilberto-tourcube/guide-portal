@@ -87,6 +87,7 @@ async def departure_details(request: Request, trip_departure_id: int):
                 "departure": departure_data,
                 "company_logo": company_config.logo,
                 "company_favicon": company_config.favicon,
+                "offline_documents_enabled": company_config.offline_documents_enabled,
                 "company_code": company_code,
                 "skin_name": company_config.skin_name,
                 "active_tab": request.query_params.get("tab", "clients"),
@@ -169,6 +170,7 @@ async def trip_page(request: Request, trip_id: int):
                 "trip": trip_data,
                 "company_logo": company_config.logo,
                 "company_favicon": company_config.favicon,
+                "offline_documents_enabled": company_config.offline_documents_enabled,
                 "company_code": company_code,
                 "skin_name": company_config.skin_name,
                 "active_tab": request.query_params.get("tab", "future")
@@ -265,6 +267,7 @@ async def client_page(
                 "client": client_data,
                 "company_logo": company_config.logo,
                 "company_favicon": company_config.favicon,
+                "offline_documents_enabled": company_config.offline_documents_enabled,
                 "company_code": company_code,
                 "skin_name": company_config.skin_name,
                 "from_page": from_page,
