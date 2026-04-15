@@ -9,7 +9,7 @@
  * Scope: '/' (root). Registration must set Service-Worker-Allowed: /.
  */
 
-const CACHE_VERSION = 'guide-portal-v4';
+const CACHE_VERSION = 'guide-portal-v5';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -134,9 +134,16 @@ async function networkFirst(request, cacheName, event) {
         const pathnameMatch = await matchByPathname(cache, request);
         if (pathnameMatch) return pathnameMatch;
 
-        // 3) Last resort: serve any cached home page.
-        const fallback = await findCachedHomePage(cache);
-        if (fallback) return fallback;
+        // 3) Only the root '/' gets a home-page fallback — that path
+        //    redirects server-side to /guide/home or /vendor/home and
+        //    the SW cannot replay the redirect offline. Any other
+        //    uncached route should show the offline message so the
+        //    user knows they need to visit that page online first.
+        const requestedPath = new URL(request.url).pathname;
+        if (requestedPath === '/' || requestedPath === '') {
+            const fallback = await findCachedHomePage(cache);
+            if (fallback) return fallback;
+        }
 
         return new Response(OFFLINE_FALLBACK_HTML, {
             status: 200,
