@@ -9,7 +9,7 @@
  * Scope: '/' (root). Registration must set Service-Worker-Allowed: /.
  */
 
-const CACHE_VERSION = 'guide-portal-v3';
+const CACHE_VERSION = 'guide-portal-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -123,12 +123,18 @@ async function networkFirst(request, cacheName, event) {
         }
         return response;
     } catch (err) {
+        // 1) Exact match (same URL + same query).
         const cached = await cache.match(request, { ignoreVary: true });
         if (cached) return cached;
 
-        // Offline + cache miss. The user may have opened a redirect URL
-        // (e.g. '/', which redirects to /guide/home) that was never cached.
-        // Fall back to the last cached home page if we have one.
+        // 2) Same pathname, any query string. Covers the case where the
+        //    user first visited '/guide/home?guide_hash=...' and later
+        //    clicks the breadcrumb '/guide/home' (no query), or vice
+        //    versa. The page HTML is the same.
+        const pathnameMatch = await matchByPathname(cache, request);
+        if (pathnameMatch) return pathnameMatch;
+
+        // 3) Last resort: serve any cached home page.
         const fallback = await findCachedHomePage(cache);
         if (fallback) return fallback;
 
@@ -139,15 +145,22 @@ async function networkFirst(request, cacheName, event) {
     }
 }
 
+async function matchByPathname(cache, request) {
+    const target = new URL(request.url).pathname;
+    const keys = await cache.keys();
+    const match = keys.find((req) => new URL(req.url).pathname === target);
+    if (match) return cache.match(match, { ignoreVary: true });
+    return null;
+}
+
 async function findCachedHomePage(cache) {
     const keys = await cache.keys();
-    // Prefer explicit home routes, then any cached page.
     const prefer = ['/guide/home', '/vendor/home'];
     for (const pathname of prefer) {
         const match = keys.find((req) => new URL(req.url).pathname === pathname);
-        if (match) return cache.match(match);
+        if (match) return cache.match(match, { ignoreVary: true });
     }
-    if (keys.length) return cache.match(keys[0]);
+    if (keys.length) return cache.match(keys[0], { ignoreVary: true });
     return null;
 }
 
