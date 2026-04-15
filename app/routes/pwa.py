@@ -65,10 +65,15 @@ async def manifest(request: Request):
                 {"src": icon_path, "sizes": "512x512", "type": "image/png"},
             ]
 
+    # Prefer Guide home as the PWA entry point so offline loads don't hit
+    # the '/' → '/guide/home' redirect (which the SW cannot satisfy).
+    user_role = (request.session.get("user_role") or "").lower()
+    home_path = "/vendor/home" if user_role == "vendor" else "/guide/home"
+
     manifest_data = {
         "name": app_name,
         "short_name": app_name,
-        "start_url": f"/?company_code={company_code}&mode={mode}",
+        "start_url": home_path,
         "display": "standalone",
         "background_color": "#ffffff",
         "theme_color": theme_color,

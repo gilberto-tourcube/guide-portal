@@ -9,7 +9,7 @@
  * Scope: '/' (root). Registration must set Service-Worker-Allowed: /.
  */
 
-const CACHE_VERSION = 'guide-portal-v2';
+const CACHE_VERSION = 'guide-portal-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -125,11 +125,30 @@ async function networkFirst(request, cacheName, event) {
     } catch (err) {
         const cached = await cache.match(request, { ignoreVary: true });
         if (cached) return cached;
+
+        // Offline + cache miss. The user may have opened a redirect URL
+        // (e.g. '/', which redirects to /guide/home) that was never cached.
+        // Fall back to the last cached home page if we have one.
+        const fallback = await findCachedHomePage(cache);
+        if (fallback) return fallback;
+
         return new Response(OFFLINE_FALLBACK_HTML, {
             status: 200,
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
         });
     }
+}
+
+async function findCachedHomePage(cache) {
+    const keys = await cache.keys();
+    // Prefer explicit home routes, then any cached page.
+    const prefer = ['/guide/home', '/vendor/home'];
+    for (const pathname of prefer) {
+        const match = keys.find((req) => new URL(req.url).pathname === pathname);
+        if (match) return cache.match(match);
+    }
+    if (keys.length) return cache.match(keys[0]);
+    return null;
 }
 
 async function cacheCurrentPage(url, html) {
