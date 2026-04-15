@@ -9,7 +9,7 @@
  * Scope: '/' (root). Registration must set Service-Worker-Allowed: /.
  */
 
-const CACHE_VERSION = 'guide-portal-v5';
+const CACHE_VERSION = 'guide-portal-v6';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -219,17 +219,15 @@ function cacheKeyFromUrl(url) {
     return parsed.origin + parsed.pathname;
 }
 
+const DOWNLOAD_CONCURRENCY = 3;
+
 async function cacheOneDocument(db, doc) {
     if (!doc || !doc.url) return;
     const key = cacheKeyFromUrl(doc.url);
 
-    if (await hasDocument(db, key)) {
-        console.log('[SW] Doc already cached:', key);
-        return;
-    }
+    if (await hasDocument(db, key)) return;
 
     const proxyUrl = '/document-proxy?url=' + encodeURIComponent(doc.url);
-    console.log('[SW] Fetching via proxy:', proxyUrl);
     const response = await fetch(proxyUrl, { credentials: 'same-origin' });
     if (!response.ok) throw new Error('HTTP ' + response.status);
     const blob = await response.blob();
@@ -239,22 +237,68 @@ async function cacheOneDocument(db, doc) {
         description: doc.description || '',
         cachedAt: Date.now(),
     });
-    console.log('[SW] Doc cached:', key, 'size:', blob.size);
+}
+
+async function broadcastStatuses(statuses) {
+    const clients = await self.clients.matchAll({ type: 'window' });
+    clients.forEach((client) => {
+        client.postMessage({ type: 'DOC_STATUS', statuses });
+    });
+}
+
+async function runLimited(items, limit, handler) {
+    const queue = items.slice();
+    const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
+        while (queue.length) {
+            const item = queue.shift();
+            try {
+                await handler(item);
+            } catch (err) {
+                console.warn('[SW] Worker task failed', err);
+            }
+        }
+    });
+    await Promise.all(workers);
 }
 
 async function cacheDocuments(docs) {
-    console.log('[SW] cacheDocuments called with', docs.length, 'docs');
     if (!docs.length) return;
     try {
         const db = await openDB();
-        await Promise.all(
-            docs.map((doc) =>
-                cacheOneDocument(db, doc).catch((err) => {
-                    console.warn('[SW] Failed to cache document', doc.url, err);
-                })
-            )
+
+        // Snapshot current state for every doc and broadcast initial statuses.
+        const tasks = [];
+        for (const doc of docs) {
+            const key = cacheKeyFromUrl(doc.url);
+            const isCached = await hasDocument(db, key);
+            tasks.push({ doc, key, isCached });
+        }
+        await broadcastStatuses(
+            tasks.map((t) => ({
+                url: t.doc.url,
+                key: t.key,
+                status: t.isCached ? 'cached' : 'pending',
+            }))
         );
-        console.log('[SW] cacheDocuments complete');
+
+        // Download only the pending ones, limiting concurrency.
+        const pending = tasks.filter((t) => !t.isCached);
+        await runLimited(pending, DOWNLOAD_CONCURRENCY, async (task) => {
+            await broadcastStatuses([
+                { url: task.doc.url, key: task.key, status: 'downloading' },
+            ]);
+            try {
+                await cacheOneDocument(db, task.doc);
+                await broadcastStatuses([
+                    { url: task.doc.url, key: task.key, status: 'cached' },
+                ]);
+            } catch (err) {
+                console.warn('[SW] Failed to cache document', task.doc.url, err);
+                await broadcastStatuses([
+                    { url: task.doc.url, key: task.key, status: 'error' },
+                ]);
+            }
+        });
     } catch (err) {
         console.warn('[SW] cacheDocuments error', err);
     }

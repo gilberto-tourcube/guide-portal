@@ -90,16 +90,94 @@
         });
     }
 
+    // Map cache key (origin + pathname) → DOM element for status badges.
+    var linksByKey = {};
+    // Counters driving the summary badge.
+    var totalDocs = 0;
+    var cachedCount = 0;
+    var errorCount = 0;
+
+    function cacheKeyFromHref(href) {
+        try {
+            var parsed = new URL(href, window.location.origin);
+            return parsed.origin + parsed.pathname;
+        } catch (e) {
+            return href;
+        }
+    }
+
+    function setLinkStatus(link, status) {
+        if (!link) return;
+        link.setAttribute('data-offline-status', status);
+    }
+
+    function ensureSummaryBadge() {
+        var badge = document.getElementById('pwa-offline-summary');
+        if (badge) return badge;
+        badge = document.createElement('div');
+        badge.id = 'pwa-offline-summary';
+        badge.style.cssText = 'position:fixed;bottom:16px;right:16px;background:#0F4374;color:#fff;padding:8px 14px;border-radius:999px;font-size:13px;font-family:system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.2);z-index:9999;display:none;';
+        document.body.appendChild(badge);
+        return badge;
+    }
+
+    function renderSummary() {
+        if (!totalDocs) return;
+        var badge = ensureSummaryBadge();
+        var done = cachedCount + errorCount;
+        if (done >= totalDocs) {
+            if (errorCount) {
+                badge.textContent = '⚠ ' + cachedCount + '/' + totalDocs + ' docs offline';
+                badge.style.background = '#c47a00';
+            } else {
+                badge.textContent = '✓ ' + cachedCount + ' docs offline';
+                badge.style.background = '#1e7e34';
+            }
+            setTimeout(function () { badge.style.display = 'none'; }, 4000);
+        } else {
+            badge.textContent = 'Caching ' + done + '/' + totalDocs + ' docs…';
+            badge.style.background = '#0F4374';
+        }
+        badge.style.display = 'block';
+    }
+
+    function handleDocStatus(statuses) {
+        if (!Array.isArray(statuses)) return;
+        statuses.forEach(function (s) {
+            var link = linksByKey[s.key];
+            if (!link) return;
+            setLinkStatus(link, s.status);
+            if (s.status === 'cached') cachedCount++;
+            else if (s.status === 'error') errorCount++;
+        });
+        renderSummary();
+    }
+
     function requestDocumentCaching() {
         var links = document.querySelectorAll('a[data-offline-cache="true"]');
         console.log('[PWA] Found', links.length, 'docs to cache');
         if (!links.length) return;
 
+        totalDocs = links.length;
+        cachedCount = 0;
+        errorCount = 0;
+        linksByKey = {};
+
         var docs = Array.prototype.map.call(links, function (link) {
+            var key = cacheKeyFromHref(link.href);
+            linksByKey[key] = link;
+            setLinkStatus(link, 'pending');
             return {
                 url: link.href,
                 description: link.getAttribute('aria-label') || (link.textContent || '').trim(),
             };
+        });
+
+        // Listen for status updates from the SW.
+        navigator.serviceWorker.addEventListener('message', function (event) {
+            if (event.data && event.data.type === 'DOC_STATUS') {
+                handleDocStatus(event.data.statuses);
+            }
         });
 
         waitForController().then(function (controller) {

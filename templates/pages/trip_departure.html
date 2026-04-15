@@ -5,6 +5,23 @@
 {% block extra_css %}
 <style>
     .doc-download:hover { opacity: 0.7; }
+
+    /* Offline-cache status indicator on document rows */
+    a[data-offline-status]::before {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        margin-right: 6px;
+        vertical-align: middle;
+        font-size: 12px;
+        line-height: 14px;
+        text-align: center;
+    }
+    a[data-offline-status="pending"]::before { content: "○"; color: #999; }
+    a[data-offline-status="downloading"]::before { content: "⟳"; color: #0F4374; animation: pwa-spin 1.2s linear infinite; }
+    a[data-offline-status="cached"]::before { content: "✓"; color: #1e7e34; }
+    a[data-offline-status="error"]::before { content: "⚠"; color: #c47a00; }
+    @keyframes pwa-spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 </style>
 {% endblock %}
 
