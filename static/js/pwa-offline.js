@@ -92,18 +92,22 @@
 
     function requestDocumentCaching() {
         var links = document.querySelectorAll('a[data-offline-cache="true"]');
+        console.log('[PWA] Found', links.length, 'docs to cache');
         if (!links.length) return;
 
         var docs = Array.prototype.map.call(links, function (link) {
             return {
                 url: link.href,
-                description: (link.textContent || '').trim(),
+                description: link.getAttribute('aria-label') || (link.textContent || '').trim(),
             };
         });
 
         waitForController().then(function (controller) {
             if (controller) {
+                console.log('[PWA] Sending docs to SW');
                 controller.postMessage({ type: 'CACHE_DOCUMENTS', docs: docs });
+            } else {
+                console.warn('[PWA] No SW controller — docs will not be cached this visit');
             }
         });
     }
@@ -115,12 +119,17 @@
         var url = event.currentTarget.href;
         getDocument(url).then(function (entry) {
             if (!entry) {
-                alert('This document has not been saved for offline viewing yet.');
+                alert('This document has not been saved for offline viewing yet. Please visit the departure page while online to cache it.');
                 return;
             }
             var blobUrl = URL.createObjectURL(entry.blob);
-            window.open(blobUrl, '_blank');
+            // iOS Safari (especially in standalone PWA mode) blocks async
+            // window.open. Navigating the current window is more reliable.
+            window.location.href = blobUrl;
             setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 60000);
+        }).catch(function (err) {
+            console.warn('[PWA] Offline doc open failed', err);
+            alert('Could not open offline document: ' + (err && err.message ? err.message : 'unknown error'));
         });
     }
 

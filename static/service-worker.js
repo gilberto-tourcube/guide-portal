@@ -9,13 +9,20 @@
  * Scope: '/' (root). Registration must set Service-Worker-Allowed: /.
  */
 
-const CACHE_VERSION = 'guide-portal-v1';
+const CACHE_VERSION = 'guide-portal-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
+const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 
 const DB_NAME = 'guide-portal-documents';
 const DB_VERSION = 1;
 const STORE_NAME = 'documents';
+
+// External hosts allowed through the SW cache (trip thumbnails, etc.)
+const CACHEABLE_CROSS_ORIGIN_HOSTS = [
+    'wasabisys.com',
+    'amazonaws.com',
+];
 
 const OFFLINE_FALLBACK_HTML = `<!DOCTYPE html>
 <html>
@@ -49,7 +56,18 @@ self.addEventListener('fetch', (event) => {
     const request = event.request;
     const url = new URL(request.url);
 
-    if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+    if (request.method !== 'GET') return;
+
+    // Cross-origin: only cache images from trusted hosts (S3/Wasabi thumbnails)
+    if (url.origin !== self.location.origin) {
+        const hostname = url.hostname || '';
+        const isTrustedHost = CACHEABLE_CROSS_ORIGIN_HOSTS.some((h) => hostname.endsWith(h));
+        const isImage = request.destination === 'image' || /\.(jpe?g|png|gif|webp|svg)$/i.test(url.pathname);
+        if (isTrustedHost && isImage) {
+            event.respondWith(cacheFirst(request, IMAGE_CACHE, event));
+        }
+        return;
+    }
 
     const skipPaths = ['/tourcube/', '/api/', '/manifest.json', '/service-worker.js', '/document-proxy'];
     if (skipPaths.some((path) => url.pathname.startsWith(path))) return;
@@ -85,7 +103,9 @@ async function cacheFirst(request, cacheName, event) {
     if (cached) return cached;
     try {
         const response = await fetch(request);
-        if (response && response.ok) {
+        // Accept successful same-origin (ok) or opaque cross-origin responses.
+        const isOpaque = response && response.type === 'opaque';
+        if (response && (response.ok || isOpaque)) {
             event.waitUntil(cache.put(request, response.clone()));
         }
         return response;
@@ -164,9 +184,13 @@ async function cacheOneDocument(db, doc) {
     if (!doc || !doc.url) return;
     const key = cacheKeyFromUrl(doc.url);
 
-    if (await hasDocument(db, key)) return;
+    if (await hasDocument(db, key)) {
+        console.log('[SW] Doc already cached:', key);
+        return;
+    }
 
     const proxyUrl = '/document-proxy?url=' + encodeURIComponent(doc.url);
+    console.log('[SW] Fetching via proxy:', proxyUrl);
     const response = await fetch(proxyUrl, { credentials: 'same-origin' });
     if (!response.ok) throw new Error('HTTP ' + response.status);
     const blob = await response.blob();
@@ -176,9 +200,11 @@ async function cacheOneDocument(db, doc) {
         description: doc.description || '',
         cachedAt: Date.now(),
     });
+    console.log('[SW] Doc cached:', key, 'size:', blob.size);
 }
 
 async function cacheDocuments(docs) {
+    console.log('[SW] cacheDocuments called with', docs.length, 'docs');
     if (!docs.length) return;
     try {
         const db = await openDB();
@@ -189,6 +215,7 @@ async function cacheDocuments(docs) {
                 })
             )
         );
+        console.log('[SW] cacheDocuments complete');
     } catch (err) {
         console.warn('[SW] cacheDocuments error', err);
     }
