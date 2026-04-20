@@ -122,6 +122,12 @@ async def vendor_home(
             mode=mode
         )
 
+        # Populate navbar user_name with the vendor name returned by the API.
+        # Without this the header falls back to the literal string "User"
+        # (happens after hash bootstrap since login.py is skipped).
+        if homepage_data.vendor_name:
+            request.session["user_name"] = homepage_data.vendor_name
+
         # Render template with data
         return templates.TemplateResponse(
             "pages/vendor_home.html",
