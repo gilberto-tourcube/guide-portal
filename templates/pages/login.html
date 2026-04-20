@@ -21,6 +21,10 @@
     <strong>Service unavailable.</strong> Unable to connect to the authentication service. Please try again later.
     {% elif error == 'unexpected_error' %}
     <strong>An error occurred.</strong> Please try again or contact support if the problem persists.
+    {% elif error == 'invalid_vendor_link' %}
+    <strong>Invalid or expired vendor link.</strong> Please request a new link from the back office or log in below.
+    {% elif error == 'invalid_guide_link' %}
+    <strong>Invalid or expired guide link.</strong> Please request a new link or log in below.
     {% else %}
     <strong>Authentication failed.</strong> Please try again.
     {% endif %}
