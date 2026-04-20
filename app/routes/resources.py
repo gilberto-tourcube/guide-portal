@@ -249,6 +249,27 @@ async def client_page(
         # Get company configuration for logo and branding
         company_config = settings.get_company_config(company_code, mode)
 
+        # Enforce 45-day access expiration when trip_dates is provided in the query.
+        # Guests navigating from the departure page always carry trip_dates;
+        # if someone lands here without it we fall back to allowing access.
+        if trip_dates:
+            trip_end_date = guide_service._parse_trip_end_date(trip_dates)
+            if guide_service._is_access_expired(trip_end_date):
+                return templates.TemplateResponse(
+                    "pages/access_expired.html",
+                    {
+                        "request": request,
+                        "company_logo": company_config.logo,
+                        "company_favicon": company_config.favicon,
+                        "company_code": company_code,
+                        "skin_name": company_config.skin_name,
+                        "trip_name": trip_name,
+                        "trip_dates": trip_dates,
+                        "back_url": f"/departure/{departure_id}" if departure_id else "/guide/home",
+                    },
+                    status_code=403,
+                )
+
         # Fetch client details
         client_data = await guide_service.get_client_details(
             client_id=client_id,

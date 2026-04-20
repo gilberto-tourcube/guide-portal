@@ -454,6 +454,53 @@ class GuideService:
         # If all formats fail, return None
         return None
 
+    def _parse_trip_end_date(self, trip_dates: Optional[str]) -> Optional[date]:
+        """
+        Extract the trip end date from the tripDates string returned by the API.
+
+        Supported formats:
+        - Same month:   "March 10-21, 2026"               -> 2026-03-21
+        - Cross month:  "March 28 - April 2, 2026"        -> 2026-04-02
+        - Cross year:   "December 28, 2026 - January 5, 2027" -> 2027-01-05
+        """
+        import re
+
+        if not trip_dates:
+            return None
+        s = trip_dates.strip()
+
+        patterns = [
+            # Cross-year: "Month D, YYYY - Month D, YYYY"
+            r'^\w+\s+\d+,\s+\d+\s*-\s*(\w+)\s+(\d+),\s+(\d+)$',
+            # Cross-month: "Month D - Month D, YYYY"
+            r'^\w+\s+\d+\s*-\s*(\w+)\s+(\d+),\s+(\d+)$',
+            # Same month: "Month D-D, YYYY" (first group captures start month used as end month)
+            r'^(\w+)\s+\d+\s*-\s*(\d+),\s+(\d+)$',
+        ]
+
+        for pattern in patterns:
+            m = re.match(pattern, s)
+            if m:
+                month, day, year = m.group(1), m.group(2), m.group(3)
+                try:
+                    return datetime.strptime(f"{month} {day} {year}", "%B %d %Y").date()
+                except ValueError:
+                    continue
+
+        return None
+
+    def _is_access_expired(self, trip_end_date: Optional[date], days: int = 45) -> bool:
+        """
+        Return True when the trip ended more than `days` days ago.
+
+        When trip_end_date is unknown (unparseable), returns False so the
+        guide keeps access — fail-open rather than locking users out.
+        """
+        if not trip_end_date:
+            return False
+        from datetime import timedelta
+        return date.today() > trip_end_date + timedelta(days=days)
+
     async def get_trip_departure(
         self,
         trip_departure_id: int,
@@ -633,13 +680,20 @@ class GuideService:
             if status and status.status in ("pending", "expired"):
                 forms_to_complete_count += 1
 
+        # Compute guide access expiration based on trip end date (45 days after trip ends)
+        trip_dates_str = departure_response.get("tripDates", "")
+        trip_end_date = self._parse_trip_end_date(trip_dates_str)
+        access_expired = self._is_access_expired(trip_end_date)
+
         # Build complete trip departure data
         return TripDepartureData(
             trip_departure_id=trip_departure_id,
             trip_id=departure_response.get("TripID"),
             departure_id=departure_response.get("DepartureID"),
             trip_name=departure_response.get("tripName", ""),
-            trip_dates=departure_response.get("tripDates", ""),
+            trip_dates=trip_dates_str,
+            trip_end_date=trip_end_date,
+            access_expired=access_expired,
             thumbnail_image=departure_response.get("thumbNailImage"),
             website_url=departure_response.get("websiteURL"),
             guides=guides,

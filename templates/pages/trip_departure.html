@@ -131,9 +131,15 @@
                                 {% for passenger in departure.passengers %}
                                 <tr>
                                     <td>
+                                        {% if departure.access_expired %}
+                                        <span class="text-muted" title="Client information is no longer available more than 45 days after trip end.">
+                                            {{ passenger.client_name }}
+                                        </span>
+                                        {% else %}
                                         <a href="/client/{{ passenger.client_id }}?from_page=trip_departure&trip_id={{ departure.trip_id }}&departure_id={{ departure.trip_departure_id }}&trip_name={{ departure.trip_name | urlencode }}&trip_dates={{ departure.trip_dates | urlencode }}" class="link link-primary">
                                             {{ passenger.client_name }}
                                         </a>
+                                        {% endif %}
                                     </td>
                                     <td>{{ passenger.age if passenger.age else '-' }}</td>
                                     <td>{{ passenger.gender if passenger.gender else '-' }}</td>
@@ -155,6 +161,13 @@
                 <!-- Documents Tab -->
                 <div class="tab-pane {% if active_tab == 'documents' %}active{% endif %}"
                      id="tabDocuments" role="tabpanel">
+                    {% if departure.access_expired %}
+                    <div class="alert alert-warning alert-icon mt-3">
+                        <em class="icon ni ni-alert-circle"></em>
+                        <strong>Documents are no longer available.</strong>
+                        Trip documents and departure documents are not accessible more than 45 days after the trip end date.
+                    </div>
+                    {% else %}
                     <div class="row g-4 mt-1">
                         <!-- Trip Documents -->
                         <div class="col-md-6">
@@ -236,6 +249,7 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
 
                 <!-- Leader Forms Tab -->
