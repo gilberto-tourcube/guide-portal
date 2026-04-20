@@ -46,7 +46,7 @@
     <h5 class="title mb-3">Future Departures</h5>
     {% if trip.future_departures %}
         {% for departure in trip.future_departures %}
-        {% set departure_is_navigable = departure.is_guide_on_trip or request.session.get('user_role') == 'Vendor' %}
+        {% set departure_is_navigable = departure.is_guide_on_trip %}
         {% if departure_is_navigable %}
         <a href="/departure/{{ departure.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3" style="border: none; border-radius: 0;">
         {% else %}
@@ -56,11 +56,9 @@
                 <div class="d-flex align-items-start justify-content-between">
                     <div class="flex-grow-1">
                         <h6 class="mb-1 {% if not departure_is_navigable %}trip-card-muted{% endif %}">{{ departure.dates }}</h6>
-                        {% if request.session.get('user_role') != 'Vendor' %}
                         <div class="sub-text mb-3" style="font-size: 14px;">
                             {% if departure.is_guide_on_trip %}You are assigned{% else %}Not assigned to this departure{% endif %}
                         </div>
-                        {% endif %}
                         <div class="row">
                             <div class="col-6">
                                 <div class="trip-label">Travelers</div>
@@ -94,7 +92,7 @@
     <h5 class="title mb-3">Past Departures</h5>
     {% if trip.past_departures %}
         {% for departure in trip.past_departures %}
-        {% set departure_is_navigable = departure.is_guide_on_trip or request.session.get('user_role') == 'Vendor' %}
+        {% set departure_is_navigable = departure.is_guide_on_trip %}
         {% if departure_is_navigable %}
         <a href="/departure/{{ departure.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3" style="border: none; border-radius: 0;">
         {% else %}
@@ -104,11 +102,9 @@
                 <div class="d-flex align-items-start justify-content-between">
                     <div class="flex-grow-1">
                         <h6 class="mb-1 {% if not departure_is_navigable %}trip-card-muted{% endif %}">{{ departure.dates }}</h6>
-                        {% if request.session.get('user_role') != 'Vendor' %}
                         <div class="sub-text mb-3" style="font-size: 14px;">
                             {% if departure.is_guide_on_trip %}You were assigned{% else %}Not assigned to this departure{% endif %}
                         </div>
-                        {% endif %}
                         <div class="row">
                             <div class="col-6">
                                 <div class="trip-label">Travelers</div>
