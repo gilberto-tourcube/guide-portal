@@ -13,7 +13,12 @@
 <nav class="mb-3">
     <ul class="breadcrumb breadcrumb-arrow">
         <li class="breadcrumb-item"><a href="{% if request.session.get('user_role') == 'Vendor' %}/vendor/home{% else %}/guide/home{% endif %}">My Trips</a></li>
+        {% if departure.trip_id and request.session.get('user_role') != 'Vendor' %}
+        <li class="breadcrumb-item"><a href="/trip/{{ departure.trip_id }}">{{ departure.trip_name }}</a></li>
+        <li class="breadcrumb-item active">{{ departure.trip_dates }}</li>
+        {% else %}
         <li class="breadcrumb-item active">{{ departure.trip_name }} ({{ departure.trip_dates }})</li>
+        {% endif %}
     </ul>
 </nav>
 
