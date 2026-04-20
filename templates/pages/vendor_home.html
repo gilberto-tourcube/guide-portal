@@ -1,316 +1,180 @@
 {% extends "layouts/dashboard.html" %}
 
-{% block title %}Home - Tourcube Vendor Portal{% endblock %}
+{% block title %}My Trips - Tourcube Vendor Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    a.trip-card { color: inherit; transition: box-shadow 0.2s ease; }
+    a.trip-card:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .trip-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 400; margin-bottom: 2px; }
+    @media (min-width: 768px) {
+        .trip-thumb-col { max-width: 256px; }
+    }
+</style>
+{% endblock %}
 
 {% block page_content %}
-<!-- Page Header -->
-<div class="nk-block-head nk-block-head-sm">
-    <div class="nk-block-between g-3">
-        <div class="nk-block-head-content">
-            <h3 class="nk-block-title page-title">Vendor Dashboard</h3>
-            <div class="nk-block-des text-soft">
-                <p>Your trips and forms information</p>
+<!-- Future Trips -->
+<div class="nk-block">
+    <h5 class="title mb-3">Future Trips</h5>
+    {% if vendor.future_trips %}
+        {% for trip in vendor.future_trips %}
+        <a href="/departure/{{ trip.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3 {% if loop.index > 3 %}future-trip-extra d-none{% endif %}" style="border: none; border-radius: 0;">
+            <div class="row g-0 align-items-stretch">
+                {% if trip.thumbnail_image %}
+                <div class="col-12 col-md-3 trip-thumb-col">
+                    <img src="{{ trip.thumbnail_image }}" alt="{{ trip.tour_name }}" class="d-block w-100" style="object-fit: cover; height: 100%; aspect-ratio: 3/2;">
+                </div>
+                {% endif %}
+                <div class="col">
+                    <div class="p-4 pe-5 position-relative h-100 d-flex align-items-center">
+                        <!-- Badge top-right -->
+                        <div class="position-absolute" style="top: 16px; right: 16px;">
+                            {% if trip.departure_docs_count is not none and trip.departure_docs_count > 0 %}
+                            <span class="badge bg-outline-success px-3 py-1">
+                                <em class="icon ni ni-check-circle me-1"></em>{{ trip.departure_docs_count }} Departure Docs
+                            </span>
+                            {% elif trip.departure_docs_count is not none and trip.departure_docs_count == 0 %}
+                            <span class="badge bg-outline-warning px-3 py-1">
+                                <em class="icon ni ni-alert-circle me-1"></em>{{ trip.departure_docs_count }} Departure Docs
+                            </span>
+                            {% endif %}
+                            {% if trip.forms_due_count is not none and trip.forms_due_count > 0 %}
+                            <span class="badge bg-outline-danger px-3 py-1 ms-1">
+                                <em class="icon ni ni-alert-circle me-1"></em>{{ trip.forms_due_count }} Forms Due
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="flex-grow-1">
+                            <!-- Next Up label (first trip only) -->
+                            {% if loop.first %}
+                            <div class="trip-label mb-1">Next Up</div>
+                            {% endif %}
+
+                            <!-- Trip Name -->
+                            <h6 class="mb-1">{{ trip.tour_name }}</h6>
+
+                            <!-- Dates -->
+                            <div class="sub-text mb-3" style="font-size: 14px;">{{ trip.dates }}</div>
+
+                            <!-- Trip Details Grid — 3 equal columns -->
+                            <div class="row">
+                                <div class="col-4">
+                                    <div class="trip-label">Travelers</div>
+                                    <div>{{ trip.group_size if trip.group_size else '-' }}</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="trip-label">Area Manager</div>
+                                    <div>{{ trip.dev_name if trip.dev_name else '-' }}</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="trip-label">Trip Leaders</div>
+                                    <div>{{ trip.trip_leaders if trip.trip_leaders else '-' }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chevron -->
+                        <div class="d-none d-md-flex align-items-center ms-3">
+                            <em class="icon ni ni-chevron-right text-muted" style="font-size: 20px; opacity: 0.4;"></em>
+                        </div>
+                    </div>
+                </div>
             </div>
+        </a>
+        {% endfor %}
+
+        {% if vendor.future_trips|length > 3 %}
+        <div class="text-center mt-3 mb-4">
+            <a href="#" class="link link-primary text-uppercase fw-bold text-decoration-underline" style="font-size: 13px; letter-spacing: 0.05em;" id="toggleFutureTrips">
+                <span id="toggleFutureTripsText">Show {{ vendor.future_trips|length - 3 }} More Upcoming Trips</span>
+                <em class="icon ni ni-chevron-down ms-1" id="toggleFutureTripsIcon"></em>
+            </a>
         </div>
+        {% endif %}
+    {% else %}
+    <div class="alert alert-light alert-icon">
+        <em class="icon ni ni-info"></em>
+        <strong>No upcoming trips scheduled.</strong> Check back later for new assignments.
     </div>
+    {% endif %}
 </div>
 
-<!-- Main Content with Two Columns -->
+<!-- Past Trips -->
 <div class="nk-block">
-    <div class="row g-gs">
-        <!-- Left Column - Vendor Profile Card -->
-        <div class="col-lg-4 col-xl-4 col-xxl-3">
-            <div class="card card-bordered">
-                <div class="card-inner-group">
-                    <!-- Vendor Profile -->
-                    <div class="card-inner">
-                        <div class="user-card user-card-s2">
-                            <div class="user-avatar lg bg-primary">
-                                <span>{{ vendor.vendor_name[0] if vendor.vendor_name else 'V' }}</span>
+    <h5 class="title mb-3">Past Trips</h5>
+    {% if vendor.past_trips %}
+        {% for trip in vendor.past_trips %}
+        <a href="/departure/{{ trip.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3" style="border: none; border-radius: 0;">
+            <div class="p-4 position-relative">
+                <div class="d-flex align-items-start justify-content-between">
+                    <div class="flex-grow-1">
+                        <!-- Trip Name -->
+                        <h6 class="mb-1">{{ trip.tour_name }}</h6>
+
+                        <!-- Dates -->
+                        <div class="sub-text mb-3" style="font-size: 14px;">{{ trip.dates }}</div>
+
+                        <!-- Trip Details Grid — 2 equal columns -->
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="trip-label">Area Manager</div>
+                                <div>{{ trip.dev_name if trip.dev_name else '-' }}</div>
                             </div>
-                            <div class="user-info">
-                                <h5>{{ vendor.vendor_name }}</h5>
-                                <span class="sub-text">Service Provider</span>
+                            <div class="col-6">
+                                <div class="trip-label">Trip Leaders</div>
+                                <div>{{ trip.trip_leaders if trip.trip_leaders else '-' }}</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Statistics -->
-                    <div class="card-inner">
-                        <div class="row text-center">
-                            <div class="col-4">
-                                <div class="profile-stats">
-                                    <span class="amount">{{ vendor.future_trips|length if vendor.future_trips else 0 }}</span>
-                                    <span class="sub-text">Future</span>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="profile-stats">
-                                    <span class="amount">{{ vendor.past_trips|length if vendor.past_trips else 0 }}</span>
-                                    <span class="sub-text">Past</span>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="profile-stats">
-                                    <span class="amount">{{ vendor.forms_pending_count if vendor.forms_pending_count else 0 }}</span>
-                                    <span class="sub-text">Forms</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Info -->
-                    <div class="card-inner">
-                        <h6 class="overline-title mb-2">Quick Info</h6>
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <span class="sub-text">Total Trips</span>
-                                <span class="caption-text">{{ (vendor.future_trips|length if vendor.future_trips else 0) + (vendor.past_trips|length if vendor.past_trips else 0) }}</span>
-                            </div>
-                            <div class="col-12">
-                                <span class="sub-text">Pending Forms</span>
-                                <span class="caption-text text-{% if vendor.forms_pending_count > 0 %}danger{% else %}success{% endif %}">
-                                    {{ vendor.forms_pending_count if vendor.forms_pending_count else 0 }}
-                                </span>
-                            </div>
-                        </div>
+                    <!-- Forms Status Badge -->
+                    <div class="ms-3 flex-shrink-0">
+                        {% if trip.forms_due_count is not none and trip.forms_due_count > 0 %}
+                        <span class="badge bg-outline-danger px-2 py-1">
+                            <em class="icon ni ni-alert-circle me-1"></em>{{ trip.forms_due_count }} Forms Due
+                        </span>
+                        {% elif trip.forms_due_count is not none and trip.forms_due_count == 0 %}
+                        <span class="badge bg-outline-success px-2 py-1">
+                            <em class="icon ni ni-check-circle me-1"></em>Complete
+                        </span>
+                        {% endif %}
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Right Column - Tabs and Content -->
-        <div class="col-lg-8 col-xl-8 col-xxl-9">
-            <div class="card card-bordered">
-                <div class="card-inner">
-                    <!-- Tab Navigation -->
-                    <ul class="nav nav-tabs mt-n3" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <a class="nav-link {% if active_tab == 'future' or not active_tab %}active{% endif %}"
-                               data-bs-toggle="tab"
-                               href="#tabFutureTrips"
-                               aria-selected="{% if active_tab == 'future' or not active_tab %}true{% else %}false{% endif %}"
-                               role="tab">
-                                <em class="icon ni ni-calendar"></em>
-                                <span>My Future Trip Schedule</span>
-                            </a>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <a class="nav-link {% if active_tab == 'past' %}active{% endif %}"
-                               data-bs-toggle="tab"
-                               href="#tabPastTrips"
-                               aria-selected="{% if active_tab == 'past' %}true{% else %}false{% endif %}"
-                               role="tab"
-                               tabindex="-1">
-                                <em class="icon ni ni-history"></em>
-                                <span>My Past Trip Schedule</span>
-                            </a>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <a class="nav-link {% if active_tab == 'forms' %}active{% endif %}"
-                               data-bs-toggle="tab"
-                               href="#tabForms"
-                               aria-selected="{% if active_tab == 'forms' %}true{% else %}false{% endif %}"
-                               role="tab"
-                               tabindex="-1">
-                                <em class="icon ni ni-file-docs"></em>
-                                <span>Forms Due</span>
-                                {% if vendor.forms_pending_count and vendor.forms_pending_count > 0 %}
-                                <span class="badge rounded-pill bg-danger ms-1">{{ vendor.forms_pending_count }}</span>
-                                {% endif %}
-                            </a>
-                        </li>
-                    </ul>
-
-                    <!-- Tab Content -->
-                    <div class="tab-content">
-                        <!-- Future Trips Tab -->
-                        <div class="tab-pane {% if active_tab == 'future' or not active_tab %}active{% endif %}"
-                             id="tabFutureTrips"
-                             role="tabpanel">
-                            <div class="card-title-group mb-3 mt-3">
-                                <div class="card-title">
-                                    <h6 class="title">Upcoming Trips</h6>
-                                </div>
-                            </div>
-                            {% if vendor.future_trips %}
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead class="thead-light">
-                                        <tr>
-                                            <th>Departures</th>
-                                            <th>Trip</th>
-                                            <th>Trip Leaders</th>
-                                            <th>Clients</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for trip in vendor.future_trips %}
-                                        <tr>
-                                            <td>
-                                                {% if trip.trip_departure_id %}
-                                                <a href="/departure/{{ trip.trip_departure_id }}" class="tb-sub text-primary">{{ trip.dates }}</a>
-                                                {% else %}
-                                                <span class="tb-sub">{{ trip.dates }}</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if trip.trip_id %}
-                                                <a href="/trip/{{ trip.trip_id }}" class="tb-lead fw-bold text-dark">{{ trip.trip_name }}</a>
-                                                {% else %}
-                                                <span class="tb-lead fw-bold">{{ trip.trip_name }}</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                <span class="tb-sub">{{ trip.trip_leaders if trip.trip_leaders else '-' }}</span>
-                                            </td>
-                                            <td>
-                                                <span class="tb-sub">{{ trip.sign_ups if trip.sign_ups else '-' }}</span>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {% else %}
-                            <div class="alert alert-light alert-icon">
-                                <em class="icon ni ni-info"></em>
-                                <strong>No upcoming trips scheduled.</strong> Check back later for new assignments.
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Past Trips Tab -->
-                        <div class="tab-pane {% if active_tab == 'past' %}active{% endif %}"
-                             id="tabPastTrips"
-                             role="tabpanel">
-                            <div class="card-title-group mb-3 mt-3">
-                                <div class="card-title">
-                                    <h6 class="title">Completed Trips</h6>
-                                </div>
-                            </div>
-                            {% if vendor.past_trips %}
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead class="thead-light">
-                                        <tr>
-                                            <th>Departures</th>
-                                            <th>Trip</th>
-                                            <th>Trip Leaders</th>
-                                            <th>Clients</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for trip in vendor.past_trips %}
-                                        <tr>
-                                            <td>
-                                                {% if trip.trip_departure_id %}
-                                                <a href="/departure/{{ trip.trip_departure_id }}" class="tb-sub text-primary">{{ trip.dates }}</a>
-                                                {% else %}
-                                                <span class="tb-sub">{{ trip.dates }}</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if trip.trip_id %}
-                                                <a href="/trip/{{ trip.trip_id }}" class="tb-lead fw-bold text-dark">{{ trip.trip_name }}</a>
-                                                {% else %}
-                                                <span class="tb-lead fw-bold">{{ trip.trip_name }}</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                <span class="tb-sub">{{ trip.trip_leaders if trip.trip_leaders else '-' }}</span>
-                                            </td>
-                                            <td>
-                                                <span class="tb-sub">{{ trip.sign_ups if trip.sign_ups else '-' }}</span>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {% else %}
-                            <div class="alert alert-light alert-icon">
-                                <em class="icon ni ni-info"></em>
-                                <strong>No past trips found.</strong>
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Forms Due Tab -->
-                        <div class="tab-pane {% if active_tab == 'forms' %}active{% endif %}"
-                             id="tabForms"
-                             role="tabpanel">
-                            <div class="card-title-group mb-3 mt-3">
-                                <div class="card-title">
-                                    <h6 class="title">Forms Requiring Attention</h6>
-                                </div>
-                            </div>
-                            {% if vendor.forms %}
-                            <div class="row g-gs">
-                                {% for form in vendor.forms %}
-                                <div class="col-md-6 col-xxl-4">
-                                    <div class="card card-bordered h-100 {% if form.status and form.status.status in ['pending', 'overdue'] %}border-danger{% endif %}">
-                                        <div class="card-inner">
-                                            <h6 class="title">{{ form.form_name }}</h6>
-
-                                            <!-- Due Date -->
-                                            {% if form.received %}
-                                            <div class="badge-list mb-3">
-                                                <span class="badge bg-outline-success">
-                                                    Completed
-                                                </span>
-                                            </div>
-                                            {% elif form.due_date %}
-                                            <div class="badge-list mb-3">
-                                                <span class="badge bg-outline-danger">
-                                                    Due: {{ form.due_date.strftime('%b %d, %Y') if form.due_date else '-' }}
-                                                </span>
-                                            </div>
-                                            {% endif %}
-
-                                            <!-- Trip Info -->
-                                            {% if form.trip_info %}
-                                            <div class="text-soft small mb-2">
-                                                <em class="icon ni ni-map-pin-fill"></em> {{ form.trip_info }}
-                                            </div>
-                                            {% endif %}
-
-                                            <!-- Contact Information -->
-                                            {% if form.show_contact and form.contact_label %}
-                                            <div class="text-soft small mb-3">
-                                                <p class="mb-0"><a href="mailto:{{ form.contact_email }}">{{ form.contact_label }}</a></p>
-                                            </div>
-                                            {% endif %}
-
-                                            <!-- Action Button -->
-                                            {% if form.status.is_clickable %}
-                                            <a href="{{ form.status.url }}" class="btn btn-block {{ form.status.button_class }}" target="_blank">
-                                                {{ form.status.button_text }}
-                                            </a>
-                                            {% else %}
-                                            <button class="btn btn-block {{ form.status.button_class }}" disabled>
-                                                {{ form.status.button_text }}
-                                            </button>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% else %}
-                            <div class="alert alert-success alert-icon">
-                                <em class="icon ni ni-check-circle"></em>
-                                <strong>All caught up!</strong> You have no forms requiring attention at this time.
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </a>
+        {% endfor %}
+    {% else %}
+    <div class="alert alert-light alert-icon">
+        <em class="icon ni ni-info"></em>
+        <strong>No past trips found.</strong>
     </div>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script>
+(function() {
+    var toggle = document.getElementById('toggleFutureTrips');
+    if (!toggle) return;
+
+    var expanded = false;
+    var extras = document.querySelectorAll('.future-trip-extra');
+    var text = document.getElementById('toggleFutureTripsText');
+    var icon = document.getElementById('toggleFutureTripsIcon');
+    var count = extras.length;
+
+    toggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        expanded = !expanded;
+        extras.forEach(function(el) {
+            el.classList.toggle('d-none', !expanded);
+        });
+        text.textContent = expanded ? 'Show Less' : 'Show ' + count + ' More Upcoming Trips';
+        icon.className = expanded ? 'icon ni ni-chevron-up ms-1' : 'icon ni ni-chevron-down ms-1';
+    });
+})();
+</script>
 {% endblock %}

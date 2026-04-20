@@ -111,9 +111,12 @@ class VendorService:
             self._parse_trip_summary(trip) for trip in homepage_data.past_trips
         ]
 
-        # Sort past trips in descending order by departure date (most recent first)
-        # Note: We don't have departure_date field in VendorTripSummary, so we'll keep original order
-        # If needed, we can parse the dates string later
+        # Sort past trips in descending order by departure date (most recent first).
+        # When departure_date is missing, fall back to date.min so those trips sort last.
+        past_trips.sort(
+            key=lambda trip: trip.departure_date if trip.departure_date else date.min,
+            reverse=True,
+        )
 
         # Process forms with status calculation
         forms = []
@@ -166,15 +169,44 @@ class VendorService:
 
     def _parse_trip_summary(self, trip_dict: dict) -> VendorTripSummary:
         """
-        Parse a trip dictionary from API into VendorTripSummary model
+        Parse a trip dictionary from API into VendorTripSummary model.
 
-        Args:
-            trip_dict: Raw trip data from API
-
-        Returns:
-            VendorTripSummary model
+        Populates the extended fields used by the shared trip-card template
+        (mirroring guide_service._parse_trip_summary): thumbnail_image,
+        forms_due_count, dev_name, group_size, departure_date.
         """
-        return VendorTripSummary(**trip_dict)
+        sign_ups = trip_dict.get("SignUps")
+        trip_name = trip_dict.get("Trip_Name", "")
+
+        departure_date = None
+        if trip_dict.get("Departure_Date"):
+            departure_date = self._parse_date(trip_dict.get("Departure_Date"))
+
+        return VendorTripSummary(
+            trip_departure_id=trip_dict.get("Trip_DepartureID"),
+            trip_id=trip_dict.get("TripID"),
+            trip_name=trip_name,
+            tour_name=trip_name,
+            dates=trip_dict.get("dates", ""),
+            trip_leaders=trip_dict.get("Trip_Leaders"),
+            sign_ups=sign_ups,
+            group_size=sign_ups,
+            thumbnail_image=trip_dict.get("thumbnail"),
+            dev_name=trip_dict.get("devName"),
+            forms_due_count=trip_dict.get("formsDue"),
+            departure_date=departure_date,
+        )
+
+    def _parse_date(self, date_str: Optional[str]) -> Optional[date]:
+        """Parse common date string formats returned by the API."""
+        if not date_str:
+            return None
+        for fmt in ("%Y-%m-%d", "%Y%m%d", "%m/%d/%Y", "%d/%m/%Y"):
+            try:
+                return datetime.strptime(date_str, fmt).date()
+            except ValueError:
+                continue
+        return None
 
     def _parse_vendor_form(self, form_dict: dict, company_code: str) -> VendorForm:
         """

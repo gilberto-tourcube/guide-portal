@@ -525,9 +525,18 @@ class VendorTripSummary(BaseModel):
     trip_departure_id: Optional[int] = Field(None, alias="Trip_DepartureID", description="Unique trip departure ID")
     trip_id: Optional[int] = Field(None, alias="TripID", description="Trip ID for linking to trip page")
     trip_name: str = Field(..., alias="Trip_Name", description="Name of the trip")
+    # Mirror of trip_name under the name expected by the shared trip-card template
+    tour_name: str = Field("", description="Display name used by the shared home-card template")
     dates: str = Field(..., description="Date range string (e.g., 'January 1-16, 2026')")
     trip_leaders: Optional[str] = Field(None, alias="Trip_Leaders", description="Trip leaders/guides names")
     sign_ups: Optional[int] = Field(None, alias="SignUps", description="Number of travelers signed up")
+    # Fields used by the shared home-card template (same contract as TripSummary)
+    group_size: Optional[int] = Field(None, description="Travelers count — template alias for sign_ups")
+    thumbnail_image: Optional[str] = Field(None, description="Trip thumbnail/banner image URL")
+    dev_name: Optional[str] = Field(None, description="Trip developer / Area Manager name")
+    departure_docs_count: Optional[int] = Field(None, description="Number of departure documents")
+    forms_due_count: Optional[int] = Field(None, description="Number of forms due for the trip")
+    departure_date: Optional[date] = Field(None, description="Parsed departure date (used for sorting)")
 
     class Config:
         populate_by_name = True
@@ -536,9 +545,11 @@ class VendorTripSummary(BaseModel):
                 "trip_departure_id": 12345,
                 "trip_id": 5678,
                 "trip_name": "European Adventure",
+                "tour_name": "European Adventure",
                 "dates": "June 15-25, 2024",
                 "trip_leaders": "John Smith, Jane Doe",
-                "sign_ups": 25
+                "sign_ups": 25,
+                "group_size": 25
             }
         }
 
