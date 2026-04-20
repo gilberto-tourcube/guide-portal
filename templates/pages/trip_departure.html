@@ -178,7 +178,7 @@
                                                 {% for doc in departure.trip_documents %}
                                                 <tr>
                                                     <td>{{ doc.description }}</td>
-                                                    <td>-</td>
+                                                    <td>{{ doc.upload_date if doc.upload_date else '-' }}</td>
                                                     <td class="text-end">
                                                         <a href="{{ doc.document_url }}" target="_blank" class="text-primary doc-download">
                                                             <em class="icon ni ni-download"></em>
@@ -218,7 +218,7 @@
                                                 {% for doc in departure.departure_documents %}
                                                 <tr>
                                                     <td>{{ doc.description }}</td>
-                                                    <td>-</td>
+                                                    <td>{{ doc.upload_date if doc.upload_date else '-' }}</td>
                                                     <td class="text-end">
                                                         <a href="{{ doc.document_url }}" target="_blank" class="text-primary doc-download">
                                                             <em class="icon ni ni-download"></em>

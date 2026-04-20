@@ -442,7 +442,9 @@ class GuideService:
             "%Y-%m-%d",      # ISO format
             "%Y%m%d",        # WebDev format
             "%m/%d/%Y",      # US format
-            "%d/%m/%Y"       # International format
+            "%d/%m/%Y",      # International format
+            "%b.-%d-%Y",     # API updateDate format (e.g. "Mar.-16-2026")
+            "%b-%d-%Y"       # API updateDate fallback without dot
         ]
 
         for fmt in formats:
@@ -517,30 +519,26 @@ class GuideService:
         # Parse departure documents
         departure_documents = []
         for doc_dict in departure_response.get("departureDocs", []):
+            raw_date = doc_dict.get("updateDate") or doc_dict.get("dateUploaded") or doc_dict.get("uploadDate") or doc_dict.get("DateUploaded")
+            parsed_date = self._parse_date(raw_date) if raw_date else None
             departure_documents.append(TripDocument(
                 description=doc_dict.get("description", ""),
                 document_url=doc_dict.get("documentURL", ""),
-                document_type="departure"
+                document_type="departure",
+                upload_date=parsed_date.strftime("%b %d, %Y") if parsed_date else None
             ))
 
-        # Fetch trip-level documents from getTripPage API
+        # Parse trip-level documents from getDeparturePage response
         trip_documents = []
-        trip_id = departure_response.get("TripID")
-        if trip_id:
-            try:
-                trip_response = await self.api_client.get(
-                    f"/tourcube/guidePortal/getTripPage/{trip_id}",
-                    params={"userId": user_id}
-                )
-                for doc_dict in trip_response.get("documents", []):
-                    trip_documents.append(TripDocument(
-                        description=doc_dict.get("description", ""),
-                        document_url=doc_dict.get("documentURL", ""),
-                        document_type="trip"
-                    ))
-            except Exception as e:
-                logger.warning("Failed to fetch trip documents for trip %s: %s", trip_id, e)
-                capture_exception_with_context(e, mode=mode, company_code=company_code)
+        for doc_dict in departure_response.get("tripDocs", []):
+            raw_date = doc_dict.get("updateDate") or doc_dict.get("dateUploaded") or doc_dict.get("uploadDate") or doc_dict.get("DateUploaded")
+            parsed_date = self._parse_date(raw_date) if raw_date else None
+            trip_documents.append(TripDocument(
+                description=doc_dict.get("description", ""),
+                document_url=doc_dict.get("documentURL", ""),
+                document_type="trip",
+                upload_date=parsed_date.strftime("%b %d, %Y") if parsed_date else None
+            ))
 
         # Fetch forms data from API - use different endpoint based on user role
         # Wrap in try/except to handle API errors gracefully
