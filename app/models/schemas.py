@@ -273,6 +273,7 @@ class TripDocument(BaseModel):
     description: str = Field(..., description="Document description/name")
     document_url: str = Field(..., description="URL to access the document")
     document_type: Optional[str] = Field(None, description="Type: trip or departure")
+    upload_date: Optional[str] = Field(None, description="Date the document was uploaded")
 
 
 class DepartureForm(BaseModel):
