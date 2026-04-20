@@ -24,6 +24,50 @@ class VendorService:
     def __init__(self):
         self.api_client = api_client
 
+    async def get_vendor_id_by_hash(
+        self,
+        vendor_hash: str,
+        company_code: str,
+        mode: str
+    ) -> int:
+        """
+        Resolve a vendorHash to a vendor_id using the Tourcube getVendorByHash endpoint.
+
+        The endpoint may return a bare integer, a dict with various key names,
+        or the sentinel value ``0`` when the hash is unknown.
+        """
+        company_config = settings.get_company_config(company_code, mode)
+        self.api_client.base_url = company_config.api_url
+        self.api_client.api_key = company_config.api_key
+
+        result = await self.api_client.get(
+            f"/tourcube/guidePortal/getVendorByHash/{vendor_hash}"
+        )
+
+        # API may return a bare integer or a dict with various key names
+        if isinstance(result, (int, str)):
+            vendor_id = result
+        elif isinstance(result, dict):
+            vendor_id = (
+                result.get("vendor_id")
+                or result.get("VendorID")
+                or result.get("vendorID")
+                or result.get("VendorId")
+            )
+        else:
+            vendor_id = None
+
+        try:
+            vendor_id_int = int(vendor_id) if vendor_id is not None else None
+        except (TypeError, ValueError) as exc:
+            raise ValueError("vendorHash returned an invalid vendor ID") from exc
+
+        # API returns 0 when the hash is unknown or stale
+        if not vendor_id_int:
+            raise ValueError("vendorHash could not be resolved to a vendor ID")
+
+        return vendor_id_int
+
     async def get_vendor_homepage(
         self,
         vendor_id: int,
