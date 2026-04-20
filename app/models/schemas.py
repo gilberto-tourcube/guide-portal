@@ -302,6 +302,8 @@ class TripDepartureData(BaseModel):
     # Trip information
     trip_name: str = Field(..., description="Name of the trip")
     trip_dates: str = Field(..., description="Date range string (e.g., 'January 1-16, 2026')")
+    trip_end_date: Optional[date] = Field(None, description="Parsed end date extracted from trip_dates")
+    access_expired: bool = Field(False, description="True when trip ended more than 45 days ago — guide access is restricted")
     thumbnail_image: Optional[str] = Field(None, description="Trip thumbnail/banner image URL")
     website_url: Optional[str] = Field(None, description="External public trip website URL")
 
