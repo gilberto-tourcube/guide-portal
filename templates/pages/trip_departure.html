@@ -194,11 +194,11 @@
                                             </thead>
                                             <tbody>
                                                 {% for doc in departure.trip_documents %}
-                                                <tr>
+                                                <tr style="cursor: pointer" onclick="window.open('{{ doc.document_url }}', '_blank')">
                                                     <td>{{ doc.description }}</td>
                                                     <td>{{ doc.upload_date if doc.upload_date else '-' }}</td>
                                                     <td class="text-end">
-                                                        <a href="{{ doc.document_url }}" target="_blank" class="text-primary doc-download">
+                                                        <a href="{{ doc.document_url }}" target="_blank" class="text-primary doc-download" onclick="event.stopPropagation()">
                                                             <em class="icon ni ni-download"></em>
                                                         </a>
                                                     </td>
@@ -234,11 +234,11 @@
                                             </thead>
                                             <tbody>
                                                 {% for doc in departure.departure_documents %}
-                                                <tr>
+                                                <tr style="cursor: pointer" onclick="window.open('{{ doc.document_url }}', '_blank')">
                                                     <td>{{ doc.description }}</td>
                                                     <td>{{ doc.upload_date if doc.upload_date else '-' }}</td>
                                                     <td class="text-end">
-                                                        <a href="{{ doc.document_url }}" target="_blank" class="text-primary doc-download">
+                                                        <a href="{{ doc.document_url }}" target="_blank" class="text-primary doc-download" onclick="event.stopPropagation()">
                                                             <em class="icon ni ni-download"></em>
                                                         </a>
                                                     </td>
