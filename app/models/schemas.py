@@ -323,6 +323,9 @@ class TripDepartureData(BaseModel):
     forms: List[DepartureForm] = Field(default_factory=list, description="Forms to complete")
     forms_to_complete_count: int = Field(0, description="Number of incomplete forms")
 
+    # Departure notes (free-text synced with Departure Comment in the back office)
+    departure_notes: Optional[str] = Field(None, description="Departure notes (free-text)")
+
     class Config:
         json_schema_extra = {
             "example": {
