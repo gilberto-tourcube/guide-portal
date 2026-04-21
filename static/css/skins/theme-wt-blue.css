@@ -798,6 +798,13 @@ h1, h2, h3, h4, h5, h6,
   border-radius: 0 !important;
 }
 
+/* Guide photo fills the avatar so the blue surround behind it is hidden */
+.user-avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
 /* Trip card label accent color */
 .trip-label {
   color: var(--trip-label-color);
