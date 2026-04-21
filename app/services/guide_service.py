@@ -701,7 +701,8 @@ class GuideService:
             trip_documents=trip_documents,
             departure_documents=departure_documents,
             forms=forms,
-            forms_to_complete_count=forms_to_complete_count
+            forms_to_complete_count=forms_to_complete_count,
+            departure_notes=departure_response.get("departureNotes") or None,
         )
 
     async def get_trip_page(
