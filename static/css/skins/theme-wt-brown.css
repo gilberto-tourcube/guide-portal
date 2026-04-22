@@ -563,3 +563,15 @@ a.bg-primary:hover, a.bg-primary:focus, button.bg-primary:hover, button.bg-prima
 .custom-control.color-control .custom-control-label:before {
   border-color: #A97C50 !important;
 }
+/* WT rounded corners — mirror WT Blue skin */
+.card,
+.btn,
+.badge,
+.modal-content,
+.dropdown-menu,
+.form-control,
+.form-select,
+.input-group-text,
+.user-avatar {
+  border-radius: 6px;
+}

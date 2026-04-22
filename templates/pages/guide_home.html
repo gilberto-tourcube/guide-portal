@@ -19,7 +19,7 @@
     <h5 class="title mb-3">Future Trips</h5>
     {% if guide.future_trips %}
         {% for trip in guide.future_trips %}
-        <a href="/departure/{{ trip.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3 {% if loop.index > 3 %}future-trip-extra d-none{% endif %}" style="border: none; border-radius: 6px;">
+        <a href="/departure/{{ trip.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3 {% if loop.index > 3 %}future-trip-extra d-none{% endif %}" style="border: none;">
             <div class="row g-0 align-items-stretch">
                 {% if trip.thumbnail_image %}
                 <div class="col-12 col-md-3 trip-thumb-col">
@@ -106,7 +106,7 @@
     <h5 class="title mb-3">Past Trips</h5>
     {% if guide.past_trips %}
         {% for trip in guide.past_trips %}
-        <a href="/departure/{{ trip.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3" style="border: none; border-radius: 6px;">
+        <a href="/departure/{{ trip.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3" style="border: none;">
             <div class="p-4 position-relative">
                 <div class="d-flex align-items-start justify-content-between">
                     <div class="flex-grow-1">

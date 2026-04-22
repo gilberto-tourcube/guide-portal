@@ -781,6 +781,21 @@ h1, h2, h3, h4, h5, h6,
   font-weight: 500;
 }
 
+/* WT rounded corners — applied at the skin layer so templates stay neutral.
+   Inline `style="border: none;"` on cards sets the border but leaves the
+   radius free, letting this rule win via source order. */
+.card,
+.btn,
+.badge,
+.modal-content,
+.dropdown-menu,
+.form-control,
+.form-select,
+.input-group-text,
+.user-avatar {
+  border-radius: 6px;
+}
+
 /* Guide photo fills the avatar so the blue surround behind it is hidden */
 .user-avatar img {
   width: 100% !important;
