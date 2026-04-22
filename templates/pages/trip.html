@@ -48,9 +48,9 @@
         {% for departure in trip.future_departures %}
         {% set departure_is_navigable = departure.is_guide_on_trip %}
         {% if departure_is_navigable %}
-        <a href="/departure/{{ departure.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3" style="border: none; border-radius: 0;">
+        <a href="/departure/{{ departure.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3" style="border: none;">
         {% else %}
-        <div class="card text-decoration-none d-block mb-3" style="border: none; border-radius: 0;">
+        <div class="card text-decoration-none d-block mb-3" style="border: none;">
         {% endif %}
             <div class="p-4 position-relative">
                 <div class="d-flex align-items-start justify-content-between">
@@ -94,9 +94,9 @@
         {% for departure in trip.past_departures %}
         {% set departure_is_navigable = departure.is_guide_on_trip %}
         {% if departure_is_navigable %}
-        <a href="/departure/{{ departure.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3" style="border: none; border-radius: 0;">
+        <a href="/departure/{{ departure.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3" style="border: none;">
         {% else %}
-        <div class="card text-decoration-none d-block mb-3" style="border: none; border-radius: 0;">
+        <div class="card text-decoration-none d-block mb-3" style="border: none;">
         {% endif %}
             <div class="p-4 position-relative">
                 <div class="d-flex align-items-start justify-content-between">
