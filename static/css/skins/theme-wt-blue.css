@@ -781,23 +781,6 @@ h1, h2, h3, h4, h5, h6,
   font-weight: 500;
 }
 
-.btn,
-.form-control,
-.form-select,
-.input-group,
-.input-group-text,
-.custom-select,
-.custom-file-label,
-.card,
-.alert,
-.badge,
-.modal-content,
-.dropdown-menu,
-.nav-tabs .nav-link,
-.user-avatar {
-  border-radius: 0 !important;
-}
-
 /* Guide photo fills the avatar so the blue surround behind it is hidden */
 .user-avatar img {
   width: 100% !important;
