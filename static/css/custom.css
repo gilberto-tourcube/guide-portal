@@ -260,3 +260,20 @@
     height: 100% !important;
     font-size: 3rem !important;
 }
+
+/* ============================================
+   Fix Dashlite .gap-N Collision with Bootstrap 5 .gap Utility
+   ============================================
+   Dashlite ships two `.gap-N` rule sets:
+     1. Bootstrap utility: `gap: 0.75rem !important;`  (flex/grid gap)
+     2. Legacy spacer:     `height: 0.75rem;`          (empty divider blocks)
+   The spacer is declared AFTER the utility, so any `.d-flex.gap-2` collapses
+   the flex container to 12px and its children overflow the next sibling.
+   Neutralize the spacer height when `.gap-N` is combined with a flex/grid
+   container; keep the gap utility semantics intact. */
+.d-flex.gap-0, .d-flex.gap-1, .d-flex.gap-2, .d-flex.gap-3, .d-flex.gap-4, .d-flex.gap-5,
+.d-inline-flex.gap-0, .d-inline-flex.gap-1, .d-inline-flex.gap-2, .d-inline-flex.gap-3, .d-inline-flex.gap-4, .d-inline-flex.gap-5,
+.d-grid.gap-0, .d-grid.gap-1, .d-grid.gap-2, .d-grid.gap-3, .d-grid.gap-4, .d-grid.gap-5,
+.d-inline-grid.gap-0, .d-inline-grid.gap-1, .d-inline-grid.gap-2, .d-inline-grid.gap-3, .d-inline-grid.gap-4, .d-inline-grid.gap-5 {
+    height: auto;
+}
