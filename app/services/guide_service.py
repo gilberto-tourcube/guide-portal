@@ -877,7 +877,11 @@ class GuideService:
             past_trips=_parse_trip_list(client_response.get("pastTrips")),
             past_trips_with_leader=_parse_trip_list(client_response.get("pastTripsWithLeader")),
             future_trips=_parse_trip_list(client_response.get("futureTrips")),
-            notes=client_response.get("notes")
+            notes=client_response.get("notes"),
+            emergency_contact_name=client_response.get("emergencyContactName"),
+            emergency_contact_relationship=client_response.get("emergencyContactRelationship"),
+            emergency_contact_phone=client_response.get("emergencyContactPhone"),
+            emergency_contact_email=client_response.get("emergencyContactEmail"),
         )
 
 
