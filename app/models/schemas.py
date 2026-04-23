@@ -404,6 +404,12 @@ class ClientData(BaseModel):
     past_trips_with_leader: List[ClientTrip] = Field(default_factory=list, description="Past trips with current trip leader")
     future_trips: List[ClientTrip] = Field(default_factory=list, description="Future trips")
 
+    # Emergency contact
+    emergency_contact_name: Optional[str] = Field(None, description="Emergency contact full name")
+    emergency_contact_relationship: Optional[str] = Field(None, description="Emergency contact relationship (e.g. Spouse, Daughter)")
+    emergency_contact_phone: Optional[str] = Field(None, description="Emergency contact phone number")
+    emergency_contact_email: Optional[str] = Field(None, description="Emergency contact email")
+
     # Notes
     notes: Optional[str] = Field(None, description="Notes on client")
 
@@ -459,6 +465,10 @@ class ClientAPIResponse(BaseModel):
     future_trips: Optional[str] = Field(None, alias="futureTrips")
     notes: Optional[str] = Field(None)
     birth_date: Optional[str] = Field(None, alias="birthDate")
+    emergency_contact_name: Optional[str] = Field(None, alias="emergencyContactName")
+    emergency_contact_relationship: Optional[str] = Field(None, alias="emergencyContactRelationship")
+    emergency_contact_phone: Optional[str] = Field(None, alias="emergencyContactPhone")
+    emergency_contact_email: Optional[str] = Field(None, alias="emergencyContactEmail")
 
     class Config:
         populate_by_name = True
