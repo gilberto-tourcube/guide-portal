@@ -126,10 +126,7 @@
 
                     <div class="mb-3">
                         <div class="small text-muted mb-1">General Statement of Health</div>
-                        <div class="d-flex align-items-start gap-2">
-                            <em class="icon ni ni-check-circle text-success mt-1"></em>
-                            <span>{{ client.fitness if client.fitness else 'Not provided' }}</span>
-                        </div>
+                        <div>{{ client.fitness if client.fitness else 'Not provided' }}</div>
                     </div>
 
                     <div>
@@ -137,10 +134,7 @@
                         {% if client.medical %}
                         <div>{{ client.medical }}</div>
                         {% else %}
-                        <div class="d-flex align-items-start gap-2">
-                            <em class="icon ni ni-check-circle text-success mt-1"></em>
-                            <span class="text-muted">None reported</span>
-                        </div>
+                        <div class="text-muted">None reported</div>
                         {% endif %}
                     </div>
                 </div>
