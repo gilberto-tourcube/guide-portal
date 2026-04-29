@@ -10,6 +10,7 @@ from fastapi import APIRouter, Request, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.services.guide_service import guide_service
+from app.utils.formatting import format_destination, format_us_phone
 import httpx
 from app.config import settings
 
@@ -18,6 +19,8 @@ router = APIRouter(tags=["resources"])
 
 # Jinja2 templates
 templates = Jinja2Templates(directory="templates")
+templates.env.filters["format_us_phone"] = format_us_phone
+templates.env.filters["format_destination"] = format_destination
 logger = logging.getLogger(__name__)
 
 

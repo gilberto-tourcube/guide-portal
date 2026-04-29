@@ -186,7 +186,8 @@ class GuideService:
             return_date=None,  # Not provided separately by API
             group_size=trip_dict.get("SignUps"),
             trip_leaders=trip_dict.get("Trip_Leaders"),  # Trip leaders/guides
-            dev_name=trip_dict.get("devName"),  # Area Manager (Trip Developer)
+            trip_contact_name=trip_dict.get("Trip_ContactName"),  # Replaces legacy devName
+            trip_contact_label=trip_dict.get("Trip_ContactLabel"),  # Role label, e.g. "Trip Contact"
             ops_name=trip_dict.get("opsName"),  # Operations contact
             thumbnail_image=trip_dict.get("thumbnail"),
             forms_due_count=trip_dict.get("formsDue")

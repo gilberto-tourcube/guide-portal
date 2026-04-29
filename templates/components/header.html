@@ -20,14 +20,10 @@
             <!-- Header Tools (User Menu, Notifications) -->
             <div class="nk-header-tools">
                 <ul class="nk-quick-nav">
-                    <!-- Logout Link -->
-                    <li class="hide-mb-sm">
-                        <a href="/auth/logout" class="nk-quick-nav-icon text-base" title="Sign Out">
-                            <em class="icon ni ni-signout"></em>
-                        </a>
-                    </li>
-
                     <!-- User Dropdown -->
+                    <!-- Sign-out lives inside the dropdown below; the standalone
+                         icon was removed per Steve's feedback (row 38) so the
+                         portal exposes only one way to log out. -->
                     {% set user_name = request.session.get('user_name', 'User') %}
                     {% set user_image = guide.guide_image if guide and guide.guide_image else request.session.get('user_image') %}
                     {% set user_role = request.session.get('user_role', 'Portal') %}
