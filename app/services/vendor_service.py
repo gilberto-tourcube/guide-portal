@@ -173,7 +173,8 @@ class VendorService:
 
         Populates the extended fields used by the shared trip-card template
         (mirroring guide_service._parse_trip_summary): thumbnail_image,
-        forms_due_count, dev_name, group_size, departure_date.
+        forms_due_count, trip_contact_name, trip_contact_label, group_size,
+        departure_date.
         """
         sign_ups = trip_dict.get("SignUps")
         trip_name = trip_dict.get("Trip_Name", "")
@@ -192,7 +193,8 @@ class VendorService:
             sign_ups=sign_ups,
             group_size=sign_ups,
             thumbnail_image=trip_dict.get("thumbnail"),
-            dev_name=trip_dict.get("devName"),
+            trip_contact_name=trip_dict.get("Trip_ContactName"),  # Replaces legacy devName
+            trip_contact_label=trip_dict.get("Trip_ContactLabel"),  # Role label, e.g. "Trip Contact"
             forms_due_count=trip_dict.get("formsDue"),
             departure_date=departure_date,
         )
