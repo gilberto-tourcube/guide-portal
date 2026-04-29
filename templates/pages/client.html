@@ -78,7 +78,7 @@
                                 <em class="icon ni ni-call text-primary mt-1"></em>
                                 <div>
                                     <div class="info-label text-muted">Phone</div>
-                                    <a href="tel:{{ client.mobile }}" class="link link-primary info-value-mono">{{ client.mobile }}</a>
+                                    <a href="tel:{{ client.mobile }}" class="link link-primary info-value">{{ client.mobile | format_us_phone }}</a>
                                 </div>
                             </div>
                         </div>
