@@ -19,7 +19,8 @@ class TripSummary(BaseModel):
     return_date: Optional[date] = Field(None, description="Parsed return date")
     group_size: Optional[int] = Field(None, description="Number of travelers")
     trip_leaders: Optional[str] = Field(None, description="Trip leaders/guides names")
-    dev_name: Optional[str] = Field(None, description="Trip developer name")
+    trip_contact_name: Optional[str] = Field(None, description="Trip contact person name (from API Trip_ContactName)")
+    trip_contact_label: Optional[str] = Field(None, description="Trip contact role label (from API Trip_ContactLabel, e.g. 'Trip Contact')")
     ops_name: Optional[str] = Field(None, description="Operations contact name / Area Manager")
     thumbnail_image: Optional[str] = Field(None, description="Trip thumbnail image URL")
     departure_docs_count: Optional[int] = Field(None, description="Number of departure documents")
@@ -34,7 +35,8 @@ class TripSummary(BaseModel):
                 "departure_date": "2024-06-15",
                 "return_date": "2024-06-25",
                 "group_size": 25,
-                "dev_name": "John Developer",
+                "trip_contact_name": "Emily Vernizzi",
+                "trip_contact_label": "Trip Contact",
                 "ops_name": "Jane Operations"
             }
         }
@@ -546,7 +548,8 @@ class VendorTripSummary(BaseModel):
     # Fields used by the shared home-card template (same contract as TripSummary)
     group_size: Optional[int] = Field(None, description="Travelers count — template alias for sign_ups")
     thumbnail_image: Optional[str] = Field(None, description="Trip thumbnail/banner image URL")
-    dev_name: Optional[str] = Field(None, description="Trip developer / Area Manager name")
+    trip_contact_name: Optional[str] = Field(None, description="Trip contact person name (from API Trip_ContactName)")
+    trip_contact_label: Optional[str] = Field(None, description="Trip contact role label (from API Trip_ContactLabel)")
     departure_docs_count: Optional[int] = Field(None, description="Number of departure documents")
     forms_due_count: Optional[int] = Field(None, description="Number of forms due for the trip")
     departure_date: Optional[date] = Field(None, description="Parsed departure date (used for sorting)")
