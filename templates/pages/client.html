@@ -21,6 +21,9 @@
     .info-label { font-size: 12px; line-height: 1.4; }
     .info-value { font-size: 14px; line-height: 1.4; }
     .info-value-mono { font-size: 14px; line-height: 1.4; font-family: monospace; }
+    .trip-history-item { padding-top: 0.6rem; padding-bottom: 0.6rem; }
+    .trip-history-item .fw-medium { margin-bottom: 4px; line-height: 1.35; }
+    .trip-history-item + .trip-history-item { border-top: 1px solid rgba(0,0,0,0.05); }
 </style>
 {% endblock %}
 
@@ -244,7 +247,7 @@
                         <div class="trip-history-item py-2">
                             <div class="fw-medium">{{ trip.trip_name }}</div>
                             <div class="small text-muted">
-                                {% if trip.destination %}{{ trip.destination }}{% endif %}
+                                {% if trip.destination %}{{ trip.destination | format_destination }}{% endif %}
                                 {% if trip.destination and trip.departure_date %} &bull; {% endif %}
                                 {% if trip.departure_date %}{{ trip.departure_date }}{% endif %}
                             </div>
@@ -272,7 +275,7 @@
                         <div class="trip-history-item py-2">
                             <div class="fw-medium">{{ trip.trip_name }}</div>
                             <div class="small text-muted">
-                                {% if trip.destination %}{{ trip.destination }}{% endif %}
+                                {% if trip.destination %}{{ trip.destination | format_destination }}{% endif %}
                                 {% if trip.destination and trip.departure_date %} &bull; {% endif %}
                                 {% if trip.departure_date %}{{ trip.departure_date }}{% endif %}
                             </div>
@@ -300,7 +303,7 @@
                         <div class="trip-history-item py-2">
                             <div class="fw-medium">{{ trip.trip_name }}</div>
                             <div class="small text-muted">
-                                {% if trip.destination %}{{ trip.destination }}{% endif %}
+                                {% if trip.destination %}{{ trip.destination | format_destination }}{% endif %}
                                 {% if trip.destination and trip.departure_date %} &bull; {% endif %}
                                 {% if trip.departure_date %}{{ trip.departure_date }}{% endif %}
                             </div>
