@@ -67,9 +67,25 @@
                 <div class="col-md-6">
                     <div class="d-flex align-items-center gap-2 text-base">
                         <em class="icon ni ni-user"></em>
-                        <span>Area Manager: {{ departure.trip_developer_name or '-' }}</span>
+                        <span>{{ departure.trip_contact_label or 'Trip Contact' }}: {{ departure.trip_contact_name or '-' }}</span>
                     </div>
                 </div>
+                {% if departure.trip_contact_email %}
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center gap-2 text-base">
+                        <em class="icon ni ni-mail"></em>
+                        <a href="mailto:{{ departure.trip_contact_email }}" class="link link-primary">{{ departure.trip_contact_email }}</a>
+                    </div>
+                </div>
+                {% endif %}
+                {% if departure.trip_contact_phone %}
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center gap-2 text-base">
+                        <em class="icon ni ni-call"></em>
+                        <a href="tel:{{ departure.trip_contact_phone }}" class="link link-primary">{{ departure.trip_contact_phone }}</a>
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Departure Notes -->

@@ -311,8 +311,10 @@ class TripDepartureData(BaseModel):
 
     # Contacts
     guides: List[TripGuide] = Field(default_factory=list, description="Trip leaders/guides")
-    trip_developer_name: Optional[str] = Field(None, description="Trip developer/Area Manager name")
-    trip_developer_email: Optional[str] = Field(None, description="Trip developer email")
+    trip_contact_name: Optional[str] = Field(None, description="Trip contact person name (from API tripContactName)")
+    trip_contact_label: Optional[str] = Field(None, description="Trip contact role label (from API tripContactLabel)")
+    trip_contact_email: Optional[str] = Field(None, description="Trip contact email (from API tripContactEmail)")
+    trip_contact_phone: Optional[str] = Field(None, description="Trip contact phone (from API tripContactPhone)")
 
     # Passengers
     passengers: List[TripPassenger] = Field(default_factory=list, description="Trip passengers/clients")
@@ -340,8 +342,10 @@ class TripDepartureData(BaseModel):
                 "guides": [
                     {"first_name": "John", "last_name": "Smith", "email": "john@example.com"}
                 ],
-                "trip_developer_name": "Jane Developer",
-                "trip_developer_email": "jane@example.com",
+                "trip_contact_name": "Jane Developer",
+                "trip_contact_label": "Trip Contact",
+                "trip_contact_email": "jane@example.com",
+                "trip_contact_phone": "800-368-2794",
                 "passengers": [],
                 "trip_documents": [],
                 "departure_documents": [],
@@ -359,8 +363,10 @@ class TripDepartureAPIResponse(BaseModel):
     trip_name: str = Field("", alias="tripName")
     trip_dates: str = Field("", alias="tripDates")
     thumbnail_image: Optional[str] = Field(None, alias="thumbNailImage")
-    trip_developer_name: Optional[str] = Field(None, alias="tripDeveloperName")
-    trip_developer_email: Optional[str] = Field(None, alias="tripDeveloperEmail")
+    trip_contact_name: Optional[str] = Field(None, alias="tripContactName")
+    trip_contact_label: Optional[str] = Field(None, alias="tripContactLabel")
+    trip_contact_email: Optional[str] = Field(None, alias="tripContactEmail")
+    trip_contact_phone: Optional[str] = Field(None, alias="tripContactPhone")
     guides: List[dict] = Field(default_factory=list)
     passengers: List[dict] = Field(default_factory=list)
     trip_docs: List[dict] = Field(default_factory=list, alias="tripDocs")
