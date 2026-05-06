@@ -37,6 +37,10 @@
     <script src="{{ url_for('static', path='/js/bundle.js') }}"></script>
     <script src="{{ url_for('static', path='/js/scripts.js') }}"></script>
 
+    <!-- PWA: service worker + offline document cache (#133) -->
+    <script src="{{ url_for('static', path='/js/pwa-offline.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/save-offline-button.js') }}"></script>
+
     <!-- Custom JavaScript -->
     {% block extra_js %}{% endblock %}
 </body>
