@@ -277,3 +277,60 @@
 .d-inline-grid.gap-0, .d-inline-grid.gap-1, .d-inline-grid.gap-2, .d-inline-grid.gap-3, .d-inline-grid.gap-4, .d-inline-grid.gap-5 {
     height: auto;
 }
+
+/* ==========================================================================
+   #133 PWA — Save Offline button
+   --------------------------------------------------------------------------
+   Per-document explicit save button. Inherits Dashlite button tokens from
+   the active skin so colors stay tenant-aware. States toggled by
+   save-offline-button.js: idle, .is-loading, .is-saved, .is-error.
+   ========================================================================== */
+.save-offline-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  padding: 0.25rem 0.6rem;
+}
+.save-offline-btn .icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+.save-offline-btn.is-saved {
+  color: #1ee0ac;
+  border-color: #1ee0ac;
+  background: transparent;
+}
+.save-offline-btn.is-saved:hover {
+  background: rgba(30, 224, 172, 0.08);
+}
+.save-offline-btn.is-error {
+  color: #e85347;
+  border-color: #e85347;
+  background: transparent;
+}
+.save-offline-btn.is-error:hover {
+  background: rgba(232, 83, 71, 0.08);
+}
+.save-offline-btn.is-loading {
+  cursor: wait;
+}
+.save-offline-btn.is-loading .icon {
+  animation: save-offline-spin 0.9s linear infinite;
+  display: inline-block;
+}
+@keyframes save-offline-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* On narrow screens collapse to icon-only so the doc title stays readable. */
+@media (max-width: 575.98px) {
+  .save-offline-btn .save-offline-btn__label {
+    display: none;
+  }
+  .save-offline-btn {
+    padding: 0.25rem 0.45rem;
+  }
+}

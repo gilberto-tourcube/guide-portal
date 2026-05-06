@@ -210,13 +210,22 @@
                                             </thead>
                                             <tbody>
                                                 {% for doc in departure.trip_documents %}
-                                                <tr style="cursor: pointer" onclick="window.open('{{ doc.document_url }}', 'doc_{{ loop.index }}_{{ doc.description|urlencode }}')">
-                                                    <td>{{ doc.description }}</td>
+                                                <tr>
+                                                    <td>
+                                                        <a href="{{ doc.document_url }}" target="doc_{{ loop.index }}_{{ doc.description|urlencode }}" rel="noopener" class="text-primary doc-download" data-offline-cache="true" data-pwa-same-tab="true">
+                                                            {{ doc.description }}
+                                                        </a>
+                                                    </td>
                                                     <td>{{ doc.upload_date if doc.upload_date else '-' }}</td>
                                                     <td class="text-end">
-                                                        <a href="{{ doc.document_url }}" target="doc_{{ loop.index }}_{{ doc.description|urlencode }}" class="text-primary doc-download" onclick="event.stopPropagation()">
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-outline-light save-offline-btn flex-shrink-0"
+                                                                data-doc-url="{{ doc.document_url }}"
+                                                                data-doc-description="{{ doc.description }}"
+                                                                aria-label="Save offline">
                                                             <em class="icon ni ni-download"></em>
-                                                        </a>
+                                                            <span class="save-offline-btn__label">Save offline</span>
+                                                        </button>
                                                     </td>
                                                 </tr>
                                                 {% endfor %}
@@ -250,13 +259,22 @@
                                             </thead>
                                             <tbody>
                                                 {% for doc in departure.departure_documents %}
-                                                <tr style="cursor: pointer" onclick="window.open('{{ doc.document_url }}', 'doc_{{ loop.index }}_{{ doc.description|urlencode }}')">
-                                                    <td>{{ doc.description }}</td>
+                                                <tr>
+                                                    <td>
+                                                        <a href="{{ doc.document_url }}" target="doc_{{ loop.index }}_{{ doc.description|urlencode }}" rel="noopener" class="text-primary doc-download" data-offline-cache="true" data-pwa-same-tab="true">
+                                                            {{ doc.description }}
+                                                        </a>
+                                                    </td>
                                                     <td>{{ doc.upload_date if doc.upload_date else '-' }}</td>
                                                     <td class="text-end">
-                                                        <a href="{{ doc.document_url }}" target="doc_{{ loop.index }}_{{ doc.description|urlencode }}" class="text-primary doc-download" onclick="event.stopPropagation()">
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-outline-light save-offline-btn flex-shrink-0"
+                                                                data-doc-url="{{ doc.document_url }}"
+                                                                data-doc-description="{{ doc.description }}"
+                                                                aria-label="Save offline">
                                                             <em class="icon ni ni-download"></em>
-                                                        </a>
+                                                            <span class="save-offline-btn__label">Save offline</span>
+                                                        </button>
                                                     </td>
                                                 </tr>
                                                 {% endfor %}
