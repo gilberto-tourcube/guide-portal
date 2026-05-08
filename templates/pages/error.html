@@ -1,0 +1,32 @@
+{% extends "layouts/auth.html" %}
+
+{% block title %}Something Went Wrong - Tourcube Guide Portal{% endblock %}
+
+{% block auth_content %}
+<div class="text-center">
+    <div class="mb-4">
+        <em class="icon ni ni-alert-circle text-warning" style="font-size: 4rem;"></em>
+    </div>
+    <h4 class="title mb-3">Something Went Wrong</h4>
+    <p class="text-soft">
+        An unexpected error occurred. Please try again or return to the home page.
+    </p>
+    <div class="alert alert-light mt-3 mb-4">
+        <em class="icon ni ni-info me-1"></em>
+        If the problem persists, please contact your operator.
+    </div>
+    <button type="button" onclick="history.back()" class="btn btn-lg btn-primary btn-block mb-2">
+        <em class="icon ni ni-arrow-left me-1"></em>
+        Go Back
+    </button>
+    <a href="/{% if request.url.query %}?{{ request.url.query }}{% endif %}" class="btn btn-lg btn-outline-secondary btn-block">
+        <em class="icon ni ni-home me-1"></em>
+        Return Home
+    </a>
+    {% if sentry_event_id %}
+    <div class="mt-3">
+        <small class="text-muted">Error reference: {{ sentry_event_id }}</small>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

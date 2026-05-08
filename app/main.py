@@ -4,15 +4,22 @@ import logging
 import sentry_sdk
 
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
 from app.routes import guide, auth, vendor, resources, pwa
 from app.services.guide_service import guide_service
 from app.utils.sentry_utils import capture_exception_with_context
+
+# Templates instance for global error pages — mirrors the per-route loaders
+# in app/routes/*.py which all point at the top-level "templates/" dir.
+_error_templates = Jinja2Templates(directory="templates")
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -232,6 +239,124 @@ app.include_router(pwa.router)        # PWA manifest
 app.include_router(resources.router)  # Generic resources (trips, departures, clients)
 app.include_router(guide.router)      # Guide-specific routes (/guide/home)
 app.include_router(vendor.router)     # Vendor-specific routes (/vendor/home)
+
+
+def _is_browser_navigation(request: Request) -> bool:
+    """Return True when the request looks like a top-level browser navigation,
+    so the friendly error page is appropriate. AJAX/API callers still get JSON.
+    """
+    if request.method != "GET":
+        return False
+    accept = request.headers.get("accept", "")
+    return "text/html" in accept and "application/json" not in accept
+
+
+def _error_context(request: Request, sentry_event_id: str | None = None) -> dict:
+    """Build the template context for error.html with whatever tenant info is
+    available on the session. Falls back to defaults so the page renders even
+    when no tenant has been resolved yet (e.g. early-startup failures).
+    """
+    session = getattr(request, "session", {}) or {}
+    company_code = (
+        request.query_params.get("company_code")
+        or request.query_params.get("companyCode")
+        or session.get("company_code")
+        or settings.company_code
+    )
+    mode = (
+        request.query_params.get("mode")
+        or session.get("mode")
+        or settings.mode
+    )
+
+    skin_name = session.get("skin_name")
+    company_logo = session.get("company_logo")
+    company_favicon = session.get("company_favicon")
+    theme_color = None
+
+    # Best-effort tenant lookup so the error page picks up the right skin even
+    # when the session has not been populated yet (e.g. an exception fires
+    # before the route handler completes).
+    if not skin_name and company_code and mode:
+        try:
+            cfg = settings.get_company_config(company_code, mode)
+            skin_name = cfg.skin_name
+            company_logo = company_logo or cfg.logo
+            company_favicon = company_favicon or cfg.favicon
+        except Exception:
+            # Never let context resolution itself raise — that would loop the
+            # exception handler.
+            pass
+
+    return {
+        "request": request,
+        "skin_name": skin_name,
+        "company_logo": company_logo,
+        "company_favicon": company_favicon,
+        "company_code": company_code,
+        "mode": mode,
+        "theme_color": theme_color,
+        "sentry_event_id": sentry_event_id,
+    }
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_friendly_page(request: Request, exc: StarletteHTTPException):
+    """Render the friendly error page for 5xx HTTPException responses on
+    browser navigations; capture them in Sentry. 4xx responses (and AJAX
+    calls of any status) keep the default FastAPI/Starlette behaviour so
+    auth redirects and API contracts do not regress.
+    """
+    if exc.status_code >= 500 and _is_browser_navigation(request):
+        event_id = None
+        if settings.sentry_enabled and settings.sentry_dsn:
+            try:
+                event_id = sentry_sdk.capture_exception(exc)
+            except Exception:
+                event_id = None
+        logger.error(
+            "Unhandled HTTPException %s on %s: %s",
+            exc.status_code, request.url.path, exc.detail,
+        )
+        return _error_templates.TemplateResponse(
+            "pages/error.html",
+            _error_context(request, str(event_id) if event_id else None),
+            status_code=exc.status_code,
+        )
+
+    return await http_exception_handler(request, exc)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch-all for unhandled exceptions. Logs to Sentry and renders the
+    friendly error page on browser navigations, JSON otherwise.
+    """
+    event_id = None
+    if settings.sentry_enabled and settings.sentry_dsn:
+        try:
+            event_id = sentry_sdk.capture_exception(exc)
+        except Exception:
+            event_id = None
+    logger.error(
+        "Unhandled exception on %s: %s",
+        request.url.path, exc, exc_info=True,
+    )
+
+    if _is_browser_navigation(request):
+        return _error_templates.TemplateResponse(
+            "pages/error.html",
+            _error_context(request, str(event_id) if event_id else None),
+            status_code=500,
+        )
+
+    return JSONResponse(
+        {
+            "error": "Internal Server Error",
+            "sentry_event_id": str(event_id) if event_id else None,
+        },
+        status_code=500,
+    )
 
 
 @app.get("/")
