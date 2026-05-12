@@ -22,6 +22,13 @@ def test_get_company_config_invalid_company_code():
 
 
 def test_resolve_company_and_mode_precedence():
+    """Explicit args win; then host mapping; then (None, None).
+
+    There is intentionally NO default-tenant fallback (#148) — a request with
+    no explicit context and no host mapping must surface as unresolved so
+    callers render a neutral / 400 response instead of impersonating the
+    env-var tenant.
+    """
     settings = Settings(secret_key="dummy-secret", company_code="DEFAULT_CO", mode="Test")
     settings._domain_map = {"portal.example": ("MAPPED_CO", "Production")}
 
@@ -32,7 +39,36 @@ def test_resolve_company_and_mode_precedence():
     ) == ("EXPLICIT_CO", "Production")
 
     assert settings.resolve_company_and_mode(host="portal.example") == ("MAPPED_CO", "Production")
-    assert settings.resolve_company_and_mode(host="unknown.example") == ("DEFAULT_CO", "Test")
+    # No host mapping + no explicit args → (None, None), never DEFAULT_CO.
+    assert settings.resolve_company_and_mode(host="unknown.example") == (None, None)
+    assert settings.resolve_company_and_mode() == (None, None)
+
+
+def test_resolve_company_and_mode_does_not_leak_default_tenant():
+    """Regression guard for #148. The env-var default tenant must never
+    appear in the return value of `resolve_company_and_mode` when neither
+    the caller nor the host map supply it.
+    """
+    settings = Settings(
+        secret_key="dummy-secret",
+        company_code="LEAKY_DEFAULT",
+        mode="Test",
+    )
+    settings._domain_map = {}
+
+    code, mode = settings.resolve_company_and_mode(host="random.host")
+    assert code != "LEAKY_DEFAULT"
+    assert code is None
+    assert mode is None
+
+
+def test_get_company_config_requires_mode():
+    """#148: `get_company_config` must not fall back to `settings.mode`."""
+    settings = Settings(secret_key="dummy-secret")
+    with pytest.raises(ValueError, match="mode is required"):
+        settings.get_company_config("WTGUIDE", None)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="company_code is required"):
+        settings.get_company_config("", "Test")
 
 
 def test_normalize_host_strips_port_and_lowercases():

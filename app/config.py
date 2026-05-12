@@ -155,27 +155,33 @@ class Settings(BaseSettings):
         self._domain_map = domain_map
         return configs
 
-    def get_company_config(self, company_code: str, mode: Optional[str] = None) -> CompanyConfig:
+    def get_company_config(self, company_code: str, mode: str) -> CompanyConfig:
         """
         Get company configuration by company code and mode
 
         Args:
-            company_code: Company identifier (e.g., "WTGUIDE")
-            mode: "Test" or "Production" (defaults to settings.mode)
+            company_code: Company identifier (e.g., "WTGUIDE"). Required.
+            mode: "Test" or "Production". Required — no implicit default
+                so callers cannot silently fall back to the default tenant
+                env-var when their context is missing (#148).
 
         Returns:
             CompanyConfig object with all company settings and active API credentials
 
         Raises:
-            ValueError: If company code is not found in apikey.json
+            ValueError: If company_code or mode is missing or unknown.
         """
+        if not company_code:
+            raise ValueError("company_code is required")
+        if not mode:
+            raise ValueError("mode is required")
+
         configs = self._load_company_configs()
 
         if company_code not in configs:
             raise InvalidCompanyCodeError("Invalid company code")
 
         config = configs[company_code]
-        mode = mode or self.mode
 
         # Set active API credentials based on mode
         if mode == "Production":
@@ -192,12 +198,16 @@ class Settings(BaseSettings):
         company_code: Optional[str] = None,
         mode: Optional[str] = None,
         host: Optional[str] = None
-    ) -> tuple[str, str]:
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Resolve company_code and mode using precedence:
         1. Explicit parameters if provided
         2. Domain mapping (host header)
-        3. Defaults from settings
+        3. (None, None) — there is intentionally NO step-3 default-tenant
+           fallback (#148). A request that does not carry tenant context and
+           does not match a known host must be handled by the caller as an
+           unresolved tenant (render neutral / 400), not silently rebranded
+           as the env-var default.
         """
         # Explicit values win
         if company_code and mode:
@@ -209,8 +219,9 @@ class Settings(BaseSettings):
             mapped_company, mapped_mode = self._domain_map[norm_host]
             return mapped_company, mapped_mode
 
-        # Fall back to defaults
-        return company_code or self.company_code, mode or self.mode
+        # No default-tenant fallback. Return whatever the caller supplied
+        # (which may be a single populated side, e.g. mode-only).
+        return company_code, mode
 
     @staticmethod
     def _normalize_host(host: Optional[str]) -> Optional[str]:
@@ -224,23 +235,28 @@ class Settings(BaseSettings):
 
     def get_api_credentials(
         self,
-        company_code: Optional[str] = None,
-        mode: Optional[str] = None
+        company_code: str,
+        mode: str,
     ) -> tuple[str, str]:
         """
-        Get API URL and API key for a specific company and mode
+        Get API URL and API key for a specific company and mode.
 
         Args:
-            company_code: Company identifier (defaults to settings.company_code)
-            mode: "Test" or "Production" (defaults to settings.mode)
+            company_code: Company identifier. Required — no default-tenant fallback (#148).
+            mode: "Test" or "Production". Required — no default mode fallback (#148).
 
         Returns:
             Tuple of (api_url, api_key)
-        """
-        company_code = company_code or self.company_code
-        mode = mode or self.mode
 
-        config = self.get_company_config(company_code)
+        Raises:
+            ValueError: If company_code or mode is missing or unknown.
+        """
+        if not company_code:
+            raise ValueError("company_code is required")
+        if not mode:
+            raise ValueError("mode is required")
+
+        config = self.get_company_config(company_code, mode)
 
         if mode == "Production":
             return config.production_url, config.production_api_key

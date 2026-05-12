@@ -41,42 +41,53 @@ SKIN_COLORS = {
 
 @router.get("/manifest.json")
 async def manifest(request: Request):
-    """Serve a tenant-specific PWA manifest"""
+    """Serve a tenant-specific PWA manifest.
+
+    Anonymous requests (no `companyCode`/`mode` query, empty session) get a
+    **neutral** manifest with no tenant identity (#148) — never the default
+    tenant's branding. Installing the PWA from an anonymous context therefore
+    pins a generic icon/name until the user re-enters with a real tenant link.
+    """
     company_code = (
         request.query_params.get("companyCode")
         or request.session.get("company_code")
-        or settings.company_code
     )
     mode = (
         request.query_params.get("mode")
         or request.session.get("mode")
-        or settings.mode
     )
 
-    try:
-        config = settings.get_company_config(company_code, mode)
-    except Exception:
-        config = None
-
-    app_name = "Tourcube Guide Portal"
-    theme_color = "#0F4374"
-    icons = []
+    config = None
+    if company_code and mode:
+        try:
+            config = settings.get_company_config(company_code, mode)
+        except Exception:
+            config = None
 
     if config:
         app_name = f"{config.company_id} Guide Portal"
         theme_color = SKIN_COLORS.get(config.skin_name, "#0F4374")
-
+        icons = []
         if config.favicon:
             icon_path = f"/static/images/{config.favicon}"
             icons = [
                 {"src": icon_path, "sizes": "192x192", "type": "image/png"},
                 {"src": icon_path, "sizes": "512x512", "type": "image/png"},
             ]
+        start_url = f"/?company_code={company_code}&mode={mode}"
+    else:
+        # Neutral fallback — no tenant identity. `name` reads "Guide Portal"
+        # generically, `theme_color` is a tenant-agnostic grey, icons empty
+        # (the browser falls back to its generic shortcut icon).
+        app_name = "Guide Portal"
+        theme_color = "#526484"  # DashLite neutral; not a tenant accent
+        icons = []
+        start_url = "/"
 
     manifest_data = {
         "name": app_name,
         "short_name": app_name,
-        "start_url": f"/?company_code={company_code}&mode={mode}",
+        "start_url": start_url,
         "display": "standalone",
         "background_color": "#ffffff",
         "theme_color": theme_color,

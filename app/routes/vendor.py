@@ -17,6 +17,29 @@ templates = Jinja2Templates(directory="templates")
 logger = logging.getLogger(__name__)
 
 
+def _neutral_tenant_error(
+    request: Request, status_code: int = 400
+) -> HTMLResponse:
+    """Render the neutral error page when a request lacks a resolvable tenant
+    (#148). Mirrors the helper in `auth.py` / `guide.py`.
+    """
+    return templates.TemplateResponse(
+        "pages/error.html",
+        {
+            "request": request,
+            "skin_name": None,
+            "company_logo": None,
+            "company_favicon": None,
+            "company_code": None,
+            "mode": None,
+            "theme_color": None,
+            "sentry_event_id": None,
+            "tenant_resolved": False,
+        },
+        status_code=status_code,
+    )
+
+
 @router.get("/home", response_class=HTMLResponse)
 async def vendor_home(
     request: Request,
@@ -50,16 +73,15 @@ async def vendor_home(
         HTTPException 401: If user is not authenticated
         HTTPException 500: If API call fails
     """
-    # Resolve company/mode preference
+    # Resolve company/mode from explicit param then session. No default-tenant
+    # fallback (#148) — caught by the neutral-error guard below.
     resolved_company_code = (
         company_code
         or request.session.get("company_code")
-        or settings.company_code
     )
     resolved_mode = (
         mode
         or request.session.get("mode")
-        or settings.mode
     )
 
     vendor_id = request.session.get("vendor_id")
@@ -104,7 +126,12 @@ async def vendor_home(
     company_code = resolved_company_code
     mode = resolved_mode
 
-    if not vendor_id or not company_code or not mode:
+    if not company_code or not mode:
+        # No tenant context — render neutral error rather than 401-JSON or
+        # tenant-branded redirect (#148).
+        return _neutral_tenant_error(request, status_code=401)
+
+    if not vendor_id:
         # Redirect to login if not authenticated
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

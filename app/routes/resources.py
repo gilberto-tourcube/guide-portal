@@ -24,6 +24,29 @@ templates.env.filters["format_destination"] = format_destination
 logger = logging.getLogger(__name__)
 
 
+def _neutral_tenant_error(
+    request: Request, status_code: int = 400
+) -> HTMLResponse:
+    """Render the neutral error page when a request lacks a resolvable tenant
+    (#148). Mirrors the helpers in `auth.py` / `guide.py` / `vendor.py`.
+    """
+    return templates.TemplateResponse(
+        "pages/error.html",
+        {
+            "request": request,
+            "skin_name": None,
+            "company_logo": None,
+            "company_favicon": None,
+            "company_code": None,
+            "mode": None,
+            "theme_color": None,
+            "sentry_event_id": None,
+            "tenant_resolved": False,
+        },
+        status_code=status_code,
+    )
+
+
 @router.get("/departure/{trip_departure_id}", response_class=HTMLResponse)
 async def departure_details(request: Request, trip_departure_id: int):
     """
@@ -60,9 +83,11 @@ async def departure_details(request: Request, trip_departure_id: int):
     mode = request.session.get("mode")
 
     if not user_id or not company_code or not mode:
-        # Redirect to login with error
-        company_code = company_code or settings.company_code
-        mode = mode or settings.mode
+        # No default-tenant fallback (#148). If the session lacks tenant
+        # context, render the neutral error page rather than injecting a
+        # foreign tenant into the redirect URL.
+        if not company_code or not mode:
+            return _neutral_tenant_error(request, status_code=401)
         return RedirectResponse(
             url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
             status_code=302
@@ -145,8 +170,11 @@ async def trip_page(request: Request, trip_id: int):
     mode = request.session.get("mode")
 
     if not user_id or not company_code or not mode:
-        company_code = company_code or settings.company_code
-        mode = mode or settings.mode
+        # No default-tenant fallback (#148). Render the neutral error page if
+        # session lacks tenant context; otherwise redirect to login carrying
+        # the real session tenant.
+        if not company_code or not mode:
+            return _neutral_tenant_error(request, status_code=401)
         return RedirectResponse(
             url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
             status_code=302
@@ -241,8 +269,11 @@ async def client_page(
     mode = request.session.get("mode")
 
     if not user_id or not company_code or not mode:
-        company_code = company_code or settings.company_code
-        mode = mode or settings.mode
+        # No default-tenant fallback (#148). Render the neutral error page if
+        # session lacks tenant context; otherwise redirect to login carrying
+        # the real session tenant.
+        if not company_code or not mode:
+            return _neutral_tenant_error(request, status_code=401)
         return RedirectResponse(
             url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
             status_code=302

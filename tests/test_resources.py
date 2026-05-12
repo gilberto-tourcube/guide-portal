@@ -25,15 +25,24 @@ def _patch_template(monkeypatch, captured: dict):
 
 
 @pytest.mark.asyncio
-async def test_departure_requires_auth_redirects_to_login(secure_client, reset_debug):
+async def test_departure_requires_auth_renders_neutral_error_without_tenant(
+    secure_client, reset_debug
+):
+    """Unauthenticated `GET /departure/{id}` with no session and no query
+    params must render the neutral error page (#148) — never redirect to
+    `/auth/login` with the default tenant's company_code/mode.
+    """
     settings.debug = False
-    response = await secure_client.get("/departure/123", follow_redirects=False)
-
-    expected_location = (
-        f"/auth/login?company_code={settings.company_code}&mode={settings.mode}&error=unauthorized"
+    response = await secure_client.get(
+        "/departure/123",
+        follow_redirects=False,
+        headers={"Accept": "text/html"},
     )
-    assert response.status_code == 302
-    assert response.headers["location"] == expected_location
+
+    assert response.status_code == 401
+    body = response.text
+    assert "Tenant Required" in body
+    assert settings.company_code not in body
 
 
 @pytest.mark.asyncio
@@ -83,15 +92,22 @@ async def test_departure_renders_with_session(monkeypatch, secure_client, sessio
 
 
 @pytest.mark.asyncio
-async def test_trip_requires_auth_redirects_to_login(secure_client, reset_debug):
+async def test_trip_requires_auth_renders_neutral_error_without_tenant(
+    secure_client, reset_debug
+):
+    """#148 — unauthenticated `GET /trip/{id}` with no session must render
+    the neutral error page, never inject the default tenant into a redirect.
+    """
     settings.debug = False
-    response = await secure_client.get("/trip/555", follow_redirects=False)
-
-    expected_location = (
-        f"/auth/login?company_code={settings.company_code}&mode={settings.mode}&error=unauthorized"
+    response = await secure_client.get(
+        "/trip/555",
+        follow_redirects=False,
+        headers={"Accept": "text/html"},
     )
-    assert response.status_code == 302
-    assert response.headers["location"] == expected_location
+    assert response.status_code == 401
+    body = response.text
+    assert "Tenant Required" in body
+    assert settings.company_code not in body
 
 
 @pytest.mark.asyncio
@@ -138,15 +154,22 @@ async def test_trip_renders_with_vendor_session(monkeypatch, secure_client, sess
 
 
 @pytest.mark.asyncio
-async def test_client_requires_auth_redirects_to_login(secure_client, reset_debug):
+async def test_client_requires_auth_renders_neutral_error_without_tenant(
+    secure_client, reset_debug
+):
+    """#148 — unauthenticated `GET /client/{id}` with no session must render
+    the neutral error page, never inject the default tenant into a redirect.
+    """
     settings.debug = False
-    response = await secure_client.get("/client/999", follow_redirects=False)
-
-    expected_location = (
-        f"/auth/login?company_code={settings.company_code}&mode={settings.mode}&error=unauthorized"
+    response = await secure_client.get(
+        "/client/999",
+        follow_redirects=False,
+        headers={"Accept": "text/html"},
     )
-    assert response.status_code == 302
-    assert response.headers["location"] == expected_location
+    assert response.status_code == 401
+    body = response.text
+    assert "Tenant Required" in body
+    assert settings.company_code not in body
 
 
 @pytest.mark.asyncio
