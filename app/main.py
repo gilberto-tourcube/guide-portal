@@ -67,7 +67,7 @@ class GuideHashMiddleware(BaseHTTPMiddleware):
         if not guide_hash:
             return await call_next(request)
 
-        # Resolve company/mode from query or host
+        # Resolve company/mode from query or host. No default-tenant fallback (#148).
         host = request.headers.get("x-forwarded-host") or request.headers.get("host")
         company_code = request.query_params.get("company_code")
         mode = request.query_params.get("mode")
@@ -76,6 +76,15 @@ class GuideHashMiddleware(BaseHTTPMiddleware):
             mode=mode,
             host=host
         )
+        if not company_code or not mode:
+            # Cannot resolve a tenant for this guide_hash. Don't impersonate
+            # another tenant — clear the guide_hash and let the request flow
+            # to its normal handler (which will redirect to login or render
+            # the neutral error page).
+            logger.warning(
+                "guide_hash provided but tenant could not be resolved (host=%s)", host,
+            )
+            return await call_next(request)
 
         try:
             guide_id = await guide_service.get_guide_id_by_hash(
@@ -183,7 +192,7 @@ async def guide_hash_auto_login(request: Request, call_next):
     if not guide_hash:
         return await call_next(request)
 
-    # Resolve company/mode from query or host
+    # Resolve company/mode from query or host. No default-tenant fallback (#148).
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     company_code = request.query_params.get("company_code")
     mode = request.query_params.get("mode")
@@ -192,6 +201,12 @@ async def guide_hash_auto_login(request: Request, call_next):
         mode=mode,
         host=host
     )
+    if not company_code or not mode:
+        logger.warning(
+            "auto_login: guide_hash provided but tenant could not be resolved (host=%s)",
+            host,
+        )
+        return await call_next(request)
 
     try:
         guide_id = await guide_service.get_guide_id_by_hash(
@@ -210,7 +225,8 @@ async def guide_hash_auto_login(request: Request, call_next):
             }
         )
     except Exception as e:
-        # On failure, log error, clear session and redirect to login with error
+        # On failure, log error, clear session and redirect to login with error.
+        # company_code and mode are guaranteed non-empty here (guarded above).
         logger.error("Failed to resolve guide_hash in auto_login middleware: %s", e)
         capture_exception_with_context(e, mode=mode, company_code=company_code)
         request.session.clear()
@@ -253,31 +269,34 @@ def _is_browser_navigation(request: Request) -> bool:
 
 def _error_context(request: Request, sentry_event_id: str | None = None) -> dict:
     """Build the template context for error.html with whatever tenant info is
-    available on the session. Falls back to defaults so the page renders even
-    when no tenant has been resolved yet (e.g. early-startup failures).
+    actually resolvable for THIS request — never fall back to the default
+    tenant env-var (#148). If the tenant cannot be resolved (no query params,
+    empty session, no host mapping), the page renders with neutral chrome
+    (no logo, no tenant name, no skin) so it cannot impersonate another
+    tenant on a failure screen.
     """
     session = getattr(request, "session", {}) or {}
     company_code = (
         request.query_params.get("company_code")
         or request.query_params.get("companyCode")
         or session.get("company_code")
-        or settings.company_code
     )
     mode = (
         request.query_params.get("mode")
         or session.get("mode")
-        or settings.mode
     )
 
     skin_name = session.get("skin_name")
     company_logo = session.get("company_logo")
     company_favicon = session.get("company_favicon")
     theme_color = None
+    tenant_resolved = bool(company_code and mode)
 
-    # Best-effort tenant lookup so the error page picks up the right skin even
-    # when the session has not been populated yet (e.g. an exception fires
-    # before the route handler completes).
-    if not skin_name and company_code and mode:
+    # Best-effort tenant lookup so the error page picks up the right skin
+    # when the session has not been populated yet but query params identify
+    # the tenant. We never invent a tenant — `company_code` and `mode` must
+    # already be non-empty before this lookup runs.
+    if tenant_resolved and not skin_name:
         try:
             cfg = settings.get_company_config(company_code, mode)
             skin_name = cfg.skin_name
@@ -285,18 +304,22 @@ def _error_context(request: Request, sentry_event_id: str | None = None) -> dict
             company_favicon = company_favicon or cfg.favicon
         except Exception:
             # Never let context resolution itself raise — that would loop the
-            # exception handler.
-            pass
+            # exception handler. The page falls back to neutral chrome.
+            tenant_resolved = False
+            skin_name = None
+            company_logo = None
+            company_favicon = None
 
     return {
         "request": request,
         "skin_name": skin_name,
         "company_logo": company_logo,
         "company_favicon": company_favicon,
-        "company_code": company_code,
-        "mode": mode,
+        "company_code": company_code if tenant_resolved else None,
+        "mode": mode if tenant_resolved else None,
         "theme_color": theme_color,
         "sentry_event_id": sentry_event_id,
+        "tenant_resolved": tenant_resolved,
     }
 
 
@@ -363,11 +386,28 @@ async def global_exception_handler(request: Request, exc: Exception):
 async def root(request: Request):
     """
     Redirect root to login or guide home (when guide_hash is provided).
+
+    Requires the caller to supply tenant context via query params or via a
+    host that maps to a tenant in the domain map (#148). Anonymous hits
+    without resolvable tenant context get a neutral 400 page instead of
+    silently inheriting the default tenant's branding.
     """
     params = request.query_params
     guide_hash = params.get("guide_hash") or params.get("guideHash")
-    company_code = params.get("company_code") or settings.company_code
-    mode = params.get("mode") or settings.mode
+    company_code, mode = settings.resolve_company_and_mode(
+        company_code=params.get("company_code"),
+        mode=params.get("mode"),
+        host=request.headers.get("host"),
+    )
+
+    if not company_code or not mode:
+        # No tenant context — render the neutral error page rather than
+        # redirecting to a tenant-branded login.
+        return _error_templates.TemplateResponse(
+            "pages/error.html",
+            _error_context(request),
+            status_code=400,
+        )
 
     if guide_hash:
         # If guide_hash is present, go straight to guide home (login bypass)

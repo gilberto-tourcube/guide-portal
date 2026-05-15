@@ -1,13 +1,21 @@
-{# PWA meta tags, manifest link, and favicon — included in base.html <head> #}
-{% set _cc = request.session.get('company_code', '') %}
-{% set _mode = request.session.get('mode', '') %}
+{# PWA meta tags, manifest link, and favicon — included in base.html <head>.
+   Prefer the tenant resolved by the current request (template context) over
+   the session; only emit the manifest <link> + theme color when a tenant is
+   actually resolved (#148). Anonymous renders skip the manifest entirely so
+   the browser cannot grab a default-tenant install prompt. #}
+{% set _cc = company_code or request.session.get('company_code', '') %}
+{% set _mode = mode or request.session.get('mode', '') %}
 
 <!-- PWA -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="{{ theme_color | default('#0F4374') }}">
-<link rel="manifest" href="/manifest.json{% if _cc %}?companyCode={{ _cc }}&mode={{ _mode }}{% endif %}">
+{% if theme_color %}
+<meta name="theme-color" content="{{ theme_color }}">
+{% endif %}
+{% if _cc and _mode %}
+<link rel="manifest" href="/manifest.json?companyCode={{ _cc }}&mode={{ _mode }}">
+{% endif %}
 
 <!-- Favicon -->
 {% if company_favicon %}

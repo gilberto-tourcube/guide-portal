@@ -19,6 +19,30 @@ templates = Jinja2Templates(directory="templates")
 logger = logging.getLogger(__name__)
 
 
+def _neutral_tenant_error(
+    request: Request, status_code: int = 400
+) -> HTMLResponse:
+    """Render the neutral error page when a request lacks a resolvable tenant
+    (#148). Mirrors the helper in `auth.py` to avoid sprinkling tenant
+    impersonation on redirect URLs.
+    """
+    return templates.TemplateResponse(
+        "pages/error.html",
+        {
+            "request": request,
+            "skin_name": None,
+            "company_logo": None,
+            "company_favicon": None,
+            "company_code": None,
+            "mode": None,
+            "theme_color": None,
+            "sentry_event_id": None,
+            "tenant_resolved": False,
+        },
+        status_code=status_code,
+    )
+
+
 @router.get("/home", response_class=HTMLResponse)
 async def guide_home(
     request: Request,
@@ -50,16 +74,16 @@ async def guide_home(
         HTTPException 401: If user is not authenticated
         HTTPException 500: If API call fails
     """
-    # Resolve company/mode preference
+    # Resolve company/mode from explicit param then session. No default-tenant
+    # fallback (#148) — if nothing resolves, we render the neutral error page
+    # below rather than impersonating another tenant.
     resolved_company_code = (
         company_code
         or request.session.get("company_code")
-        or settings.company_code
     )
     resolved_mode = (
         mode
         or request.session.get("mode")
-        or settings.mode
     )
 
     guide_id = request.session.get("guide_id")
@@ -102,6 +126,10 @@ async def guide_home(
 
     if not guide_id or not resolved_company_code or not resolved_mode:
         request.session.clear()
+        if not resolved_company_code or not resolved_mode:
+            # Don't inject a fake tenant into the redirect URL — render the
+            # neutral error page (#148).
+            return _neutral_tenant_error(request, status_code=401)
         return RedirectResponse(
             url=(
                 f"/auth/login?company_code={resolved_company_code}"
@@ -111,8 +139,9 @@ async def guide_home(
         )
 
     try:
-        # Get company configuration for logo and branding
-        from app.config import settings
+        # Get company configuration for logo and branding. `settings` is the
+        # module-level import (line 11) — no local re-import that would shadow
+        # it via Python's name resolution rules.
         company_config = settings.get_company_config(resolved_company_code, resolved_mode)
 
         # Fetch guide homepage data

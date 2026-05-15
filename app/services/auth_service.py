@@ -31,8 +31,10 @@ class AuthService:
         Args:
             username: Portal username
             password: Portal password
-            company_code: Company identifier (defaults to settings.company_code)
-            mode: "Test" or "Production" (defaults to settings.mode)
+            company_code: Company identifier. Required — no default-tenant
+                fallback (#148).
+            mode: "Test" or "Production". Required — no default-mode fallback
+                (#148).
 
         Returns:
             LoginAPIResponse with authentication result

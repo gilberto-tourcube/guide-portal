@@ -1,12 +1,15 @@
 {% extends "layouts/auth.html" %}
 
-{% block title %}Something Went Wrong - Tourcube Guide Portal{% endblock %}
+{% block title %}
+    {% if tenant_resolved %}Something Went Wrong - Tourcube Guide Portal{% else %}Tenant Required{% endif %}
+{% endblock %}
 
 {% block auth_content %}
 <div class="text-center">
     <div class="mb-4">
         <em class="icon ni ni-alert-circle text-warning" style="font-size: 4rem;"></em>
     </div>
+    {% if tenant_resolved %}
     <h4 class="title mb-3">Something Went Wrong</h4>
     <p class="text-soft">
         An unexpected error occurred. Please try again or return to the home page.
@@ -23,6 +26,21 @@
         <em class="icon ni ni-home me-1"></em>
         Return Home
     </a>
+    {% else %}
+    {# Neutral state — tenant could not be resolved (#148). Intentionally no
+       logo, no tenant name, no "Return Home" link (root would just re-render
+       this page). The user must re-enter via a tenant-specific invite link. #}
+    <h4 class="title mb-3">Tenant Required</h4>
+    <p class="text-soft">
+        We could not identify the operator for this request. Please open the
+        portal through the invite link or bookmark provided by your operator.
+    </p>
+    <div class="alert alert-light mt-3 mb-4">
+        <em class="icon ni ni-info me-1"></em>
+        If you reached this page from a saved link, that link is missing the
+        tenant identifier. Contact your operator for an updated link.
+    </div>
+    {% endif %}
     {% if sentry_event_id %}
     <div class="mt-3">
         <small class="text-muted">Error reference: {{ sentry_event_id }}</small>

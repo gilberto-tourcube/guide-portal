@@ -20,12 +20,46 @@ templates = Jinja2Templates(directory="templates")
 logger = logging.getLogger(__name__)
 
 
+def _neutral_tenant_error(
+    request: Request, status_code: int = 400
+) -> HTMLResponse:
+    """Render the neutral error page (no tenant identity) when a request
+    arrives without a resolvable tenant (#148). Used by every auth route
+    that previously fell back to ``settings.company_code`` / ``settings.mode``.
+    """
+    return templates.TemplateResponse(
+        "pages/error.html",
+        {
+            "request": request,
+            "skin_name": None,
+            "company_logo": None,
+            "company_favicon": None,
+            "company_code": None,
+            "mode": None,
+            "theme_color": None,
+            "sentry_event_id": None,
+            "tenant_resolved": False,
+        },
+        status_code=status_code,
+    )
+
+
 @router.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    """Redirect root to login page with default parameters"""
+    """Redirect root to login when tenant can be resolved from query/host; render
+    neutral error page otherwise (#148 — no default-tenant fallback).
+    """
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    company_code, mode = settings.resolve_company_and_mode(
+        company_code=request.query_params.get("company_code"),
+        mode=request.query_params.get("mode"),
+        host=host,
+    )
+    if not company_code or not mode:
+        return _neutral_tenant_error(request)
     return RedirectResponse(
-        url=f"/auth/login?company_code={settings.company_code}&mode={settings.mode}",
-        status_code=302
+        url=f"/auth/login?company_code={company_code}&mode={mode}",
+        status_code=302,
     )
 
 
@@ -57,13 +91,15 @@ async def login_page(
         elif user_type == 2:  # Vendor
             return RedirectResponse(url="/vendor/home", status_code=302)
 
-    # Resolve company and mode from query or host
+    # Resolve company and mode from query or host. No default-tenant fallback (#148).
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     company_code_resolved, mode_resolved = settings.resolve_company_and_mode(
         company_code=company_code,
         mode=mode,
         host=host
     )
+    if not company_code_resolved or not mode_resolved:
+        return _neutral_tenant_error(request)
 
     # Get company configuration with mode
     try:
@@ -228,16 +264,24 @@ async def change_password_page(
 ):
     """Display change password form (required when TempPassword=1)"""
     if not request.session.get("authenticated"):
-        company_code = request.session.get("company_code", settings.company_code)
-        mode = request.session.get("mode", settings.mode)
+        # Unauthenticated hit on /change-password. Don't invent a tenant for
+        # the redirect URL — render the neutral error page instead (#148).
+        company_code = request.session.get("company_code")
+        mode = request.session.get("mode")
+        if not company_code or not mode:
+            return _neutral_tenant_error(request, status_code=401)
         return RedirectResponse(
             url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
             status_code=302
         )
 
-    company_code = request.session.get("company_code", settings.company_code)
-    mode = request.session.get("mode", settings.mode)
+    company_code = request.session.get("company_code")
+    mode = request.session.get("mode")
     user_type = request.session.get("user_type")
+
+    if not company_code or not mode:
+        # Authenticated session missing tenant context — render neutral error.
+        return _neutral_tenant_error(request, status_code=500)
 
     try:
         company_config = settings.get_company_config(company_code, mode)
@@ -344,13 +388,17 @@ async def change_password_submit(
 @router.get("/logout")
 async def logout(request: Request):
     """Clear session and redirect to login"""
-    # Get company_code and mode before clearing session
-    company_code = request.session.get("company_code", settings.company_code)
-    mode = request.session.get("mode", settings.mode)
-    
-    # Clear session
+    # Get company_code and mode before clearing session. No default-tenant
+    # fallback (#148) — if the session lacks tenant context, render the
+    # neutral logout/error page instead of inventing a tenant.
+    company_code = request.session.get("company_code")
+    mode = request.session.get("mode")
+
     request.session.clear()
-    
+
+    if not company_code or not mode:
+        return _neutral_tenant_error(request, status_code=200)
+
     # Redirect to login with parameters
     return RedirectResponse(
         url=f"/auth/login?company_code={company_code}&mode={mode}",
@@ -365,13 +413,15 @@ async def forgot_password_page(
     mode: Optional[str] = Query(None, description="Test or Production")
 ):
     """Display forgot password form"""
-    # Resolve company and mode from query or host
+    # Resolve company and mode from query or host. No default-tenant fallback (#148).
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     company_code_resolved, mode_resolved = settings.resolve_company_and_mode(
         company_code=company_code,
         mode=mode,
         host=host
     )
+    if not company_code_resolved or not mode_resolved:
+        return _neutral_tenant_error(request)
 
     # Get company configuration with mode
     try:
@@ -429,13 +479,15 @@ async def forgot_username_page(
     success: Optional[bool] = Query(None)
 ):
     """Display forgot username form"""
-    # Resolve company and mode from query or host
+    # Resolve company and mode from query or host. No default-tenant fallback (#148).
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     company_code_resolved, mode_resolved = settings.resolve_company_and_mode(
         company_code=company_code,
         mode=mode,
         host=host
     )
+    if not company_code_resolved or not mode_resolved:
+        return _neutral_tenant_error(request)
 
     # Get company configuration with mode
     try:
