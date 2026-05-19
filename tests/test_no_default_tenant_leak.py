@@ -172,24 +172,18 @@ async def test_vendor_home_unauthenticated_does_not_leak_default_tenant(
 
 
 @pytest.mark.asyncio
-async def test_manifest_anonymous_returns_neutral_identity(
+async def test_manifest_anonymous_returns_404(
     secure_client, reset_debug
 ):
-    """`GET /manifest.json` without `companyCode` must return a neutral
-    manifest (`name: "Guide Portal"`, no tenant icons, neutral theme,
-    `start_url: "/"`). Anonymous PWA installs therefore cannot inherit the
-    default tenant's identity.
+    """`GET /manifest.json` without `companyCode` must return 404 (#160).
+
+    After #160, anonymous requests have no install surface — the neutral
+    fallback manifest from #148 is replaced by a hard 404. Default-tenant
+    identity cannot leak because there is no payload at all.
     """
     settings.debug = False
     response = await secure_client.get("/manifest.json")
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["name"] == "Guide Portal"
-    assert payload["short_name"] == "Guide Portal"
-    assert payload["icons"] == []
-    assert payload["start_url"] == "/"
-    # Theme color must not be a tenant accent (we use a DashLite neutral).
-    assert payload["theme_color"] == "#526484"
+    assert response.status_code == 404
     # Body must not contain the default tenant identifiers.
     assert DEFAULT_COMPANY_CODE not in response.text
     for name in DEFAULT_TENANT_NAMES:
@@ -197,19 +191,17 @@ async def test_manifest_anonymous_returns_neutral_identity(
 
 
 @pytest.mark.asyncio
-async def test_manifest_with_tenant_query_returns_branded_manifest(
+async def test_manifest_with_tenant_query_non_mobile_returns_404(
     secure_client, reset_debug
 ):
-    """When the caller supplies tenant context, the manifest returns the
-    tenant-branded identity. Confirms the neutral path doesn't break the
-    happy path (#148 keeps tenant manifests working for authenticated
-    flows).
+    """Desktop (non-mobile) requests return 404 even with valid tenant context (#160).
+
+    After #160, only opted-in tenants on mobile UAs receive a manifest.
+    Desktop UAs always get 404 regardless of pwa_enabled state.
     """
     settings.debug = False
+    # secure_client uses the default TestClient UA, which is not a mobile UA.
     response = await secure_client.get(
         "/manifest.json?companyCode=WTGUIDE&mode=Test"
     )
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["name"] != "Guide Portal"  # tenant-branded
-    assert payload["start_url"].startswith("/?company_code=WTGUIDE")
+    assert response.status_code == 404
