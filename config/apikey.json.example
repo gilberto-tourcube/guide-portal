@@ -1,0 +1,54 @@
+{
+    "TourcubeAPIKey": [
+        {
+            "CompanyID": "WT",
+            "Test": "REDACTED",
+            "Production": "REDACTED",
+            "TestURL": "https://test-2.tourcube.net",
+            "ProductionURL": "https://test-2.tourcube.net",
+            "TestDomains": [],
+            "ProductionDomains": [],
+            "HTMLHeader": "",
+            "HTMLFooter": "",
+            "TourcubeOnline": true,
+            "TourcubeRootDrive": "c",
+            "SkinName": "",
+            "PWAEnabled": false,
+            "OfflineDocumentsEnabled": false
+        },
+        {
+            "CompanyID": "MTS",
+            "Test": "REDACTED",
+            "Production": "REDACTED",
+            "TestURL": "https://test-2.tourcube.net",
+            "ProductionURL": "https://test-2.tourcube.net",
+            "TestDomains": [],
+            "ProductionDomains": [],
+            "HTMLHeader": "",
+            "HTMLFooter": "",
+            "TourcubeOnline": true,
+            "TourcubeRootDrive": "c",
+            "SkinName": "",
+            "PWAEnabled": false,
+            "OfflineDocumentsEnabled": false
+        },
+        {
+            "CompanyID": "WTGUIDE",
+            "Test": "REDACTED",
+            "Production": "REDACTED",
+            "TestURL": "https://test-2.tourcube.net",
+            "ProductionURL": "https://test-2.tourcube.net",
+            "TestDomains": [],
+            "ProductionDomains": [],
+            "HTMLHeader": "",
+            "HTMLFooter": "",
+            "Logo": "wt-horizontal-logo-black-type.png",
+            "LoginBackground": "leader-portal-background-01.jpg",
+            "TourcubeOnline": true,
+            "TourcubeRootDrive": "c",
+            "SkinName": "theme-wt-blue",
+            "PWAEnabled": true,
+            "OfflineDocumentsEnabled": true
+        }
+    ]
+}
