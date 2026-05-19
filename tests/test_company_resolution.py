@@ -54,3 +54,18 @@ def test_resolved_session_populates_company():
     body = resp.json()
     assert body["company_present"] is True
     assert body["company_id"] == first_tenant
+
+
+def test_invalid_company_code_degrades_to_none(caplog):
+    """Session pointing to a non-existent tenant must NOT crash and must NOT fall back to a default."""
+    app = _build_app()
+    client = TestClient(app)
+    client.get("/_setup?company_code=DOES_NOT_EXIST&mode=Test")
+    with caplog.at_level("WARNING", logger="app.middleware.company_resolution"):
+        resp = client.get("/_probe")
+    assert resp.status_code == 200
+    assert resp.json() == {"company_present": False, "company_id": None}
+    # Confirm we logged the failure at WARNING so misconfigured tenants are observable.
+    assert any(
+        "DOES_NOT_EXIST" in record.message for record in caplog.records
+    ), "expected a WARNING log mentioning the bogus company code"

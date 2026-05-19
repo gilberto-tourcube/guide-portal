@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 class CompanyResolutionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         company = None
+        company_code = None
+        mode = None
         try:
             session = request.scope.get("session") or {}
             company_code = session.get("company_code")
@@ -28,7 +30,16 @@ class CompanyResolutionMiddleware(BaseHTTPMiddleware):
             if company_code and mode:
                 company = settings.get_company_config(company_code, mode)
         except Exception as exc:  # noqa: BLE001
-            logger.debug("CompanyResolutionMiddleware: %s", exc)
+            if company_code:
+                logger.warning(
+                    "CompanyResolutionMiddleware: failed to resolve company_code=%r mode=%r: %s",
+                    company_code, mode, exc,
+                )
+            else:
+                logger.debug(
+                    "CompanyResolutionMiddleware: anonymous session, skipping: %s",
+                    exc,
+                )
             company = None
 
         request.state.company = company
