@@ -37,9 +37,13 @@
     <script src="{{ url_for('static', path='/js/bundle.js') }}"></script>
     <script src="{{ url_for('static', path='/js/scripts.js') }}"></script>
 
-    <!-- PWA: service worker + offline document cache (#133) -->
+    {# PWA: service worker + offline document cache + booking-level Save Offline (#160) #}
+    {% set _company = request.state.company if request and request.state is defined else None %}
+    {% set _is_mobile = request.state.is_mobile if request and request.state is defined else False %}
+    {% if _company and _company.pwa_enabled and _is_mobile %}
     <script src="{{ url_for('static', path='/js/pwa-offline.js') }}"></script>
-    <script src="{{ url_for('static', path='/js/save-offline-button.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/booking-save-offline.js') }}"></script>
+    {% endif %}
 
     <!-- Custom JavaScript -->
     {% block extra_js %}{% endblock %}
