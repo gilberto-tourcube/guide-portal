@@ -35,8 +35,10 @@ def test_desktop_ua_not_detected(ua):
 
 
 def test_main_app_sets_is_mobile_attribute():
-    """Smoke: confirm app.main wires MobileDetectionMiddleware so
-    request.state.is_mobile is always populated."""
+    """Smoke: the full app boots and an iPhone request flows through
+    all registered middleware without raising. Per-attribute behavior
+    for ``request.state.is_mobile`` is verified by the parametrized
+    ``is_mobile_user_agent`` tests above."""
     from fastapi.testclient import TestClient
 
     from app.main import app

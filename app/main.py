@@ -133,11 +133,13 @@ class GuideHashMiddleware(BaseHTTPMiddleware):
 # Add guide hash middleware (inner), then session (outer), then others
 app.add_middleware(GuideHashMiddleware)
 
-# PWA gating support (#160). Order matters — these are registered
-# AFTER GuideHashMiddleware and BEFORE SessionMiddleware below, which
-# in Starlette means they execute inside the session context but inside
-# any guide-hash redirects. CompanyResolutionMiddleware reads session,
-# so SessionMiddleware (added below) must wrap it.
+# PWA gating support (#160). Order matters — these are registered AFTER
+# GuideHashMiddleware (the most recently added wraps the previous one),
+# so at request time their execution order is:
+#   SessionMiddleware → MobileDetectionMiddleware → CompanyResolutionMiddleware → GuideHashMiddleware
+# Both new middlewares run after SessionMiddleware (so request.scope['session']
+# is populated) and before GuideHashMiddleware (so guide-hash redirects can
+# rely on request.state.company and request.state.is_mobile).
 app.add_middleware(CompanyResolutionMiddleware)
 app.add_middleware(MobileDetectionMiddleware)
 
