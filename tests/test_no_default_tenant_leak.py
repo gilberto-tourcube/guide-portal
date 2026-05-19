@@ -205,3 +205,6 @@ async def test_manifest_with_tenant_query_non_mobile_returns_404(
         "/manifest.json?companyCode=WTGUIDE&mode=Test"
     )
     assert response.status_code == 404
+    # #148: even though we requested with the default-tenant query, the
+    # 404 body must not echo the tenant code back to the client.
+    assert DEFAULT_COMPANY_CODE not in response.text

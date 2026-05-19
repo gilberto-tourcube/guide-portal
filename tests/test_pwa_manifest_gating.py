@@ -2,6 +2,7 @@
 
 import json
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -38,8 +39,7 @@ def _first_pwa_disabled_tenant():
 def test_manifest_pwa_on_mobile_returns_200():
     code = _first_pwa_enabled_tenant()
     if not code:
-        # Skip when apikey.json has no opted-in tenant (e.g. pre-rollout).
-        return
+        pytest.skip("No opted-in tenant in apikey.json (pre-Task-15 rollout)")
     resp = _manifest(code, IPHONE_UA)
     assert resp.status_code == 200
     body = json.loads(resp.content)
@@ -49,7 +49,7 @@ def test_manifest_pwa_on_mobile_returns_200():
 def test_manifest_pwa_on_desktop_returns_404():
     code = _first_pwa_enabled_tenant()
     if not code:
-        return
+        pytest.skip("No opted-in tenant in apikey.json (pre-Task-15 rollout)")
     resp = _manifest(code, DESKTOP_UA)
     assert resp.status_code == 404
 
@@ -57,7 +57,7 @@ def test_manifest_pwa_on_desktop_returns_404():
 def test_manifest_pwa_off_mobile_returns_404():
     code = _first_pwa_disabled_tenant()
     if not code:
-        return
+        pytest.skip("No opted-out tenant in apikey.json")
     resp = _manifest(code, IPHONE_UA)
     assert resp.status_code == 404
 
@@ -65,7 +65,7 @@ def test_manifest_pwa_off_mobile_returns_404():
 def test_manifest_pwa_off_desktop_returns_404():
     code = _first_pwa_disabled_tenant()
     if not code:
-        return
+        pytest.skip("No opted-out tenant in apikey.json")
     resp = _manifest(code, DESKTOP_UA)
     assert resp.status_code == 404
 
