@@ -289,7 +289,7 @@
     function init() {
         attachClickHandlers();
         adjustSameTabLinksForStandalone();
-        // Auto-cache removed — saving is now explicit, see save-offline-button.js
+        // Auto-cache removed — saving is now explicit, see booking-save-offline.js
     }
 
     window.addEventListener('load', function () {

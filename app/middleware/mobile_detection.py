@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import re
 
-from fastapi import FastAPI, Request
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 _MOBILE_UA_RE = re.compile(
@@ -39,7 +39,3 @@ class MobileDetectionMiddleware(BaseHTTPMiddleware):
             request.headers.get("user-agent", "")
         )
         return await call_next(request)
-
-
-def register_mobile_detection(app: FastAPI) -> None:
-    app.add_middleware(MobileDetectionMiddleware)

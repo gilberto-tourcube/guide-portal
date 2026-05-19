@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import FastAPI, Request
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
@@ -44,7 +44,3 @@ class CompanyResolutionMiddleware(BaseHTTPMiddleware):
 
         request.state.company = company
         return await call_next(request)
-
-
-def register_company_resolution(app: FastAPI) -> None:
-    app.add_middleware(CompanyResolutionMiddleware)
