@@ -39,6 +39,7 @@
     }
 
     function registerServiceWorker() {
+        if (window.__PWA_DISABLED__) return Promise.reject(new Error('PWA disabled by client gate'));
         if (!('serviceWorker' in navigator)) return Promise.reject(new Error('SW not supported'));
 
         var wasUncontrolled = !navigator.serviceWorker.controller;
@@ -293,6 +294,7 @@
 
     window.addEventListener('load', function () {
         registerServiceWorker().catch(function (err) {
+            if (err && /disabled by client gate/.test(err.message)) return;
             console.warn('[PWA] Service worker registration failed:', err);
         });
     });
