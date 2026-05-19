@@ -330,6 +330,15 @@ class TripDepartureData(BaseModel):
     # Departure notes (free-text synced with Departure Comment in the back office)
     departure_notes: Optional[str] = Field(None, description="Departure notes (free-text)")
 
+    # PWA Save Offline gate (#160). Backend sets this on getDeparturePage
+    # once Operations marks all docs ready. Defaults False until the
+    # backend field ships — the booking-level Save Offline button never
+    # renders for departures that have not been flagged.
+    documents_ready: bool = Field(
+        False,
+        description="True when Operations has marked all trip + departure docs ready for offline caching"
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
