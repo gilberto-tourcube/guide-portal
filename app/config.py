@@ -27,6 +27,10 @@ class CompanyConfig(BaseModel):
     test_domains: List[str] = []
     production_domains: List[str] = []
 
+    # PWA per-tenant gates (#160)
+    pwa_enabled: bool = False
+    offline_documents_enabled: bool = False
+
     # Active configuration based on mode
     api_url: str
     api_key: str
@@ -135,6 +139,8 @@ class Settings(BaseSettings):
                 production_url=company.get('ProductionURL', ''),
                 test_domains=company.get('TestDomains', []),
                 production_domains=company.get('ProductionDomains', []),
+                pwa_enabled=bool(company.get('PWAEnabled', False)),
+                offline_documents_enabled=bool(company.get('OfflineDocumentsEnabled', False)),
                 # Initialize with Test credentials by default
                 api_url=company.get('TestURL', ''),
                 api_key=company.get('Test', '')

@@ -41,12 +41,10 @@ SKIN_COLORS = {
 
 @router.get("/manifest.json")
 async def manifest(request: Request):
-    """Serve a tenant-specific PWA manifest.
+    """Serve a tenant-specific PWA manifest (#148, #160).
 
-    Anonymous requests (no `companyCode`/`mode` query, empty session) get a
-    **neutral** manifest with no tenant identity (#148) — never the default
-    tenant's branding. Installing the PWA from an anonymous context therefore
-    pins a generic icon/name until the user re-enters with a real tenant link.
+    Anonymous or non-mobile requests now 404 — there is no neutral install
+    surface anymore. Only opted-in tenants on mobile UAs receive a manifest.
     """
     company_code = (
         request.query_params.get("companyCode")
@@ -64,25 +62,23 @@ async def manifest(request: Request):
         except Exception:
             config = None
 
-    if config:
-        app_name = f"{config.company_id} Guide Portal"
-        theme_color = SKIN_COLORS.get(config.skin_name, "#0F4374")
-        icons = []
-        if config.favicon:
-            icon_path = f"/static/images/{config.favicon}"
-            icons = [
-                {"src": icon_path, "sizes": "192x192", "type": "image/png"},
-                {"src": icon_path, "sizes": "512x512", "type": "image/png"},
-            ]
-        start_url = f"/?company_code={company_code}&mode={mode}"
-    else:
-        # Neutral fallback — no tenant identity. `name` reads "Guide Portal"
-        # generically, `theme_color` is a tenant-agnostic grey, icons empty
-        # (the browser falls back to its generic shortcut icon).
-        app_name = "Guide Portal"
-        theme_color = "#526484"  # DashLite neutral; not a tenant accent
-        icons = []
-        start_url = "/"
+    # PWA tenant + UA gate (#160). Defense-in-depth alongside the Jinja
+    # head-tag gate; the browser must not be able to install on a tenant
+    # that did not opt in, and desktop UAs never get a manifest either.
+    is_mobile = getattr(request.state, "is_mobile", False)
+    if not (config and config.pwa_enabled and is_mobile):
+        raise HTTPException(status_code=404)
+
+    app_name = f"{config.company_id} Guide Portal"
+    theme_color = SKIN_COLORS.get(config.skin_name, "#0F4374")
+    icons = []
+    if config.favicon:
+        icon_path = f"/static/images/{config.favicon}"
+        icons = [
+            {"src": icon_path, "sizes": "192x192", "type": "image/png"},
+            {"src": icon_path, "sizes": "512x512", "type": "image/png"},
+        ]
+    start_url = f"/?company_code={company_code}&mode={mode}"
 
     manifest_data = {
         "name": app_name,

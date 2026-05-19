@@ -278,59 +278,60 @@
     height: auto;
 }
 
-/* ==========================================================================
-   #133 PWA — Save Offline button
-   --------------------------------------------------------------------------
-   Per-document explicit save button. Inherits Dashlite button tokens from
-   the active skin so colors stay tenant-aware. States toggled by
-   save-offline-button.js: idle, .is-loading, .is-saved, .is-error.
-   ========================================================================== */
-.save-offline-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  white-space: nowrap;
-  font-size: 0.75rem;
-  line-height: 1.2;
-  padding: 0.25rem 0.6rem;
-}
-.save-offline-btn .icon {
-  font-size: 0.95rem;
-  line-height: 1;
-}
-.save-offline-btn.is-saved {
-  color: #1ee0ac;
-  border-color: #1ee0ac;
-  background: transparent;
-}
-.save-offline-btn.is-saved:hover {
-  background: rgba(30, 224, 172, 0.08);
-}
-.save-offline-btn.is-error {
-  color: #e85347;
-  border-color: #e85347;
-  background: transparent;
-}
-.save-offline-btn.is-error:hover {
-  background: rgba(232, 83, 71, 0.08);
-}
-.save-offline-btn.is-loading {
-  cursor: wait;
-}
-.save-offline-btn.is-loading .icon {
-  animation: save-offline-spin 0.9s linear infinite;
-  display: inline-block;
-}
+/* -------------------------------------------------------------------------
+   Booking-level Save Offline button (#160).
+   Ported from guest-portal #163. Mirrors the old .save-offline-btn state
+   machine but lives once per page at the top of the documents section.
+   ------------------------------------------------------------------------- */
 @keyframes save-offline-spin {
   to { transform: rotate(360deg); }
 }
 
-/* On narrow screens collapse to icon-only so the doc title stays readable. */
-@media (max-width: 575.98px) {
-  .save-offline-btn .save-offline-btn__label {
-    display: none;
+.booking-save-offline-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.booking-save-offline-btn.is-saved {
+  background-color: #1ee0ac;
+  border-color: #1ee0ac;
+  color: #fff;
+}
+
+.booking-save-offline-btn.is-saved:hover {
+  background-color: #1ac795;
+  border-color: #1ac795;
+}
+
+.booking-save-offline-btn.is-error {
+  background-color: #e85347;
+  border-color: #e85347;
+  color: #fff;
+}
+
+.booking-save-offline-btn.is-error:hover {
+  background-color: #d63b30;
+  border-color: #d63b30;
+}
+
+.booking-save-offline-btn.is-loading .icon {
+  animation: save-offline-spin 0.8s linear infinite;
+}
+
+/* Defense layer 3: hide the button on desktop viewports even if the server
+   somehow emitted it (e.g. tablet UA but desktop-sized window). */
+@media (min-width: 1367px) {
+  .booking-save-offline-btn {
+    display: none !important;
   }
-  .save-offline-btn {
-    padding: 0.25rem 0.45rem;
+}
+
+/* Per-doc View button — narrow screens collapse to icon-only so the doc
+   title stays readable. */
+@media (max-width: 575.98px) {
+  .view-doc-btn__label {
+    display: none;
   }
 }

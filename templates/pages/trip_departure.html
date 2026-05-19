@@ -2,11 +2,7 @@
 
 {% block title %}{{ departure.trip_name }} - Tourcube Guide Portal{% endblock %}
 
-{% block extra_css %}
-<style>
-    .doc-download:hover { opacity: 0.7; }
-</style>
-{% endblock %}
+{% block extra_css %}{% endblock %}
 
 {% block page_content %}
 <!-- Breadcrumb -->
@@ -179,7 +175,7 @@
                     {% endif %}
                 </div>
 
-                <!-- Documents Tab -->
+                <!-- Documents Tab (#160) -->
                 <div class="tab-pane {% if active_tab == 'documents' %}active{% endif %}"
                      id="tabDocuments" role="tabpanel">
                     {% if departure.access_expired %}
@@ -189,6 +185,35 @@
                         Trip documents and departure documents are not accessible more than 45 days after the trip end date.
                     </div>
                     {% else %}
+                    {% set _is_mobile = request.state.is_mobile if request and request.state is defined else False %}
+                    {% set pwa_active = (company and company.pwa_enabled and _is_mobile) %}
+                    {% set save_offline_active = pwa_active and company and company.offline_documents_enabled and departure.documents_ready %}
+                    {% set offline_cache_attr = company and company.offline_documents_enabled %}
+
+                    <div class="d-flex align-items-center justify-content-between mb-3 gap-2 flex-wrap mt-3">
+                        <h6 class="text-soft mb-0">
+                            <em class="icon ni ni-file-docs me-1"></em>Documents
+                        </h6>
+                        {% if save_offline_active %}
+                        <button type="button"
+                                id="booking-save-offline-btn"
+                                class="btn btn-outline-primary booking-save-offline-btn"
+                                data-departure-id="{{ departure.trip_departure_id }}"
+                                aria-label="Save offline">
+                            <em class="icon ni ni-download me-1"></em>
+                            <span class="booking-save-offline-btn__label">Save offline</span>
+                        </button>
+                        <script id="booking-save-offline-data" type="application/json">
+[
+{%- set _all_docs = (departure.trip_documents | selectattr('document_url') | list) + (departure.departure_documents | selectattr('document_url') | list) -%}
+{%- for doc in _all_docs -%}
+{"url": {{ doc.document_url | tojson }}, "description": {{ (doc.description or '') | tojson }}}{% if not loop.last %},{% endif %}
+{%- endfor -%}
+]
+                        </script>
+                        {% endif %}
+                    </div>
+
                     <div class="row g-4 mt-1">
                         <!-- Trip Documents -->
                         <div class="col-md-6">
@@ -199,39 +224,28 @@
                                         <h6 class="title mb-0">Trip Documents</h6>
                                     </div>
                                     {% if departure.trip_documents %}
-                                    <div class="table-responsive">
-                                        <table class="table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Document Name</th>
-                                                    <th>Date Uploaded</th>
-                                                    <th></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for doc in departure.trip_documents %}
-                                                <tr>
-                                                    <td>
-                                                        <a href="{{ doc.document_url }}" target="doc_{{ loop.index }}_{{ doc.description|urlencode }}" rel="noopener" class="text-primary doc-download" data-offline-cache="true" data-pwa-same-tab="true">
-                                                            {{ doc.description }}
-                                                        </a>
-                                                    </td>
-                                                    <td>{{ doc.upload_date if doc.upload_date else '-' }}</td>
-                                                    <td class="text-end">
-                                                        <button type="button"
-                                                                class="btn btn-sm btn-outline-light save-offline-btn flex-shrink-0"
-                                                                data-doc-url="{{ doc.document_url }}"
-                                                                data-doc-description="{{ doc.description }}"
-                                                                aria-label="Save offline">
-                                                            <em class="icon ni ni-download"></em>
-                                                            <span class="save-offline-btn__label">Save offline</span>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                    <ul class="list-group list-group-flush">
+                                        {% for doc in departure.trip_documents %}
+                                        <li class="list-group-item px-0 d-flex align-items-center justify-content-between gap-2">
+                                            <span class="text-truncate">
+                                                <em class="icon ni ni-file-pdf me-1 text-soft"></em>{{ doc.description }}
+                                                {% if doc.upload_date %}
+                                                <small class="text-soft ms-1">({{ doc.upload_date }})</small>
+                                                {% endif %}
+                                            </span>
+                                            {% if doc.document_url %}
+                                            <a href="{{ doc.document_url }}"
+                                               target="_blank"
+                                               rel="noopener"
+                                               class="btn btn-sm btn-outline-light flex-shrink-0"
+                                               {% if offline_cache_attr %}data-offline-cache="true"{% endif %}>
+                                                <em class="icon ni ni-eye"></em>
+                                                <span class="view-doc-btn__label">View</span>
+                                            </a>
+                                            {% endif %}
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
                                     {% else %}
                                     <p class="sub-text">No trip documents available.</p>
                                     {% endif %}
@@ -248,39 +262,28 @@
                                         <h6 class="title mb-0">Departure Documents</h6>
                                     </div>
                                     {% if departure.departure_documents %}
-                                    <div class="table-responsive">
-                                        <table class="table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Document Name</th>
-                                                    <th>Date Uploaded</th>
-                                                    <th></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for doc in departure.departure_documents %}
-                                                <tr>
-                                                    <td>
-                                                        <a href="{{ doc.document_url }}" target="doc_{{ loop.index }}_{{ doc.description|urlencode }}" rel="noopener" class="text-primary doc-download" data-offline-cache="true" data-pwa-same-tab="true">
-                                                            {{ doc.description }}
-                                                        </a>
-                                                    </td>
-                                                    <td>{{ doc.upload_date if doc.upload_date else '-' }}</td>
-                                                    <td class="text-end">
-                                                        <button type="button"
-                                                                class="btn btn-sm btn-outline-light save-offline-btn flex-shrink-0"
-                                                                data-doc-url="{{ doc.document_url }}"
-                                                                data-doc-description="{{ doc.description }}"
-                                                                aria-label="Save offline">
-                                                            <em class="icon ni ni-download"></em>
-                                                            <span class="save-offline-btn__label">Save offline</span>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                    <ul class="list-group list-group-flush">
+                                        {% for doc in departure.departure_documents %}
+                                        <li class="list-group-item px-0 d-flex align-items-center justify-content-between gap-2">
+                                            <span class="text-truncate">
+                                                <em class="icon ni ni-file-pdf me-1 text-soft"></em>{{ doc.description }}
+                                                {% if doc.upload_date %}
+                                                <small class="text-soft ms-1">({{ doc.upload_date }})</small>
+                                                {% endif %}
+                                            </span>
+                                            {% if doc.document_url %}
+                                            <a href="{{ doc.document_url }}"
+                                               target="_blank"
+                                               rel="noopener"
+                                               class="btn btn-sm btn-outline-light flex-shrink-0"
+                                               {% if offline_cache_attr %}data-offline-cache="true"{% endif %}>
+                                                <em class="icon ni ni-eye"></em>
+                                                <span class="view-doc-btn__label">View</span>
+                                            </a>
+                                            {% endif %}
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
                                     {% else %}
                                     <p class="sub-text">No departure documents available.</p>
                                     {% endif %}
