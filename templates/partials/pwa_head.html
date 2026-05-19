@@ -1,20 +1,39 @@
 {# PWA meta tags, manifest link, and favicon — included in base.html <head>.
-   Prefer the tenant resolved by the current request (template context) over
-   the session; only emit the manifest <link> + theme color when a tenant is
-   actually resolved (#148). Anonymous renders skip the manifest entirely so
-   the browser cannot grab a default-tenant install prompt. #}
-{% set _cc = company_code or request.session.get('company_code', '') %}
-{% set _mode = mode or request.session.get('mode', '') %}
 
-<!-- PWA -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="mobile-web-app-capable" content="yes">
-{% if theme_color %}
-<meta name="theme-color" content="{{ theme_color }}">
-{% endif %}
-{% if _cc and _mode %}
-<link rel="manifest" href="/manifest.json?companyCode={{ _cc }}&mode={{ _mode }}">
+   Gates (#160):
+     - server-side pwa_active = company.pwa_enabled AND request.state.is_mobile
+     - client-side viewport guard removes the manifest <link> and sets
+       window.__PWA_DISABLED__ on viewports wider than 1366px.
+
+   The favicon block always renders; only the manifest + apple PWA meta
+   tags are gated.
+#}
+{% set _company = request.state.company if request and request.state is defined else None %}
+{% set _is_mobile = request.state.is_mobile if request and request.state is defined else False %}
+{% set pwa_active = (_company and _company.pwa_enabled and _is_mobile) %}
+
+{% if pwa_active %}
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="mobile-web-app-capable" content="yes">
+  {% if theme_color %}
+  <meta name="theme-color" content="{{ theme_color }}">
+  {% endif %}
+  <link id="pwa-manifest-link" rel="manifest"
+        href="/manifest.json?companyCode={{ _company.company_id }}&mode={{ request.session.get('mode', '') }}">
+
+  <script>
+    (function () {
+      try {
+        if (window.matchMedia && !window.matchMedia('(max-width: 1366px)').matches) {
+          var link = document.getElementById('pwa-manifest-link');
+          if (link && link.parentNode) link.parentNode.removeChild(link);
+          window.__PWA_DISABLED__ = true;
+        }
+      } catch (e) {}
+    })();
+  </script>
 {% endif %}
 
 <!-- Favicon -->
