@@ -12,6 +12,8 @@ from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from app.middleware.mobile_detection import MobileDetectionMiddleware
+from app.middleware.company_resolution import CompanyResolutionMiddleware
 from app.config import settings
 from app.routes import guide, auth, vendor, resources, pwa
 from app.services.guide_service import guide_service
@@ -130,6 +132,14 @@ class GuideHashMiddleware(BaseHTTPMiddleware):
 
 # Add guide hash middleware (inner), then session (outer), then others
 app.add_middleware(GuideHashMiddleware)
+
+# PWA gating support (#160). Order matters — these are registered
+# AFTER GuideHashMiddleware and BEFORE SessionMiddleware below, which
+# in Starlette means they execute inside the session context but inside
+# any guide-hash redirects. CompanyResolutionMiddleware reads session,
+# so SessionMiddleware (added below) must wrap it.
+app.add_middleware(CompanyResolutionMiddleware)
+app.add_middleware(MobileDetectionMiddleware)
 
 # Add session middleware for authentication (outermost for session availability)
 app.add_middleware(
