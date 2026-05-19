@@ -113,6 +113,7 @@ async def departure_details(request: Request, trip_departure_id: int):
             {
                 "request": request,
                 "departure": departure_data,
+                "company": company_config,
                 "company_logo": company_config.logo,
                 "company_favicon": company_config.favicon,
                 "company_code": company_code,
