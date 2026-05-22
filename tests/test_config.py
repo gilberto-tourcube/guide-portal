@@ -62,6 +62,48 @@ def test_resolve_company_and_mode_does_not_leak_default_tenant():
     assert mode is None
 
 
+def test_resolve_company_and_mode_loads_domain_map_lazily(tmp_path):
+    """Host-based tenant resolution must work on a cold Settings instance.
+
+    Without this, the first request to a tenant-specific domain could be
+    treated as anonymous until another route happened to load apikey.json.
+    """
+    apikey = tmp_path / "apikey.json"
+    apikey.write_text(
+        """
+        {
+          "TourcubeAPIKey": [
+            {
+              "CompanyID": "HOSTED",
+              "Logo": "hosted.png",
+              "TourcubeOnline": true,
+              "SkinName": "theme-bluelite",
+              "Test": "test-key",
+              "TestURL": "https://test.example/api",
+              "Production": "prod-key",
+              "ProductionURL": "https://prod.example/api",
+              "TestDomains": ["guide.test.example:443"],
+              "ProductionDomains": []
+            }
+          ]
+        }
+        """,
+        encoding="utf-8",
+    )
+    settings = Settings(
+        secret_key="dummy-secret",
+        company_code="LEAKY_DEFAULT",
+        mode="Test",
+        api_key_json_path=str(apikey),
+    )
+    assert settings._domain_map is None
+
+    assert settings.resolve_company_and_mode(host="guide.test.example") == (
+        "HOSTED",
+        "Test",
+    )
+
+
 def test_get_company_config_requires_mode():
     """#148: `get_company_config` must not fall back to `settings.mode`."""
     settings = Settings(secret_key="dummy-secret")

@@ -48,6 +48,7 @@ async def manifest(request: Request):
     """
     company_code = (
         request.query_params.get("companyCode")
+        or request.query_params.get("company_code")
         or request.session.get("company_code")
     )
     mode = (

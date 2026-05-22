@@ -24,12 +24,14 @@ async def error_client():
     original_app_debug = app.debug
     settings.debug = False
     app.debug = False
+    app.middleware_stack = None
     try:
         async with AsyncClient(transport=transport, base_url="https://testserver") as ac:
             yield ac
     finally:
         settings.debug = original_debug
         app.debug = original_app_debug
+        app.middleware_stack = None
 
 
 @pytest.fixture(autouse=True)
