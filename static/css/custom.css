@@ -27,11 +27,30 @@
 
 /* Authentication Pages - Background Image Overlay */
 .auth-bg-overlay {
-    background: rgba(0, 0, 0, 0.4);
+    background:
+        linear-gradient(90deg, rgba(8, 12, 18, 0.72), rgba(8, 12, 18, 0.48)),
+        rgba(0, 0, 0, 0.35);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.auth-bg-content .form-note-s2,
+.auth-bg-content .form-note-s2 a {
+    color: #fff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+}
+
+.auth-bg-content .form-note-s2 a {
+    font-weight: 600;
+    text-decoration-color: rgba(255, 255, 255, 0.8);
+    text-underline-offset: 3px;
+}
+
+.auth-bg-content .form-note-s2 a:hover {
+    color: #f5f8ff !important;
+    text-decoration-color: #fff;
 }
 
 /* Authentication Pages - Logo Size and Centering */
