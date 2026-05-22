@@ -3,7 +3,7 @@
 {% block body_content %}
 <div class="nk-main">
     <div class="nk-wrap nk-wrap-nosidebar">
-        <div class="nk-content"{% if login_background %} style="background-image: url('{{ url_for('static', path='/images/' + login_background) }}'); background-size: cover; background-position: center; min-height: 100vh;"{% endif %}>
+        <div class="nk-content{% if login_background %} auth-bg-content{% endif %}"{% if login_background %} style="background-image: url('{{ url_for('static', path='/images/' + login_background) }}'); background-size: cover; background-position: center; min-height: 100vh;"{% endif %}>
             {% if login_background %}
             <div class="auth-bg-overlay">
             {% endif %}

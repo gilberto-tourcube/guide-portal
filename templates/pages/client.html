@@ -206,7 +206,7 @@
                 <div class="col-md-6 col-lg-3">
                     <div class="small text-muted mb-1">Phone</div>
                     {% if client.emergency_contact_phone %}
-                    <div><a href="tel:{{ client.emergency_contact_phone }}">{{ client.emergency_contact_phone }}</a></div>
+                    <div><a href="tel:{{ client.emergency_contact_phone }}">{{ client.emergency_contact_phone | format_us_phone }}</a></div>
                     {% else %}
                     <span class="text-muted">—</span>
                     {% endif %}
