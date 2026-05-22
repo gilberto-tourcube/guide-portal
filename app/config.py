@@ -219,8 +219,11 @@ class Settings(BaseSettings):
         if company_code and mode:
             return company_code, mode
 
-        # Try host mapping
+        # Try host mapping. Load configs lazily so a cold process can resolve
+        # tenant context by Host before any route has called get_company_config.
         norm_host = self._normalize_host(host)
+        if norm_host and self._domain_map is None:
+            self._load_company_configs()
         if norm_host and self._domain_map and norm_host in self._domain_map:
             mapped_company, mapped_mode = self._domain_map[norm_host]
             return mapped_company, mapped_mode

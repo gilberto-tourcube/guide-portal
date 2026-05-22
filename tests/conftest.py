@@ -42,8 +42,11 @@ async def secure_client():
 def reset_debug():
     """Restore settings.debug after tests mutate it."""
     original_debug = settings.debug
+    original_app_debug = app.debug
     yield
     settings.debug = original_debug
+    app.debug = original_app_debug
+    app.middleware_stack = None
 
 
 @pytest.fixture

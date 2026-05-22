@@ -172,6 +172,48 @@ async def test_vendor_home_unauthenticated_does_not_leak_default_tenant(
 
 
 @pytest.mark.asyncio
+async def test_guide_hash_without_tenant_does_not_call_api_or_leak_default(
+    monkeypatch, secure_client, reset_debug
+):
+    async def fail_if_called(*args, **kwargs):  # pragma: no cover - should not run
+        raise AssertionError("guide hash lookup should not run without tenant context")
+
+    monkeypatch.setattr(
+        "app.routes.guide.guide_service.get_guide_id_by_hash",
+        fail_if_called,
+    )
+    settings.debug = False
+    response = await secure_client.get(
+        "/guide/home?guide_hash=abc",
+        follow_redirects=False,
+        headers={"Accept": "text/html"},
+    )
+    assert response.status_code == 401
+    _assert_no_default_tenant_leak(response)
+
+
+@pytest.mark.asyncio
+async def test_vendor_hash_without_tenant_does_not_call_api_or_leak_default(
+    monkeypatch, secure_client, reset_debug
+):
+    async def fail_if_called(*args, **kwargs):  # pragma: no cover - should not run
+        raise AssertionError("vendor hash lookup should not run without tenant context")
+
+    monkeypatch.setattr(
+        "app.routes.vendor.vendor_service.get_vendor_id_by_hash",
+        fail_if_called,
+    )
+    settings.debug = False
+    response = await secure_client.get(
+        "/vendor/home?vendor_hash=abc",
+        follow_redirects=False,
+        headers={"Accept": "text/html"},
+    )
+    assert response.status_code == 401
+    _assert_no_default_tenant_leak(response)
+
+
+@pytest.mark.asyncio
 async def test_manifest_anonymous_returns_404(
     secure_client, reset_debug
 ):

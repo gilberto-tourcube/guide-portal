@@ -92,6 +92,8 @@ async def guide_home(
     resolved_hash = guide_hash or guide_hash_alt
 
     if not guide_id and resolved_hash:
+        if not resolved_company_code or not resolved_mode:
+            return _neutral_tenant_error(request, status_code=401)
         try:
             guide_id = await guide_service.get_guide_id_by_hash(
                 guide_hash=resolved_hash,

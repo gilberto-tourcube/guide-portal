@@ -20,6 +20,14 @@ def _manifest(company_code: str, ua: str):
     )
 
 
+def _manifest_snake_case(company_code: str, ua: str):
+    client = TestClient(app)
+    return client.get(
+        f"/manifest.json?company_code={company_code}&mode=Test",
+        headers={"User-Agent": ua},
+    )
+
+
 def _first_pwa_enabled_tenant():
     from app.config import settings
     for code, cfg in settings._load_company_configs().items():
@@ -44,6 +52,14 @@ def test_manifest_pwa_on_mobile_returns_200():
     assert resp.status_code == 200
     body = json.loads(resp.content)
     assert "name" in body
+
+
+def test_manifest_accepts_snake_case_company_code_query():
+    code = _first_pwa_enabled_tenant()
+    if not code:
+        pytest.skip("No opted-in tenant in apikey.json (pre-Task-15 rollout)")
+    resp = _manifest_snake_case(code, IPHONE_UA)
+    assert resp.status_code == 200
 
 
 def test_manifest_pwa_on_desktop_returns_404():

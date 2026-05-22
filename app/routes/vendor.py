@@ -90,6 +90,8 @@ async def vendor_home(
     resolved_hash = vendor_hash or vendor_hash_alt
 
     if not vendor_id and resolved_hash:
+        if not resolved_company_code or not resolved_mode:
+            return _neutral_tenant_error(request, status_code=401)
         try:
             vendor_id = await vendor_service.get_vendor_id_by_hash(
                 vendor_hash=resolved_hash,
