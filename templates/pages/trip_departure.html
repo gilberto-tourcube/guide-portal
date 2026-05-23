@@ -63,7 +63,7 @@
                 <div class="col-md-6">
                     <div class="d-flex align-items-center gap-2 text-base">
                         <em class="icon ni ni-user"></em>
-                        <span>{{ departure.trip_contact_label or 'Trip Contact' }}: {{ departure.trip_contact_name or '-' }}</span>
+                        <span>{% if request.session.get('user_role') == 'Vendor' %}{{ departure.trip_contact_label or 'Trip Contact' }}{% else %}Area Manager{% endif %}: {{ departure.trip_contact_name or '-' }}</span>
                     </div>
                 </div>
                 {% if departure.trip_contact_email %}
