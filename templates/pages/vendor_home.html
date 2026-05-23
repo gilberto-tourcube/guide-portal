@@ -7,6 +7,11 @@
     a.trip-card { color: inherit; transition: box-shadow 0.2s ease; }
     a.trip-card:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
     .trip-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 400; margin-bottom: 2px; }
+    .trip-toggle-link { text-decoration: none; font-size: 13px; letter-spacing: 0.05em; }
+    .trip-toggle-link .trip-toggle-text { text-decoration: underline; text-underline-offset: 2px; }
+    .trip-toggle-link .icon { text-decoration: none; }
+    .trip-toggle-link:hover .trip-toggle-text { text-decoration-thickness: 2px; }
+    .trip-toggle-link:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; border-radius: 4px; }
     @media (min-width: 768px) {
         .trip-thumb-col { max-width: 256px; }
     }
@@ -87,8 +92,8 @@
 
         {% if vendor.future_trips|length > 3 %}
         <div class="text-center mt-3 mb-4">
-            <a href="#" class="link link-primary text-uppercase fw-bold text-decoration-underline" style="font-size: 13px; letter-spacing: 0.05em;" id="toggleFutureTrips">
-                <span id="toggleFutureTripsText">Show {{ vendor.future_trips|length - 3 }} More Upcoming Trips</span>
+            <a href="#" class="link link-primary text-uppercase fw-bold trip-toggle-link" id="toggleFutureTrips" aria-expanded="false">
+                <span class="trip-toggle-text" id="toggleFutureTripsText">Show {{ vendor.future_trips|length - 3 }} More Upcoming Trips</span>
                 <em class="icon ni ni-chevron-down ms-1" id="toggleFutureTripsIcon"></em>
             </a>
         </div>
@@ -174,6 +179,7 @@
         });
         text.textContent = expanded ? 'Show Less' : 'Show ' + count + ' More Upcoming Trips';
         icon.className = expanded ? 'icon ni ni-chevron-up ms-1' : 'icon ni ni-chevron-down ms-1';
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     });
 })();
 </script>

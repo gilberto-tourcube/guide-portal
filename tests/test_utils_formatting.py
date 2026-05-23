@@ -47,6 +47,13 @@ class TestFormatDestination:
             == "Botswana, and Zimbabwe"
         )
 
+    def test_missing_space_before_and_pattern(self):
+        assert format_destination("Greenlandand Denmark") == "Greenland and Denmark"
+        assert (
+            format_destination("Africa,Botswanaand Zimbabwe,Southern Africa")
+            == "Africa, Botswana and Zimbabwe, Southern Africa"
+        )
+
     def test_already_spaced_input_idempotent(self):
         assert format_destination("Paris, France") == "Paris, France"
         assert (

@@ -35,6 +35,31 @@ def test_guide_home_toggle_underline_is_scoped_to_text():
     assert ".trip-toggle-link .icon { text-decoration: none; }" in template
 
 
+def test_guide_home_uses_area_manager_label_for_trip_contact():
+    template = _read("templates/pages/guide_home.html")
+
+    assert '<div class="trip-label">Area Manager</div>' in template
+    assert "trip.trip_contact_label if trip.trip_contact_label else 'Trip Contact'" not in template
+
+
+def test_departure_page_uses_area_manager_label_for_guides_only():
+    template = _read("templates/pages/trip_departure.html")
+
+    assert "Area Manager" in template
+    assert "request.session.get('user_role') == 'Vendor'" in template
+    assert "{{ departure.trip_contact_label or 'Trip Contact' }}" in template
+
+
+def test_vendor_home_toggle_underline_is_scoped_to_text():
+    template = _read("templates/pages/vendor_home.html")
+
+    assert "trip-toggle-link" in template
+    assert "trip-toggle-text" in template
+    assert "text-decoration-underline" not in template
+    assert ".trip-toggle-link .icon { text-decoration: none; }" in template
+    assert "toggle.setAttribute('aria-expanded'" in template
+
+
 def test_client_emergency_phone_uses_same_display_formatter_as_primary_phone():
     template = _read("templates/pages/client.html")
 

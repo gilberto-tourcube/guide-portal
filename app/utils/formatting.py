@@ -4,6 +4,7 @@ import re
 from typing import Optional
 
 _DIGITS_RE = re.compile(r"\D+")
+_MISSING_AND_SPACE_RE = re.compile(r"([a-z])and\s+([A-Z])")
 
 
 def format_us_phone(value: Optional[str]) -> str:
@@ -47,4 +48,4 @@ def format_destination(value: Optional[str]) -> str:
     parts = [segment.strip() for segment in str(value).split(",")]
     parts = [segment for segment in parts if segment]
 
-    return ", ".join(parts)
+    return _MISSING_AND_SPACE_RE.sub(r"\1 and \2", ", ".join(parts))
