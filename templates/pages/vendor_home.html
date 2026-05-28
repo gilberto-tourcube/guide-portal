@@ -111,7 +111,7 @@
     <h5 class="title mb-3">Past Trips</h5>
     {% if vendor.past_trips %}
         {% for trip in vendor.past_trips %}
-        <a href="/departure/{{ trip.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3" style="border: none;">
+        <a href="/departure/{{ trip.trip_departure_id }}" class="card trip-card text-decoration-none d-block mb-3 {% if loop.index > 3 %}past-trip-extra d-none{% endif %}" style="border: none;">
             <div class="p-4 position-relative">
                 <div class="d-flex align-items-start justify-content-between">
                     <div class="flex-grow-1">
@@ -150,6 +150,15 @@
             </div>
         </a>
         {% endfor %}
+
+        {% if vendor.past_trips|length > 3 %}
+        <div class="text-center mt-3 mb-4">
+            <a href="#" class="link link-primary text-uppercase fw-bold trip-toggle-link" id="togglePastTrips" aria-expanded="false">
+                <span class="trip-toggle-text" id="togglePastTripsText">Show {{ vendor.past_trips|length - 3 }} More Past Trips</span>
+                <em class="icon ni ni-chevron-down ms-1" id="togglePastTripsIcon"></em>
+            </a>
+        </div>
+        {% endif %}
     {% else %}
     <div class="alert alert-light alert-icon">
         <em class="icon ni ni-info"></em>
@@ -178,6 +187,28 @@
             el.classList.toggle('d-none', !expanded);
         });
         text.textContent = expanded ? 'Show Less' : 'Show ' + count + ' More Upcoming Trips';
+        icon.className = expanded ? 'icon ni ni-chevron-up ms-1' : 'icon ni ni-chevron-down ms-1';
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    });
+})();
+
+(function() {
+    var toggle = document.getElementById('togglePastTrips');
+    if (!toggle) return;
+
+    var expanded = false;
+    var extras = document.querySelectorAll('.past-trip-extra');
+    var text = document.getElementById('togglePastTripsText');
+    var icon = document.getElementById('togglePastTripsIcon');
+    var count = extras.length;
+
+    toggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        expanded = !expanded;
+        extras.forEach(function(el) {
+            el.classList.toggle('d-none', !expanded);
+        });
+        text.textContent = expanded ? 'Show Less' : 'Show ' + count + ' More Past Trips';
         icon.className = expanded ? 'icon ni ni-chevron-up ms-1' : 'icon ni ni-chevron-down ms-1';
         toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     });
