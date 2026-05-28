@@ -42,12 +42,18 @@ def test_guide_home_uses_area_manager_label_for_trip_contact():
     assert "trip.trip_contact_label if trip.trip_contact_label else 'Trip Contact'" not in template
 
 
-def test_departure_page_uses_area_manager_label_for_guides_only():
+def test_departure_page_uses_area_manager_label_for_trip_contact():
     template = _read("templates/pages/trip_departure.html")
 
-    assert "Area Manager" in template
-    assert "request.session.get('user_role') == 'Vendor'" in template
-    assert "{{ departure.trip_contact_label or 'Trip Contact' }}" in template
+    assert "Area Manager: {{ departure.trip_contact_name or '-' }}" in template
+    assert "{{ departure.trip_contact_label or 'Trip Contact' }}" not in template
+
+
+def test_vendor_home_uses_area_manager_label_for_trip_contact():
+    template = _read("templates/pages/vendor_home.html")
+
+    assert '<div class="trip-label">Area Manager</div>' in template
+    assert "trip.trip_contact_label if trip.trip_contact_label else 'Trip Contact'" not in template
 
 
 def test_vendor_home_toggle_underline_is_scoped_to_text():
