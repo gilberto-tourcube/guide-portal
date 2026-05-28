@@ -60,6 +60,15 @@ def test_vendor_home_toggle_underline_is_scoped_to_text():
     assert "toggle.setAttribute('aria-expanded'" in template
 
 
+def test_dashboard_footer_does_not_link_to_missing_help_or_contact_pages():
+    template = _read("templates/layouts/dashboard.html")
+
+    assert 'href="/help"' not in template
+    assert 'href="/contact"' not in template
+    assert ">Help<" not in template
+    assert ">Contact<" not in template
+
+
 def test_client_emergency_phone_uses_same_display_formatter_as_primary_phone():
     template = _read("templates/pages/client.html")
 
