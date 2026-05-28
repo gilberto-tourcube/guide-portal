@@ -26,6 +26,16 @@ def test_guide_home_limits_past_trips_and_adds_toggle():
     assert "document.querySelectorAll('.past-trip-extra')" in template
 
 
+def test_vendor_home_limits_past_trips_and_adds_toggle():
+    template = _read("templates/pages/vendor_home.html")
+
+    assert "{% if loop.index > 3 %}past-trip-extra d-none{% endif %}" in template
+    assert 'id="togglePastTrips"' in template
+    assert "More Past Trips" in template
+    assert "document.querySelectorAll('.past-trip-extra')" in template
+    assert "vendor.past_trips|length > 3" in template
+
+
 def test_guide_home_toggle_underline_is_scoped_to_text():
     template = _read("templates/pages/guide_home.html")
 
