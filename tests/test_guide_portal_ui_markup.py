@@ -59,6 +59,13 @@ def test_departure_page_uses_area_manager_label_for_trip_contact():
     assert "{{ departure.trip_contact_label or 'Trip Contact' }}" not in template
 
 
+def test_departure_page_does_not_render_trip_contact_phone():
+    template = _read("templates/pages/trip_departure.html")
+
+    assert "departure.trip_contact_phone" not in template
+    assert 'href="tel:{{ departure.trip_contact_phone }}"' not in template
+
+
 def test_vendor_home_uses_area_manager_label_for_trip_contact():
     template = _read("templates/pages/vendor_home.html")
 
