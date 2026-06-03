@@ -1,5 +1,10 @@
 """Unit tests for app.services.vendor_service mappers."""
 
+from types import SimpleNamespace
+
+import pytest
+
+import app.services.vendor_service as vendor_module
 from app.services.vendor_service import vendor_service
 
 
@@ -63,3 +68,62 @@ def test_parse_trip_summary_does_not_read_legacy_dev_name():
 
     assert summary.trip_contact_name == "Real Contact"
     assert not hasattr(summary, "dev_name")
+
+
+@pytest.mark.asyncio
+async def test_vendor_homepage_orders_past_trips_most_recent_first(monkeypatch):
+    """Vendor past trips should match Guide Portal ordering: newest completed trip first."""
+
+    class FakeAPIClient:
+        base_url = None
+        api_key = None
+
+        async def get(self, path):
+            if path.endswith("/getVendorHomepage/123"):
+                return {
+                    "name": "Wildlife Vendor",
+                    "FutureTrips": [],
+                    "PastTrips": [
+                        {
+                            "Trip_DepartureID": 1,
+                            "TripID": 101,
+                            "Trip_Name": "Older Past Trip",
+                            "dates": "May 10-20, 2023",
+                        },
+                        {
+                            "Trip_DepartureID": 2,
+                            "TripID": 102,
+                            "Trip_Name": "Newest Past Trip",
+                            "dates": "September 25-October 5, 2025",
+                        },
+                        {
+                            "Trip_DepartureID": 3,
+                            "TripID": 103,
+                            "Trip_Name": "Missing Date Trip",
+                            "dates": "Date TBD",
+                        },
+                    ],
+                }
+            if path.endswith("/getVendorForms/123/0"):
+                return {"forms": []}
+            raise AssertionError(f"Unexpected API path: {path}")
+
+    monkeypatch.setattr(
+        vendor_module,
+        "settings",
+        SimpleNamespace(
+            get_company_config=lambda company_code, mode: SimpleNamespace(
+                api_url="https://api.example.test",
+                api_key="key",
+            )
+        ),
+    )
+    monkeypatch.setattr(vendor_service, "api_client", FakeAPIClient())
+
+    homepage = await vendor_service.get_vendor_homepage(123, "WTGUIDE", "Test")
+
+    assert [trip.trip_name for trip in homepage.past_trips] == [
+        "Newest Past Trip",
+        "Older Past Trip",
+        "Missing Date Trip",
+    ]
