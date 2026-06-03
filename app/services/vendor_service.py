@@ -1,6 +1,7 @@
 """Business logic for vendor-related operations"""
 
 import logging
+import re
 from datetime import date, datetime
 from typing import List, Optional
 from app.services.api_client import api_client
@@ -182,6 +183,8 @@ class VendorService:
         departure_date = None
         if trip_dict.get("Departure_Date"):
             departure_date = self._parse_date(trip_dict.get("Departure_Date"))
+        if departure_date is None:
+            departure_date = self._parse_trip_start_date(trip_dict.get("dates"))
 
         return VendorTripSummary(
             trip_departure_id=trip_dict.get("Trip_DepartureID"),
@@ -206,6 +209,25 @@ class VendorService:
         for fmt in ("%Y-%m-%d", "%Y%m%d", "%m/%d/%Y", "%d/%m/%Y"):
             try:
                 return datetime.strptime(date_str, fmt).date()
+            except ValueError:
+                continue
+        return None
+
+    def _parse_trip_start_date(self, trip_dates: Optional[str]) -> Optional[date]:
+        """Extract the starting date from vendor trip date ranges like `May 10-20, 2023`."""
+        if not trip_dates:
+            return None
+
+        match = re.match(r"^\s*([A-Za-z.]+)\s+(\d{1,2})\b.*,\s*(\d{4})\s*$", trip_dates)
+        if not match:
+            return None
+
+        month, day, year = match.groups()
+        normalized = f"{month.rstrip('.')} {day} {year}"
+
+        for fmt in ("%B %d %Y", "%b %d %Y"):
+            try:
+                return datetime.strptime(normalized, fmt).date()
             except ValueError:
                 continue
         return None
