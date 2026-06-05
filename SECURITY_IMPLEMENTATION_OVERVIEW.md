@@ -79,7 +79,7 @@ User Browser
 #### Authentication Flow
 
 ```
-1. User → /auth/login?company_code=WTGUIDE&mode=Test
+1. User → /auth/login?company_code=WT&mode=Test
    ↓
 2. Load company config from config/apikey.json
    ↓
@@ -116,7 +116,7 @@ session = {
     "authenticated": True,
     "user_type": 1 or 2,  # 1=Guide, 2=Vendor
     "user_role": "Guide" or "Vendor",
-    "company_code": "WTGUIDE",
+    "company_code": "WT",
     "mode": "Test" or "Production",
 
     # Normalized user data (for all types):
@@ -197,7 +197,7 @@ if not user_id:
 {
   "TourcubeAPIKey": [
     {
-      "CompanyID": "WTGUIDE",
+      "CompanyID": "WT",
       "Logo": "wilderness-travel-logo.png",
       "TourcubeOnline": true,
       "SkinName": "theme-bluelite",
@@ -454,7 +454,7 @@ SESSION_COOKIE_NAME=guide_portal_session
 SESSION_MAX_AGE=86400
 
 # Company Configuration (Optional - has defaults)
-COMPANY_CODE=WTGUIDE
+COMPANY_CODE=WT
 MODE=Test
 
 # API Configuration Path (Optional - has default)
@@ -608,7 +608,7 @@ openssl s_client -connect guideportal.azurewebsites.net:443
 # Expected: Valid Azure SSL certificate
 
 # 3. Login flow
-# Navigate to: https://guideportal.azurewebsites.net/auth/login?company_code=WTGUIDE&mode=Production
+# Navigate to: https://guideportal.azurewebsites.net/auth/login?company_code=WT&mode=Production
 # Expected: Branded login page → successful login → redirect to /guide/home or /vendor/home
 
 # 4. Session cookie attributes

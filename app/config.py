@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     # 1. User accesses root (/) without parameters
     # 2. Session doesn't contain company_code/mode during logout
     # Can be overridden via environment variables in .env file
-    company_code: str = "WTGUIDE"  # Default company code (fallback)
+    company_code: str = "WT"  # Default company code (fallback)
     mode: str = "Test"  # Default mode: "Test" or "Production" (fallback)
     api_key_json_path: str = "./config/apikey.json"
 
@@ -166,7 +166,7 @@ class Settings(BaseSettings):
         Get company configuration by company code and mode
 
         Args:
-            company_code: Company identifier (e.g., "WTGUIDE"). Required.
+            company_code: Company identifier (e.g., "WT"). Required.
             mode: "Test" or "Production". Required — no implicit default
                 so callers cannot silently fall back to the default tenant
                 env-var when their context is missing (#148).

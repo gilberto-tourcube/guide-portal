@@ -244,7 +244,7 @@ async def test_manifest_with_tenant_query_non_mobile_returns_404(
     settings.debug = False
     # secure_client uses the default TestClient UA, which is not a mobile UA.
     response = await secure_client.get(
-        "/manifest.json?companyCode=WTGUIDE&mode=Test"
+        "/manifest.json?companyCode=WT&mode=Test"
     )
     assert response.status_code == 404
     # #148: even though we requested with the default-tenant query, the

@@ -76,7 +76,7 @@ async def test_unhandled_exception_renders_friendly_page_for_browser_navigation(
     ``test_unhandled_exception_renders_neutral_page_without_tenant``.
     """
     response = await error_client.get(
-        "/__test__/boom?company_code=WTGUIDE&mode=Test",
+        "/__test__/boom?company_code=WT&mode=Test",
         headers={"Accept": "text/html"},
     )
     assert response.status_code == 500
@@ -104,7 +104,7 @@ async def test_unhandled_exception_renders_neutral_page_without_tenant(
     body = response.text
     assert "Tenant Required" in body
     # Default-tenant leak guards.
-    assert "WTGUIDE" not in body
+    assert settings.company_code not in body
     assert "Wilderness Travel" not in body
 
 
@@ -132,7 +132,7 @@ async def test_5xx_http_exception_renders_friendly_page(secure_client, reset_deb
     page rather than returning the bare {"detail": "..."} JSON.
     """
     response = await secure_client.get(
-        "/__test__/http500?company_code=WTGUIDE&mode=Test",
+        "/__test__/http500?company_code=WT&mode=Test",
         headers={"Accept": "text/html"},
     )
     assert response.status_code == 500
@@ -142,7 +142,7 @@ async def test_5xx_http_exception_renders_friendly_page(secure_client, reset_deb
 @pytest.mark.asyncio
 async def test_503_renders_friendly_page(secure_client, reset_debug):
     response = await secure_client.get(
-        "/__test__/http503?company_code=WTGUIDE&mode=Test",
+        "/__test__/http503?company_code=WT&mode=Test",
         headers={"Accept": "text/html"},
     )
     assert response.status_code == 503
@@ -163,7 +163,7 @@ async def test_5xx_http_exception_without_tenant_renders_neutral_page(
     assert response.status_code == 500
     body = response.text
     assert "Tenant Required" in body
-    assert "WTGUIDE" not in body
+    assert settings.company_code not in body
 
 
 @pytest.mark.asyncio

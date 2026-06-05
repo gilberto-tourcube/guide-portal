@@ -252,7 +252,7 @@ class VendorService:
         form.show_contact = company_code not in hidden_contact_companies
 
         # Determine contact and label based on company code
-        if company_code in ["WT", "WTGUIDE"]:
+        if company_code == "WT":
             form.contact_name = form.dev_name
             form.contact_email = form.dev_email
             # Label: "Trip Developer: {DevName}"

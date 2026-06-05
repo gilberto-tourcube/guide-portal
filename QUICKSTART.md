@@ -45,7 +45,7 @@ nano .env  # or use your preferred editor
 Required values in `.env`:
 ```env
 # Company defaults
-COMPANY_CODE=WTGUIDE
+COMPANY_CODE=WT
 MODE=Test
 
 # API Configuration (fallback)
@@ -75,7 +75,7 @@ Create `config/apikey.json` with your company settings:
 {
   "TourcubeAPIKey": [
     {
-      "CompanyID": "WTGUIDE",
+      "CompanyID": "WT",
       "Logo": "wilderness-travel-logo.png",
       "TourcubeOnline": true,
       "SkinName": "theme-bluelite",
@@ -109,7 +109,7 @@ uvicorn app.main:app --reload
 ```
 
 The application will be available at:
-- **Login Page**: http://localhost:8000/login?company_code=WTGUIDE&mode=Test
+- **Login Page**: http://localhost:8000/login?company_code=WT&mode=Test
 - **API Documentation**: http://localhost:8000/docs
 - **Health Check**: http://localhost:8000/health
 
@@ -119,7 +119,7 @@ The application will be available at:
 
 1. **Access Login Page**:
    ```
-   http://localhost:8000/login?company_code=WTGUIDE&mode=Test
+   http://localhost:8000/login?company_code=WT&mode=Test
    ```
 
 2. **Verify**:
@@ -179,7 +179,7 @@ Test with different company configurations:
 
 ```bash
 # Company A with blue theme
-http://localhost:8000/login?company_code=WTGUIDE&mode=Test
+http://localhost:8000/login?company_code=WT&mode=Test
 
 # Company B with different theme (if configured)
 http://localhost:8000/login?company_code=OTHER&mode=Production
@@ -313,7 +313,7 @@ Check that you're using `url_for()` in templates:
 
 ### Company Configuration Not Found
 ```bash
-# Error: Company 'WTGUIDE' not found
+# Error: Company 'WT' not found
 # Solution: Check config/apikey.json exists and CompanyID matches
 
 cat config/apikey.json  # Verify file contents
@@ -361,7 +361,7 @@ Add multiple companies to `config/apikey.json`:
 {
   "TourcubeAPIKey": [
     {
-      "CompanyID": "WTGUIDE",
+      "CompanyID": "WT",
       "SkinName": "theme-bluelite",
       ...
     },
