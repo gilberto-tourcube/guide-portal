@@ -70,7 +70,7 @@ async def test_departure_renders_with_session(monkeypatch, secure_client, sessio
             "authenticated": True,
             "guide_id": 9,
             "user_role": "Guide",
-            "company_code": settings.company_code,
+            "company_code": "WT",
             "mode": settings.mode,
         }
     )
@@ -86,7 +86,7 @@ async def test_departure_renders_with_session(monkeypatch, secure_client, sessio
         "trip_departure_id": 321,
         "user_id": 9,
         "user_role": "Guide",
-        "company_code": settings.company_code,
+        "company_code": "WT",
         "mode": settings.mode,
     }
 
@@ -133,7 +133,7 @@ async def test_trip_renders_with_vendor_session(monkeypatch, secure_client, sess
         {
             "authenticated": True,
             "vendor_id": 77,  # vendor should be used when guide_id is absent
-            "company_code": settings.company_code,
+            "company_code": "WT",
             "mode": settings.mode,
         }
     )
@@ -148,7 +148,7 @@ async def test_trip_renders_with_vendor_session(monkeypatch, secure_client, sess
     assert captured["service_args"] == {
         "trip_id": 42,
         "guide_id": 77,  # vendor ID used as guide_id parameter
-        "company_code": settings.company_code,
+        "company_code": "WT",
         "mode": settings.mode,
     }
 
@@ -195,7 +195,7 @@ async def test_client_renders_with_session(monkeypatch, secure_client, session_c
         {
             "authenticated": True,
             "guide_id": 5,
-            "company_code": settings.company_code,
+            "company_code": "WT",
             "mode": settings.mode,
         }
     )
@@ -216,7 +216,7 @@ async def test_client_renders_with_session(monkeypatch, secure_client, session_c
     assert captured["service_args"] == {
         "client_id": 88,
         "guide_id": 5,
-        "company_code": settings.company_code,
+        "company_code": "WT",
         "mode": settings.mode,
     }
 
@@ -234,7 +234,7 @@ async def test_trip_handles_http_error(monkeypatch, secure_client, session_cooki
         {
             "authenticated": True,
             "guide_id": 1,
-            "company_code": settings.company_code,
+            "company_code": "WT",
             "mode": settings.mode,
         }
     )
@@ -259,7 +259,7 @@ async def test_client_handles_http_error(monkeypatch, secure_client, session_coo
         {
             "authenticated": True,
             "guide_id": 1,
-            "company_code": settings.company_code,
+            "company_code": "WT",
             "mode": settings.mode,
         }
     )

@@ -6,11 +6,11 @@ from app.config import InvalidCompanyCodeError, Settings
 def test_get_company_config_switches_mode_correctly():
     settings = Settings(secret_key="dummy-secret")
 
-    test_config = settings.get_company_config("WTGUIDE", mode="Test")
+    test_config = settings.get_company_config("WT", mode="Test")
     assert test_config.api_url == test_config.test_url
     assert test_config.api_key == test_config.test_api_key
 
-    prod_config = settings.get_company_config("WTGUIDE", mode="Production")
+    prod_config = settings.get_company_config("WT", mode="Production")
     assert prod_config.api_url == prod_config.production_url
     assert prod_config.api_key == prod_config.production_api_key
 
@@ -108,7 +108,7 @@ def test_get_company_config_requires_mode():
     """#148: `get_company_config` must not fall back to `settings.mode`."""
     settings = Settings(secret_key="dummy-secret")
     with pytest.raises(ValueError, match="mode is required"):
-        settings.get_company_config("WTGUIDE", None)  # type: ignore[arg-type]
+        settings.get_company_config("WT", None)  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="company_code is required"):
         settings.get_company_config("", "Test")
 

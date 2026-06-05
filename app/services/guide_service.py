@@ -236,7 +236,7 @@ class GuideService:
         show_contact = company_code not in hidden_contact_companies
 
         # Determine contact label based on company code
-        if company_code in ["WT", "WTGUIDE"]:
+        if company_code == "WT":
             # Label: "Trip Developer: {DevName}"
             contact_label = f"Trip Developer: {dev_name}" if dev_name else None
         else:
@@ -390,7 +390,7 @@ class GuideService:
         Get form contact information based on company code and API data
 
         Business rule from legacy:
-        - WT and WTGUIDE companies → Developer contact
+        - WT company → Developer contact
         - All other companies → Operations contact
 
         Args:
@@ -405,7 +405,7 @@ class GuideService:
         Returns:
             FormContact with appropriate contact info from API data
         """
-        if company_code in ["WT", "WTGUIDE"]:
+        if company_code == "WT":
             # Use Developer contact for WT companies
             return FormContact(
                 name=dev_name or "Development Team",
@@ -634,7 +634,7 @@ class GuideService:
             ops_phone = form_dict.get("OpsPhone")
             dev_name = form_dict.get("DevName")
 
-            if company_code in ["WT", "WTGUIDE"]:
+            if company_code == "WT":
                 contact_name = dev_name
                 contact_email = form_dict.get("DevEmail")
                 # Label: "Trip Developer: {DevName}"

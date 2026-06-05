@@ -66,9 +66,9 @@ async def test_root_redirects_to_login_when_tenant_in_query(
     """
     settings.debug = False
     response = await secure_client.get(
-        "/?company_code=WTGUIDE&mode=Test",
+        "/?company_code=WT&mode=Test",
         follow_redirects=False,
     )
 
     assert response.status_code == 302
-    assert response.headers["location"] == "/auth/login?company_code=WTGUIDE&mode=Test"
+    assert response.headers["location"] == "/auth/login?company_code=WT&mode=Test"

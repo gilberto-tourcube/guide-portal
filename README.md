@@ -216,7 +216,7 @@ API_KEY=your_api_key_here
 API_TIMEOUT=30
 
 # Company Configuration
-COMPANY_CODE=WTGUIDE
+COMPANY_CODE=WT
 MODE=Test
 
 # Application Settings
@@ -272,7 +272,7 @@ cp .env.example .env
 uvicorn app.main:app --reload
 
 # 7. Access application
-# Login: http://localhost:8000/login?company_code=WTGUIDE&mode=Test
+# Login: http://localhost:8000/login?company_code=WT&mode=Test
 # API Docs: http://localhost:8000/docs
 ```
 
@@ -314,7 +314,7 @@ The application supports company-specific DashLite themes via the `SkinName` con
 ## 🔐 Authentication Flow
 
 ```
-User → /login?company_code=WTGUIDE&mode=Test
+User → /login?company_code=WT&mode=Test
   ↓
 Load company config (logo, skin, API credentials)
   ↓
@@ -335,7 +335,7 @@ Redirect: Type 1 → /guide/home | Type 2 → /vendor/home
 ```python
 session["authenticated"] = True
 session["user_type"] = 1 or 2
-session["company_code"] = "WTGUIDE"
+session["company_code"] = "WT"
 session["mode"] = "Test" or "Production"
 
 # For Guides (Type 1):
@@ -472,7 +472,7 @@ GET  /tourcube/guidePortal/getClientPage/{clientID}
 uvicorn app.main:app --reload
 
 # Test login
-http://localhost:8000/login?company_code=WTGUIDE&mode=Test
+http://localhost:8000/login?company_code=WT&mode=Test
 
 # Test different company/mode
 http://localhost:8000/login?company_code=OTHER&mode=Production
