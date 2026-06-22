@@ -460,10 +460,22 @@ async def forgot_password_submit(
     user lookup to get email and first_name before calling API
     """
     # TODO: Implement user lookup and temp password email
+    try:
+        company_config = settings.get_company_config(company_code, mode)
+    except InvalidCompanyCodeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+
     return templates.TemplateResponse(
         "pages/forgot_password.html",
         {
             "request": request,
+            "company_logo": company_config.logo,
+            "company_favicon": company_config.favicon,
+            "login_background": company_config.login_background,
+            "skin_name": company_config.skin_name,
             "company_code": company_code,
             "mode": mode,
             "message": "Forgot password feature is not yet implemented. Please contact support."
