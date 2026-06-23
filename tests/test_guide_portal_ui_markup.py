@@ -14,10 +14,19 @@ def _read(path: str) -> str:
 def test_auth_background_layout_has_contrast_scope():
     auth_layout = _read("templates/layouts/auth.html")
     custom_css = _read("static/css/custom.css")
+    login_template = _read("templates/pages/login.html")
+    forgot_password_template = _read("templates/pages/forgot_password.html")
 
     assert "auth-bg-content" in auth_layout
     assert ".auth-bg-content .form-note-s2" in custom_css
+    assert ".auth-bg-content .auth-contrast-link" in custom_css
+    assert ".auth-bg-content .form-label-group .auth-contrast-link" in custom_css
+    assert "color: #fff !important" in custom_css
     assert "linear-gradient(90deg" in custom_css
+    assert "link link-primary link-sm auth-contrast-link" in login_template
+    assert "Forgot Password?" in login_template
+    assert 'class="auth-contrast-link"' in forgot_password_template
+    assert "Back to Login" in forgot_password_template
 
 
 def test_guide_home_limits_past_trips_and_adds_toggle():
