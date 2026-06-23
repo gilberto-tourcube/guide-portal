@@ -53,6 +53,46 @@
     text-decoration-color: #fff;
 }
 
+.auth-bg-content .auth-contrast-link {
+    color: #fff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+    text-decoration-color: rgba(255, 255, 255, 0.8) !important;
+    text-underline-offset: 3px;
+}
+
+.auth-bg-content .auth-contrast-link:hover,
+.auth-bg-content .auth-contrast-link:focus {
+    color: #f5f8ff !important;
+    text-decoration-color: #fff !important;
+}
+
+.auth-bg-content .auth-contrast-link:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.85);
+    outline-offset: 3px;
+}
+
+.auth-bg-content .form-label-group .auth-contrast-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.45rem;
+    border-radius: 4px;
+    background: rgba(15, 67, 116, 0.96);
+    color: #fff !important;
+    text-shadow: none;
+    text-decoration: none;
+}
+
+.auth-bg-content .form-label-group .auth-contrast-link:hover,
+.auth-bg-content .form-label-group .auth-contrast-link:focus {
+    background: #0a2f52;
+    color: #fff !important;
+    text-decoration: none;
+}
+
+.auth-bg-content .form-label-group .auth-contrast-link:focus-visible {
+    outline-color: rgba(15, 67, 116, 0.35);
+}
+
 /* Authentication Pages - Logo Size and Centering */
 .nk-wrap-nosidebar .nk-auth-body .brand-logo {
     text-align: center !important;
