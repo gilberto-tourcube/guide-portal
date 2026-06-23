@@ -1,4 +1,7 @@
+from datetime import date
 from pathlib import Path
+
+from app.utils.templates import current_year_context
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -90,6 +93,14 @@ def test_dashboard_footer_does_not_link_to_missing_help_or_contact_pages():
     assert 'href="/contact"' not in template
     assert ">Help<" not in template
     assert ">Contact<" not in template
+
+
+def test_dashboard_footer_uses_current_year_context():
+    template = _read("templates/layouts/dashboard.html")
+
+    assert "{{ current_year }}" in template
+    assert "2024 Tourcube Guide Portal" not in template
+    assert current_year_context(None)["current_year"] == date.today().year
 
 
 def test_client_emergency_phone_uses_same_display_formatter_as_primary_phone():
