@@ -295,7 +295,12 @@
                         {% set is_overdue = form.status and form.status.status == 'expired' %}
                         {% set is_submitted = form.received %}
                         <div class="col-md-6">
-                            <div class="card card-bordered {% if is_submitted %}form-card-submitted{% elif is_overdue %}form-card-overdue{% else %}form-card-pending{% endif %}" style="padding: 20px;">
+                            {% set form_status_class = 'form-card-submitted' if is_submitted else ('form-card-overdue' if is_overdue else 'form-card-pending') %}
+                            {% if form.status and form.status.is_clickable %}
+                            <a href="{{ form.status.url }}" target="_blank" rel="noopener" class="card card-bordered portal-form-tile portal-form-tile-link {{ form_status_class }}" style="padding: 20px;" aria-label="{{ 'Edit' if is_submitted else 'Complete form' }} {{ form.form_name }}">
+                            {% else %}
+                            <div class="card card-bordered portal-form-tile {{ form_status_class }}" style="padding: 20px;">
+                            {% endif %}
                                 <!-- Icon + Form Name + Action -->
                                 <div class="d-flex align-items-center justify-content-between gap-3">
                                     <div class="d-flex align-items-center gap-3 flex-grow-1">
@@ -309,10 +314,7 @@
                                         <h6 class="title mb-0">{{ form.form_name }}</h6>
                                     </div>
                                     {% if form.status and form.status.is_clickable %}
-                                    <a href="{{ form.status.url }}" target="_blank" class="link link-primary flex-shrink-0 d-flex align-items-center gap-1">
-                                        <em class="icon ni ni-edit"></em>
-                                        <span>{{ 'Edit' if is_submitted else 'Complete Form' }}</span>
-                                    </a>
+                                    <span class="link link-primary flex-shrink-0 portal-form-tile-action">{{ 'Edit' if is_submitted else 'Complete Form' }}</span>
                                     {% endif %}
                                 </div>
 
@@ -329,7 +331,11 @@
                                     {% endif %}
                                 </div>
                                 {% endif %}
+                            {% if form.status and form.status.is_clickable %}
+                            </a>
+                            {% else %}
                             </div>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
