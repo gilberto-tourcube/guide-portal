@@ -6,16 +6,16 @@ from typing import Optional
 import httpx
 from fastapi import APIRouter, Query, Request, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 
 from app.config import settings
 from app.services.guide_service import guide_service
 from app.utils.sentry_utils import capture_exception_with_context
+from app.utils.templates import create_templates
 
 router = APIRouter(prefix="/guide", tags=["guide"])
 
 # Jinja2 templates
-templates = Jinja2Templates(directory="templates")
+templates = create_templates()
 logger = logging.getLogger(__name__)
 
 

@@ -8,7 +8,6 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -18,10 +17,11 @@ from app.config import settings
 from app.routes import guide, auth, vendor, resources, pwa
 from app.services.guide_service import guide_service
 from app.utils.sentry_utils import capture_exception_with_context
+from app.utils.templates import create_templates
 
 # Templates instance for global error pages — mirrors the per-route loaders
 # in app/routes/*.py which all point at the top-level "templates/" dir.
-_error_templates = Jinja2Templates(directory="templates")
+_error_templates = create_templates()
 
 # Configure logging
 logger = logging.getLogger(__name__)

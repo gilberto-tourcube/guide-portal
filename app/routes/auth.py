@@ -6,17 +6,17 @@ from typing import Optional
 import httpx
 from fastapi import APIRouter, Request, Form, HTTPException, status, Query, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 
 from app.config import settings, InvalidCompanyCodeError
 from app.models.schemas import LoginRequest
 from app.services.auth_service import auth_service
 from app.utils.sentry_utils import capture_exception_with_context
+from app.utils.templates import create_templates
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 # Jinja2 templates
-templates = Jinja2Templates(directory="templates")
+templates = create_templates()
 logger = logging.getLogger(__name__)
 
 
