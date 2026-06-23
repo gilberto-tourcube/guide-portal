@@ -78,6 +78,17 @@ def test_departure_page_does_not_render_trip_contact_phone():
     assert 'href="tel:{{ departure.trip_contact_phone }}"' not in template
 
 
+def test_departure_form_tiles_are_whole_card_links_without_edit_icon():
+    template = _read("templates/pages/trip_departure.html")
+    custom_css = _read("static/css/custom.css")
+
+    assert "portal-form-tile-link" in template
+    assert "portal-form-tile-action" in template
+    assert 'aria-label="{{ \'Edit\' if is_submitted else \'Complete form\' }} {{ form.form_name }}"' in template
+    assert '<em class="icon ni ni-edit"></em>' not in template
+    assert ".portal-form-tile-link:focus-visible" in custom_css
+
+
 def test_vendor_home_uses_area_manager_label_for_trip_contact():
     template = _read("templates/pages/vendor_home.html")
 

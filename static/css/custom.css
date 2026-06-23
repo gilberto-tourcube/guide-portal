@@ -161,6 +161,27 @@
     border-left-color: #dc3545;
 }
 
+.portal-form-tile-link {
+    display: block;
+    color: inherit;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.portal-form-tile-link:hover {
+    color: inherit;
+    text-decoration: none;
+}
+
+.portal-form-tile-link:focus-visible {
+    outline: 3px solid rgba(9, 113, 191, 0.35);
+    outline-offset: 2px;
+}
+
+.portal-form-tile-action {
+    white-space: nowrap;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
     .nk-tb-col {
