@@ -206,6 +206,11 @@
                         {% endif %}
                     </div>
 
+                    {# DEVCUR-1695: helper text under the Save offline button. #}
+                    {% if save_offline_active %}
+                    <p class="text-soft small mb-3 mt-n2">Save all documents to this device for offline access during your trip.</p>
+                    {% endif %}
+
                     <div class="row g-4 mt-1">
                         <!-- Trip Documents -->
                         <div class="col-md-6">

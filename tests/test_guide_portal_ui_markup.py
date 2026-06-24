@@ -78,6 +78,20 @@ def test_departure_page_does_not_render_trip_contact_phone():
     assert 'href="tel:{{ departure.trip_contact_phone }}"' not in template
 
 
+def test_departure_page_has_save_offline_helper_text():
+    """DEVCUR-1695: helper text under the Save offline button, gated to when it shows."""
+    template = _read("templates/pages/trip_departure.html")
+
+    assert (
+        "Save all documents to this device for offline access during your trip."
+        in template
+    )
+    # The helper text only renders when the Save offline button is active.
+    helper_index = template.index("Save all documents to this device")
+    gate_index = template.rindex("{% if save_offline_active %}", 0, helper_index)
+    assert gate_index != -1
+
+
 def test_departure_form_tiles_are_whole_card_links_without_edit_icon():
     template = _read("templates/pages/trip_departure.html")
     custom_css = _read("static/css/custom.css")
