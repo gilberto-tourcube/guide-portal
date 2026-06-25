@@ -223,7 +223,7 @@
                                     {% if departure.trip_documents %}
                                     <ul class="list-group list-group-flush">
                                         {% for doc in departure.trip_documents %}
-                                        <li class="list-group-item px-0 d-flex align-items-center justify-content-between gap-2">
+                                        <li class="list-group-item px-0 d-flex align-items-center justify-content-between gap-2 doc-tile-clickable">
                                             <span class="text-truncate">
                                                 <em class="icon ni ni-file-pdf me-1 text-soft"></em>{{ doc.description }}
                                                 {% if doc.upload_date %}
@@ -231,10 +231,16 @@
                                                 {% endif %}
                                             </span>
                                             {% if doc.document_url %}
+                                            {# DEVCUR-1709 — `stretched-link` expands this anchor's hit area to
+                                               cover the whole list item (which is already `position: relative`),
+                                               so clicking anywhere on the document tile opens the document. The
+                                               anchor itself is unchanged, so target/rel and offline caching
+                                               (data-offline-cache, handled by the PWA offline script) keep working. #}
                                             <a href="{{ doc.document_url }}"
                                                target="_blank"
                                                rel="noopener"
-                                               class="btn btn-sm btn-outline-light flex-shrink-0"
+                                               class="btn btn-sm btn-outline-light flex-shrink-0 stretched-link"
+                                               aria-label="View document: {{ doc.description }}"
                                                {% if offline_cache_attr %}data-offline-cache="true"{% endif %}>
                                                 <em class="icon ni ni-eye"></em>
                                                 <span class="view-doc-btn__label">View</span>
@@ -261,7 +267,7 @@
                                     {% if departure.departure_documents %}
                                     <ul class="list-group list-group-flush">
                                         {% for doc in departure.departure_documents %}
-                                        <li class="list-group-item px-0 d-flex align-items-center justify-content-between gap-2">
+                                        <li class="list-group-item px-0 d-flex align-items-center justify-content-between gap-2 doc-tile-clickable">
                                             <span class="text-truncate">
                                                 <em class="icon ni ni-file-pdf me-1 text-soft"></em>{{ doc.description }}
                                                 {% if doc.upload_date %}
@@ -269,10 +275,16 @@
                                                 {% endif %}
                                             </span>
                                             {% if doc.document_url %}
+                                            {# DEVCUR-1709 — `stretched-link` expands this anchor's hit area to
+                                               cover the whole list item (which is already `position: relative`),
+                                               so clicking anywhere on the document tile opens the document. The
+                                               anchor itself is unchanged, so target/rel and offline caching
+                                               (data-offline-cache, handled by the PWA offline script) keep working. #}
                                             <a href="{{ doc.document_url }}"
                                                target="_blank"
                                                rel="noopener"
-                                               class="btn btn-sm btn-outline-light flex-shrink-0"
+                                               class="btn btn-sm btn-outline-light flex-shrink-0 stretched-link"
+                                               aria-label="View document: {{ doc.description }}"
                                                {% if offline_cache_attr %}data-offline-cache="true"{% endif %}>
                                                 <em class="icon ni ni-eye"></em>
                                                 <span class="view-doc-btn__label">View</span>

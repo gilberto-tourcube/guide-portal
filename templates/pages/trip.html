@@ -150,11 +150,16 @@
                     </thead>
                     <tbody>
                         {% for doc in trip.documents %}
-                        <tr>
+                        {# DEVCUR-1709 — `stretched-link` on the download anchor, with the row set
+                           to `position: relative`, makes the whole row clickable (not just the
+                           small download icon), mirroring the document-tile behaviour. #}
+                        <tr class="doc-row-clickable">
                             <td>{{ doc.description }}</td>
                             <td>{{ doc.trip_year if doc.trip_year else '-' }}</td>
                             <td class="text-end">
-                                <a href="{{ doc.document_url }}" target="_blank" class="text-primary">
+                                <a href="{{ doc.document_url }}" target="_blank"
+                                   class="text-primary stretched-link"
+                                   aria-label="Download document: {{ doc.description }}">
                                     <em class="icon ni ni-download"></em>
                                 </a>
                             </td>
