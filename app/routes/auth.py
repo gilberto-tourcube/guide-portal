@@ -410,7 +410,8 @@ async def logout(request: Request):
 async def forgot_password_page(
     request: Request,
     company_code: Optional[str] = Query(None, description="Company identifier"),
-    mode: Optional[str] = Query(None, description="Test or Production")
+    mode: Optional[str] = Query(None, description="Test or Production"),
+    success: Optional[str] = Query(None)
 ):
     """Display forgot password form"""
     # Resolve company and mode from query or host. No default-tenant fallback (#148).
@@ -441,7 +442,8 @@ async def forgot_password_page(
             "login_background": company_config.login_background,
             "skin_name": company_config.skin_name,
             "company_code": company_code_resolved,
-            "mode": mode_resolved
+            "mode": mode_resolved,
+            "success": success
         }
     )
 
@@ -449,38 +451,39 @@ async def forgot_password_page(
 @router.post("/forgot-password")
 async def forgot_password_submit(
     request: Request,
-    username: str = Form(...),
+    email: str = Form(...),
+    first_name: str = Form(...),
     company_code: str = Form(...),
     mode: str = Form(...)
 ):
-    """
-    Process forgot password form
+    """Process forgot password form: send a temporary password email.
 
-    Note: This is currently not implemented as it requires
-    user lookup to get email and first_name before calling API
+    The TourCube API generates the temporary password and emails it to the
+    user. We collect email + first name directly (the legacy username->email
+    DB lookup is not available to the modern portal).
     """
-    # TODO: Implement user lookup and temp password email
     try:
-        company_config = settings.get_company_config(company_code, mode)
-    except InvalidCompanyCodeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+        # Call auth service to send the temporary password email
+        await auth_service.send_temp_password(
+            email=email,
+            first_name=first_name,
+            company_code=company_code,
+            mode=mode
         )
 
-    return templates.TemplateResponse(
-        "pages/forgot_password.html",
-        {
-            "request": request,
-            "company_logo": company_config.logo,
-            "company_favicon": company_config.favicon,
-            "login_background": company_config.login_background,
-            "skin_name": company_config.skin_name,
-            "company_code": company_code,
-            "mode": mode,
-            "message": "Forgot password feature is not yet implemented. Please contact support."
-        }
-    )
+        # Redirect to success page
+        return RedirectResponse(
+            url=f"/auth/forgot-password?company_code={company_code}&mode={mode}&success=true",
+            status_code=303
+        )
+
+    except httpx.HTTPError as e:
+        logger.error("Temp password API error for email %s: %s", email, e)
+        capture_exception_with_context(e, mode=mode, company_code=company_code)
+        return RedirectResponse(
+            url=f"/auth/forgot-password?company_code={company_code}&mode={mode}&success=false",
+            status_code=303
+        )
 
 
 @router.get("/forgot-username", response_class=HTMLResponse)

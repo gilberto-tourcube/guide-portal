@@ -29,6 +29,29 @@ def test_auth_background_layout_has_contrast_scope():
     assert "Back to Login" in forgot_password_template
 
 
+def test_error_page_buttons_are_tenant_aware():
+    error_template = _read("templates/pages/error.html")
+
+    # Return Home links straight to the tenant login. The old `/?{{ query }}`
+    # re-rendered the error page when the failing request lacked tenant query
+    # params, so the button appeared to "do nothing" (DEVCUR-1708 / 1707).
+    # Values are urlencoded so `&`/`#` cannot tamper with the target.
+    assert (
+        'href="/auth/login?company_code={{ company_code|urlencode }}&mode={{ mode|urlencode }}"'
+        in error_template
+    )
+    # Go Back falls back to the tenant login when there is no history entry to
+    # return to (direct navigation / redirect), instead of a no-op history.back().
+    # The URL is carried in a data- attribute (not interpolated into a JS string
+    # literal) to avoid XSS in the onclick JS context.
+    assert "window.history.length > 1" in error_template
+    assert "window.location.assign(this.dataset.loginUrl)" in error_template
+    assert (
+        'data-login-url="/auth/login?company_code={{ company_code|urlencode }}&mode={{ mode|urlencode }}"'
+        in error_template
+    )
+
+
 def test_guide_home_limits_past_trips_and_adds_toggle():
     template = _read("templates/pages/guide_home.html")
 
