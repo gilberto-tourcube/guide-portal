@@ -415,3 +415,36 @@
     display: none;
   }
 }
+
+/* DEVCUR-1709 — Whole document tile is clickable (guide + vendor views).
+   The View button carries `.stretched-link`, expanding its hit area over the
+   `.list-group-item` (already `position: relative`). These rules just signal
+   the affordance: pointer cursor + subtle hover wash across the row. The View
+   button keeps its own styling and stays the visible action. */
+.doc-tile-clickable {
+  cursor: pointer;
+}
+
+.doc-tile-clickable:hover {
+  background-color: rgba(9, 113, 191, 0.06);
+}
+
+/* `.btn` is `position: relative`, which would trap the stretched-link's
+   `::after` inside the button. Reset it to `static` so the overlay escapes to
+   the `.list-group-item` and covers the entire row. */
+.doc-tile-clickable .stretched-link {
+  position: static;
+}
+
+/* DEVCUR-1709 — Trip Documents table (trip.html): make the whole row clickable.
+   The row is the positioned ancestor so the download anchor's stretched-link
+   `::after` covers every cell. The download anchor is not a `.btn`, so it stays
+   `position: static` and no reset is needed. */
+.doc-row-clickable {
+  position: relative;
+  cursor: pointer;
+}
+
+.doc-row-clickable:hover > td {
+  background-color: rgba(9, 113, 191, 0.06);
+}
