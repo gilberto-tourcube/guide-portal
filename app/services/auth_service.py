@@ -1,6 +1,8 @@
 """Authentication service for guide portal login"""
 
 import logging
+from urllib.parse import quote
+
 import httpx
 from typing import Optional, Dict, Any
 from app.models.schemas import LoginAPIRequest, LoginAPIResponse
@@ -148,43 +150,69 @@ class AuthService:
 
     async def send_temp_password(
         self,
-        username: str,
+        email: str,
+        first_name: str,
         company_code: Optional[str] = None,
         mode: Optional[str] = None
     ) -> str:
         """
-        Send temporary password email to user
+        Send a temporary password email to the user.
 
-        This requires looking up the user's email first, then calling the API.
-        For now, we'll assume the username lookup happens client-side or
-        the API accepts username directly.
+        Mirrors the legacy Guide Portal flow (GP_SendGuidePortalTempPasswordEmail):
+        the TourCube API generates a temporary password and emails it to the
+        user. The legacy looked up email + first_name from the username against
+        a local HyperFile DB; the modern portal has no such DB, so the form now
+        collects the email and first name directly (same shape as the working
+        forgot-username flow).
 
         Args:
-            username: Portal username
+            email: User's email address (recipient)
+            first_name: User's first name (used in the email greeting)
             company_code: Company identifier
             mode: "Test" or "Production"
 
         Returns:
-            Response message from API
+            Raw response body from the API
 
         Raises:
-            httpx.HTTPError: If API call fails
+            httpx.HTTPError: If the API call fails
         """
         # Get company configuration with API credentials
         company_config = settings.get_company_config(company_code, mode)
 
-        # Note: The legacy system queries the database first to get email and first_name
-        # For the modern system, we'll need to either:
-        # 1. Query our own database/API to get this info first
-        # 2. Have the API endpoint accept username instead
-        # For now, this is a simplified version that assumes API will handle lookup
-
-        # TODO: Implement proper user lookup before calling this endpoint
-        # For now, raising NotImplementedError
-        raise NotImplementedError(
-            "send_temp_password requires user lookup implementation. "
-            "Please implement user query to get email and first_name before calling API."
+        # Build endpoint URL. Path order matches the legacy contract:
+        # tempPassword/{email}/{first_name}. Segments are percent-encoded so
+        # emails (@) and names with spaces survive the path.
+        endpoint = (
+            f"{company_config.api_url}/tourcube/guidePortal/tempPassword/"
+            f"{quote(email, safe='')}/{quote(first_name, safe='')}"
         )
+
+        # Make API call
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout,
+                verify=self.ssl_verify
+            ) as client:
+                response = await client.get(
+                    endpoint,
+                    headers={"tc-api-key": company_config.api_key}
+                )
+                response.raise_for_status()
+
+                return response.text
+        except httpx.TimeoutException as e:
+            logger.error("Temp password API timeout for email %s: %s", email, e)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
+        except httpx.HTTPStatusError as e:
+            logger.error("Temp password API HTTP error for email %s: %s (status: %s)", email, e, e.response.status_code)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
+        except Exception as e:
+            logger.error("Temp password API unexpected error for email %s: %s", email, e)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
 
     async def send_forgot_username(
         self,

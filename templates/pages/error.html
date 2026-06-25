@@ -18,11 +18,14 @@
         <em class="icon ni ni-info me-1"></em>
         If the problem persists, please contact your operator.
     </div>
-    <button type="button" onclick="history.back()" class="btn btn-lg btn-primary btn-block mb-2">
+    <button type="button"
+            data-login-url="/auth/login?company_code={{ company_code|urlencode }}&mode={{ mode|urlencode }}"
+            onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.assign(this.dataset.loginUrl); }"
+            class="btn btn-lg btn-primary btn-block mb-2">
         <em class="icon ni ni-arrow-left me-1"></em>
         Go Back
     </button>
-    <a href="/{% if request.url.query %}?{{ request.url.query }}{% endif %}" class="btn btn-lg btn-outline-secondary btn-block">
+    <a href="/auth/login?company_code={{ company_code|urlencode }}&mode={{ mode|urlencode }}" class="btn btn-lg btn-outline-secondary btn-block">
         <em class="icon ni ni-home me-1"></em>
         Return Home
     </a>
