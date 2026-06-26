@@ -54,6 +54,11 @@ jobs:
           pytest
 
       - name: Run Tourcube live integration tests (optional)
+        # Non-blocking: these hit the live Tourcube API, which may be
+        # unreachable from the GitHub runner (e.g. an internal/Azure-only
+        # backend like web2.tourcube.net) or temporarily down. A failure here
+        # must not block the deploy — unit tests already gate correctness.
+        continue-on-error: true
         if: ${{ env.TOURCUBE_GUIDE_USERNAME != '' && env.TOURCUBE_GUIDE_PASSWORD != '' && env.TOURCUBE_VENDOR_USERNAME != '' && env.TOURCUBE_VENDOR_PASSWORD != '' }}
         env:
           RUN_TOURCUBE_LIVE: "1"
