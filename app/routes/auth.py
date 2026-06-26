@@ -1,6 +1,7 @@
 """Authentication routes for login, logout, and password recovery"""
 
 import logging
+import re
 from typing import Optional
 
 import httpx
@@ -491,7 +492,8 @@ async def forgot_username_page(
     request: Request,
     company_code: Optional[str] = Query(None, description="Company identifier"),
     mode: Optional[str] = Query(None, description="Test or Production"),
-    success: Optional[bool] = Query(None)
+    success: Optional[str] = Query(None),
+    error: Optional[str] = Query(None)
 ):
     """Display forgot username form"""
     # Resolve company and mode from query or host. No default-tenant fallback (#148).
@@ -523,7 +525,8 @@ async def forgot_username_page(
             "skin_name": company_config.skin_name,
             "company_code": company_code_resolved,
             "mode": mode_resolved,
-            "success": success
+            "success": success,
+            "error": error
         }
     )
 
@@ -536,6 +539,15 @@ async def forgot_username_submit(
     mode: str = Form(...)
 ):
     """Process forgot username form"""
+    # Validate email format before hitting the API. type="email" alone accepts
+    # addresses with no domain dot (e.g. name@test), so enforce a stricter check
+    # server-side too (defense in depth) and show a clear inline message.
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", (email or "").strip()):
+        return RedirectResponse(
+            url=f"/auth/forgot-username?company_code={company_code}&mode={mode}&error=invalid_email",
+            status_code=303
+        )
+
     try:
         # Call auth service to send username reminder
         await auth_service.send_forgot_username(
