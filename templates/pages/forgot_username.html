@@ -24,13 +24,20 @@
 </div>
 {% endif %}
 
-<form action="/forgot-username" method="post" id="forgotUsernameForm">
+{% if error == 'invalid_email' %}
+<div class="alert alert-danger alert-icon" role="alert">
+    <em class="icon ni ni-cross-circle"></em>
+    <strong>Invalid email.</strong> Please enter a valid email address, e.g. name@example.com.
+</div>
+{% endif %}
+
+<form action="/auth/forgot-username" method="post" id="forgotUsernameForm">
     <div class="form-group">
         <div class="form-label-group">
             <label class="form-label" for="email">Email Address</label>
         </div>
         <div class="form-control-wrap">
-            <input type="email" class="form-control form-control-lg" id="email" name="email" placeholder="Enter your email address" required autofocus>
+            <input type="email" class="form-control form-control-lg" id="email" name="email" placeholder="Enter your email address" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" title="Please enter a valid email address, e.g. name@example.com" required autofocus>
         </div>
     </div>
 
@@ -47,7 +54,7 @@
 {% endblock %}
 
 {% block auth_footer %}
-<a href="/login?company_code={{ company_code }}&mode={{ mode }}"><em class="icon ni ni-arrow-left"></em> <span>Back to Login</span></a>
+<a href="/auth/login?company_code={{ company_code }}&mode={{ mode }}"><em class="icon ni ni-arrow-left"></em> <span>Back to Login</span></a>
 {% endblock %}
 
 {% block extra_js %}
