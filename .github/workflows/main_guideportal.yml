@@ -18,6 +18,8 @@ on:
         options:
           - test
           - production
+          - mts-test
+          - mts-production
 
 jobs:
   build:
@@ -121,6 +123,6 @@ jobs:
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'guide-portal'
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
           slot-name: ${{ vars.AZURE_WEBAPP_SLOT_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
