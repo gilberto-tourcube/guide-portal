@@ -1,0 +1,749 @@
+/*!
+ * Theme: MTS (Mountain Travel Sobek)
+ * Package: DashLite v3.3.0
+ * Updated: 03.12.2026
+ * Author: TourCube
+ * Author URI: https://tourcube.com
+**/
+@import url("https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap");
+.nk-header {
+  background: #ffffff;
+  border-bottom-color: #c19c5d;
+}
+.nk-header.is-dark:not([class*=bg-]) {
+  background: #141414;
+}
+.nk-header.is-theme:not([class*=bg-]) {
+  background: rgb(79.8, 0, 9.7533333333);
+}
+
+.is-dark .nk-menu-link {
+  color: rgb(125.1, 125.1, 125.1);
+}
+.is-dark .nk-menu-icon {
+  color: rgb(145.5, 145.5, 145.5);
+}
+.is-dark .nk-menu-badge {
+  color: rgb(251, 0, 32.0067114094);
+  background: rgb(45.5, 45.5, 45.5);
+}
+.is-dark .nk-menu-sub .active > .nk-menu-link,
+.is-dark .nk-menu-link:hover, .is-dark .active > .nk-menu-link,
+.is-dark .nk-menu-link:hover .nk-menu-icon, .is-dark .nk-menu-item.active > .nk-menu-link .nk-menu-icon, .is-dark .nk-menu-item.current-menu > .nk-menu-link .nk-menu-icon {
+  color: rgb(200, 0, 25.5033557047);
+}
+.is-dark .nk-news-icon .icon {
+  color: #950013;
+}
+.is-dark .nk-news-text .icon {
+  color: #787878;
+}
+.is-dark .nk-news-text p span {
+  color: rgba(120, 120, 120, 0.9);
+}
+.is-dark .user-name, .is-dark .nk-news-text p {
+  color: rgb(132.75, 132.75, 132.75);
+}
+.is-dark .nk-quick-nav-icon {
+  color: rgb(145.5, 145.5, 145.5);
+}
+
+.is-theme .nk-menu-link {
+  color: rgb(197.9569060773, 120.8430939227, 131.4066298343);
+}
+.is-theme .nk-menu-icon {
+  color: rgb(210.129281768, 149.470718232, 157.7801104972);
+}
+.is-theme .nk-menu-badge {
+  color: rgb(255, 47, 73.5234899329);
+  background: rgb(130.8, 0, 15.9866666667);
+}
+.is-theme .nk-news-icon .icon {
+  color: rgb(225.5, 0, 28.755033557);
+}
+.is-theme .nk-news-text .icon, .is-theme .nk-quick-nav-icon, .is-theme .overline-title {
+  color: #c9808a;
+}
+.is-theme .nk-news-text p span, .is-theme .nk-menu-heading .overline-title {
+  color: rgba(201, 128, 138, 0.8);
+}
+.is-theme .user-name, .is-theme .nk-news-text p {
+  color: rgb(208.6077348066, 145.8922651934, 154.4834254144);
+}
+
+.card-tools-nav li a:before,
+.nav-tabs .nav-link:after,
+.progress-bar, .dot-primary,
+.alert-fill.alert-primary,
+.bg-primary,
+.icon-circle,
+.noUi-connect,
+.nk-kycfm-label::after,
+.plan-item-card:after,
+.nk-msg-menu-item a:after,
+.ui-shady .nk-msg-item.active:after, .ui-shady .nk-msg-item.current:after,
+.ui-softy .nk-msg-item.active:after, .ui-softy .nk-msg-item.current:after {
+  background: #950013;
+}
+
+.card-bordered.is-dark {
+  border-color: #5a000b;
+}
+
+.card.is-dark {
+  background: #5a000b;
+}
+
+.user-avatar, [class^=user-avatar]:not([class*=-group]) {
+  background: rgb(200, 0, 25.5033557047);
+}
+
+.nk-news-item:hover .nk-news-text .icon {
+  color: rgb(200, 0, 25.5033557047);
+}
+
+.nk-menu-link:hover,
+.nk-menu-link:hover .nk-menu-icon,
+.nk-menu-item.active > .nk-menu-link .nk-menu-icon,
+.nk-menu-item.current-menu > .nk-menu-link .nk-menu-icon,
+.nk-menu-link:hover .count,
+.nk-menu-sub .nk-menu-link:hover,
+.nk-menu-sub .active > .nk-menu-link,
+.nk-menu-main .nk-menu-link:hover,
+.nk-menu-main .nk-menu-link:focus,
+.nk-menu-main .nk-menu-item.active > .nk-menu-link,
+.nk-menu-main .nk-menu-item.current-menu > .nk-menu-link,
+.nk-menu-main .nk-menu-item:hover > .nk-menu-link,
+.is-light .nk-menu-link:hover, .is-light .active > .nk-menu-link,
+.active > .nk-menu-link,
+.active > .nk-menu-link .count,
+.nav-tabs .nav-link:focus,
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.active .nav-link,
+.nk-menu-footer .nk-menu-icon,
+.nk-menu-footer .nk-menu-link:hover,
+.nk-footer-copyright a:hover,
+.page-link:hover,
+.list-plain a:hover,
+.link-check li a:hover,
+.link-list a:hover,
+.link-list-opt a:hover,
+.link-list-plain a:hover,
+.link-list-menu li.active > a,
+.link-list-menu a.active,
+.link-list-menu a:hover,
+.link-list-menu li.active > a .icon,
+.link-list-menu a.active .icon,
+.link-list-menu a:hover .icon,
+.link-list-menu li.active > a:after,
+.link-list-menu a.active:after,
+.link-list-menu a:hover:after,
+.list-checked li:before,
+.list-step li.list-step-current:before,
+.accordion-s2 .accordion-head .title,
+.accordion-s3 .accordion-head .title,
+.bg-outline-primary,
+.badge-dim.bg-primary,
+.badge-dot.bg-primary,
+.badge-dim.bg-outline-primary,
+.alert-primary,
+.form-clip,
+.form-text-hint,
+.search-submit:hover,
+.nk-news-icon .icon,
+.nk-refwg-name .title,
+.nk-iv-wg1-info, .nk-wg4-note span,
+.nk-iv-scheme-item .amount-ex,
+.nk-kycfm-control:checked ~ .nk-kycfm-label .label-icon,
+.attach-item .icon,
+.attach-download:hover span,
+.nk-reply-meta-info .whom,
+.nk-msg-tags li > span .icon,
+.nk-msg-menu-item a:hover,
+.nk-msg-menu-item.active a,
+.user-balance,
+.user-avatar[class*=-primary-dim],
+.nk-order-ovwg-data.sell .amount,
+.nk-order-ovwg-data.sell .title .icon,
+.nk-wg-action-content p strong, a,
+.dropzone .dz-message-text span,
+.nk-switch-icon.active,
+.link-list-plain a .icon,
+.chat-upload-option a,
+.is-unread .chat-context .status,
+.add-opt:hover .sub-text, .add-opt:hover .icon,
+.icon[class*=bg-primary-dim] {
+  color: #950013;
+}
+
+a:hover {
+  color: rgb(108.2, 0, 13.7973154362);
+}
+
+.text-primary, .link-primary {
+  color: #950013 !important;
+}
+
+.link-primary:hover, a.text-primary:hover, a.text-primary:focus, .chat-upload-option a:hover {
+  color: rgb(108.2, 0, 13.7973154362) !important;
+}
+
+.border-primary, .nk-kycfm-control:checked ~ .nk-kycfm-label {
+  border-color: #950013 !important;
+}
+
+.bg-lighter {
+  background-color: #f9f8f7 !important;
+}
+
+.bg-primary {
+  background-color: #950013 !important;
+}
+
+a.bg-primary:hover, a.bg-primary:focus, button.bg-primary:hover, button.bg-primary:focus {
+  background-color: rgb(98, 0, 12.4966442953) !important;
+}
+
+.bg-primary-dim {
+  background-color: rgb(244.4, 229.5, 231.4) !important;
+}
+
+.text-primary-dim {
+  color: rgb(244.4, 229.5, 231.4) !important;
+}
+
+.alert-primary, .badge-dim.bg-outline-primary {
+  background-color: rgb(244.4, 229.5, 231.4);
+  border-color: rgb(212.6, 153, 160.6);
+}
+
+.alert-pro.alert-primary, .bg-primary,
+.plan-control:checked + .plan-item-card,
+.form-control:focus,
+.form-control.focus,
+.form-file-input:focus ~ .form-file-label,
+.custom-control-input:focus:not(:checked) ~ .custom-control-label::before,
+.select2-container--default .select2-selection--single:focus,
+.select2-container--default.select2-container--focus .select2-selection--multiple {
+  border-color: #950013;
+}
+
+.nk-order-ovwg-data.sell, .bg-outline-primary {
+  border-color: rgb(212.6, 153, 160.6);
+}
+
+.dropdown-menu-s1 {
+  border-top-color: #950013;
+}
+
+.nk-iv-wg2-amount.ui-v2 {
+  border-bottom-color: #950013;
+}
+
+.page-item.active .page-link,
+.plan-control:checked + .plan-item-card .plan-label,
+.custom-control-input:checked ~ .custom-control-label::before,
+.custom-control-input:not(:disabled):active ~ .custom-control-label::before {
+  background-color: #950013;
+  border-color: #950013;
+}
+
+.custom-checkbox .custom-control-input:disabled:checked ~ .custom-control-label::before,
+.custom-radio .custom-control-input:disabled:checked ~ .custom-control-label::before,
+.custom-switch .custom-control-input:disabled:checked ~ .custom-control-label::before {
+  background-color: rgb(191.4, 102, 113.4);
+}
+
+.form-check-input:checked {
+  background-color: #950013;
+  border-color: #950013;
+}
+
+.form-check-input:focus {
+  border-color: rgb(202, 127.5, 137);
+  box-shadow: 0 0 0 0.25rem rgba(149, 0, 19, 0.25);
+}
+
+.form-check-input[type=checkbox]:indeterminate {
+  background-color: #950013;
+  border-color: #950013;
+}
+
+.badge-dim.bg-primary {
+  background-color: rgb(244.4, 229.5, 231.4);
+  border-color: rgb(244.4, 229.5, 231.4);
+}
+
+.bg-primary.badge-dot {
+  background: transparent !important;
+}
+
+.nk-error-head {
+  background: -webkit-linear-gradient(#950013, rgb(141, 0, 17.2333333333));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nav-switch .nav-link.active {
+  background: #950013;
+  color: #ffffff;
+}
+
+.icon-avatar, .nk-iv-scheme-icon.is-running {
+  color: #950013;
+  background-color: rgb(239.1, 216.75, 219.6);
+}
+
+.is-dark .nk-wgw-icon {
+  background: rgb(170.2, 51, 66.2);
+}
+
+.is-dark .nk-iv-wg2-title .title {
+  color: #c9808a;
+}
+
+.is-theme .nk-quick-nav-icon:before {
+  background-color: rgb(39, 0, 4.7666666667);
+}
+
+.btn-primary {
+  background-color: #950013;
+  border-color: #950013;
+}
+.btn-primary:hover {
+  background-color: rgb(128.6, 0, 16.3986577181);
+  border-color: rgb(118.4, 0, 15.0979865772);
+}
+.btn-primary:focus {
+  background-color: rgb(128.6, 0, 16.3986577181);
+  border-color: rgb(118.4, 0, 15.0979865772);
+}
+.btn-primary.btn-dim {
+  color: #950013;
+  background-color: rgb(243.34, 226.95, 229.04);
+  border-color: rgb(243.34, 226.95, 229.04);
+}
+
+.btn-dim.btn-outline-primary {
+  color: #950013;
+  background-color: rgb(243.34, 226.95, 229.04);
+  border-color: rgb(212.6, 153, 160.6);
+}
+.btn-dim.btn-outline-primary.btn-white {
+  background-color: #ffffff;
+}
+
+.btn-outline-primary {
+  border-color: #950013;
+  color: #950013;
+}
+.btn-outline-primary:hover {
+  background-color: #950013;
+  border-color: #950013;
+}
+
+.btn-primary:not(:disabled):not(.disabled):active,
+.btn-primary:not(:disabled):not(.disabled).active,
+.show > .btn-primary.dropdown-toggle {
+  background-color: rgb(133.7, 0, 17.0489932886);
+  border-color: rgb(128.6, 0, 16.3986577181);
+}
+
+.btn-primary:focus,
+.btn-outline-primary:focus,
+.btn-primary:not(:disabled):not(.disabled):active,
+.btn-primary:not(:disabled):not(.disabled):active:focus,
+.btn-primary.btn-dim:focus,
+.btn-primary.btn-dim:not(:disabled):not(.disabled):active,
+.btn-primary.btn-dim:not(:disabled):not(.disabled):active:focus,
+.btn-dim.btn-outline-primary:focus,
+.btn-dim.btn-outline-primary:not(:disabled):not(.disabled):active,
+.btn-dim.btn-outline-primary:not(:disabled):not(.disabled):active:focus,
+.show > .btn-primary.dropdown-toggle:focus,
+.btn-outline-primary:not(:disabled):not(.disabled):active,
+.btn-outline-primary:not(:disabled):not(.disabled):active:focus,
+.btn-outline-primary:not(:disabled):not(.disabled).active,
+.btn-outline-primary:not(:disabled):not(.disabled).active:focus,
+.show > .btn-outline-primary.dropdown-toggle,
+.show > .btn-outline-primary.dropdown-toggle:focus {
+  box-shadow: 0 0 0 0.2rem rgba(149, 0, 19, 0.2);
+}
+
+.btn-outline-light:focus, .btn-outline-light.focus,
+.btn-outline-light:not(:disabled):not(.disabled):active:focus,
+.btn-outline-light:not(:disabled):not(.disabled).active:focus,
+.show > .btn-outline-light.dropdown-toggle:focus {
+  box-shadow: 0 0 0 0.2rem rgba(120, 120, 120, 0.1);
+}
+
+.btn-trigger:focus {
+  box-shadow: none;
+}
+
+.form-control:focus, .form-control.focus,
+.custom-control-input:focus ~ .custom-control-label::before,
+.form-file-input:focus ~ .form-file-label,
+.select2-container--default .select2-selection--single:focus,
+.select2-container--default.select2-container--focus .select2-selection--multiple {
+  box-shadow: 0 0 0 3px rgba(149, 0, 19, 0.1);
+}
+
+.form-control-simple:focus {
+  box-shadow: none;
+}
+
+.btn-primary.btn-dim:not(:disabled):not(.disabled):hover,
+.btn-dim.btn-outline-primary:not(:disabled):not(.disabled):hover,
+.btn-outline-primary:not(:disabled):not(.disabled):active,
+.btn-outline-primary:not(:disabled):not(.disabled).active,
+.show > .btn-outline-primary.dropdown-toggle,
+.btn-primary.disabled, .btn-primary:disabled,
+.invest-amount-control:checked ~ .invest-amount-label {
+  background-color: #950013;
+  border-color: #950013;
+}
+
+.form-focus-none:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+@media (min-width: 992px) {
+  .nk-menu-main > li > .nk-menu-link:before {
+    background: #950013;
+  }
+  .is-theme .nk-menu-main > li > .nk-menu-link {
+    color: #c9808a;
+  }
+  .is-theme .nk-menu-main > li > .nk-menu-link.nk-menu-toggle:after {
+    color: rgba(201, 128, 138, 0.7);
+  }
+}
+.datepicker table tr td.today, .datepicker table tr td.today:hover, .datepicker table tr td.today.disabled, .datepicker table tr td.today.disabled:hover {
+  background-color: rgb(239.1, 216.75, 219.6);
+  color: #950013;
+}
+
+.datepicker table tr td.today:hover, .datepicker table tr td.today:hover:hover,
+.datepicker table tr td.today.disabled:hover, .datepicker table tr td.today.disabled:hover:hover,
+.datepicker table tr td.today:active, .datepicker table tr td.today:hover:active,
+.datepicker table tr td.today.disabled:active, .datepicker table tr td.today.disabled:hover:active,
+.datepicker table tr td.today.active, .datepicker table tr td.today:hover.active,
+.datepicker table tr td.today.disabled.active, .datepicker table tr td.today.disabled:hover.active,
+.datepicker table tr td.today.disabled, .datepicker table tr td.today:hover.disabled,
+.datepicker table tr td.today.disabled.disabled, .datepicker table tr td.today.disabled:hover.disabled,
+.datepicker table tr td.today[disabled], .datepicker table tr td.today:hover[disabled],
+.datepicker table tr td.today.disabled[disabled], .datepicker table tr td.today.disabled:hover[disabled] {
+  background-color: rgb(177.1685082873, 75.3314917127, 89.2817679558);
+}
+
+.datepicker table tr td.active:active, .datepicker table tr td.active:hover:active,
+.datepicker table tr td.active.disabled:active, .datepicker table tr td.active.disabled:hover:active,
+.datepicker table tr td.active.active, .datepicker table tr td.active:hover.active,
+.datepicker table tr td.active.disabled.active, .datepicker table tr td.active.disabled:hover.active,
+.datepicker table tr td span:hover, .datepicker table tr td span.focused {
+  background-color: #950013;
+}
+
+.code-tag {
+  color: blue;
+}
+
+.alert-pro {
+  background: #ffffff;
+  color: #4d4d4d;
+}
+
+.nk-menu-badge, .nk-menu-main .nk-menu-sub .nk-menu-badge {
+  color: rgb(180.8, 76.5, 89.8);
+  background-color: rgb(244.4, 229.5, 231.4);
+}
+
+.is-theme .nk-sidebar-footer, .nk-apps-sidebar.is-theme, .is-theme .nk-sidebar-profile-fixed {
+  background: rgb(79.8, 0, 9.7533333333);
+  border-color: rgb(130.8, 0, 15.9866666667);
+}
+
+.is-theme .nk-menu-footer .nk-menu-link, .is-theme .sub-text, .is-theme .lead-text span {
+  color: #c9808a;
+}
+
+.nav-switch-s2 .nav-link:hover, .nav-switch-s2 .nav-link:focus {
+  color: #4d4d4d;
+}
+
+.nav-switch-s2 .nav-link.active {
+  color: #2a2a2a;
+}
+
+.active .nk-ibx-menu-text,
+.active .nk-ibx-menu-item .icon,
+.nk-reply-form-nav li a:hover,
+.nk-reply-form-input .toggle-opt:hover {
+  color: #950013;
+}
+
+.nk-ibx-menu li.active {
+  background: rgb(246.52, 234.6, 236.12);
+}
+
+.nk-fmg-menu li.active {
+  background: rgb(246.52, 234.6, 236.12);
+}
+
+.nk-file-name .asterisk .icon, .nk-file-name-text a.title:hover,
+.nk-file-link:hover .title, .active .nk-fmg-menu-item .icon, .active .nk-fmg-menu-text {
+  color: #950013;
+}
+
+.nk-files-view-list .nk-file.selected {
+  background-color: #f4e5e7;
+}
+
+.chat.is-me .chat-msg {
+  background-color: #950013;
+}
+
+.kanban-add-task {
+  color: #950013;
+}
+.kanban-add-task:hover {
+  background: #950013;
+  border-color: #950013;
+}
+
+.actions ul li a {
+  border-color: #950013;
+  background: #950013;
+}
+
+.nk-wizard-simple .steps ul li.done h5, .nk-wizard-simple .steps ul li.done .number, .nk-wizard-simple .steps ul li.current h5, .nk-wizard-simple .steps ul li.current .number {
+  color: #950013;
+}
+
+.nk-wizard-simple .steps ul li:after {
+  background: #950013;
+}
+
+.invoice-contact ul .icon, .invoice-desc .title, .invoice-bills .table th {
+  color: #950013;
+}
+
+.product-gallery .slider-nav .slider-item.slick-current .thumb,
+.custom-control-pro.no-control .custom-control-input:checked ~ .custom-control-label,
+.custom-control-pro.no-control .custom-control-input:not(:disabled):active ~ .custom-control-label,
+.custom-control.color-control .custom-control-label:before {
+  border-color: #950013 !important;
+}
+
+.nk-stepper-nav > * .step-item:before,
+.nk-stepper-nav > * .step-item:after {
+  color: #950013;
+  background: rgba(149, 0, 19, 0.15);
+}
+
+.nk-stepper-nav > *.current .step-item:before,
+.nk-stepper-nav > *.current .step-item:after {
+  color: #fff;
+  background: #950013;
+}
+
+.nk-stepper-nav > *.done .step-item:before,
+.nk-stepper-nav > *.done .step-item:after {
+  color: #950013;
+  background: rgba(149, 0, 19, 0.15);
+}
+
+.nk-stepper-nav-s2 > *.current .step-item {
+  border-left-color: #950013;
+}
+
+body,
+.nk-body,
+.nk-wrap,
+.nk-header,
+.nk-sidebar,
+.nk-menu,
+.nk-menu-link,
+.nk-content,
+.card,
+.btn,
+.form-control,
+.dropdown-menu,
+.modal,
+p, span, a, li, td, th, label,
+.title, .lead-text, .sub-text,
+.overline-title, .caption-text {
+  font-family: "Raleway", sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: "Libre Baskerville", Georgia, serif;
+}
+
+.nk-header h3,
+.nk-header .title,
+.nk-header-wrap h3,
+.nk-header-center h3,
+.nk-content h3,
+.nk-wrap h3,
+.nk-block h3,
+.nk-block-head h3,
+.nk-block-head-content h3,
+.page-title h3,
+h3.title,
+h3.nk-block-title {
+  font-family: "Libre Baskerville", Georgia, serif !important;
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6,
+.title, .nk-block-title {
+  font-weight: 700;
+}
+
+.nav-tabs .nav-link,
+.nav-switch .nav-link,
+[role=tab],
+.nk-menu-link {
+  font-weight: 500;
+}
+
+.btn {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tenant-logo {
+  max-height: 65px;
+}
+
+.form-control,
+.form-select,
+.custom-select,
+.select2-container .select2-selection__rendered,
+.select2-container .select2-results__option,
+.select2-container .select2-search__field {
+  font-size: 0.9375rem;
+}
+
+.btn-danger {
+  background-color: #E10000;
+  border-color: #E10000;
+}
+.btn-danger:hover {
+  background-color: rgb(184.2, 0, 0);
+  border-color: #ae0000;
+}
+.btn-danger:focus {
+  box-shadow: 0 0 0 0.2rem rgba(225, 0, 0, 0.25);
+}
+
+.btn-outline-danger {
+  border-color: #E10000;
+  color: #E10000;
+}
+.btn-outline-danger:hover {
+  background-color: #E10000;
+  border-color: #E10000;
+}
+
+.btn-success {
+  background-color: #03AC27;
+  border-color: #03AC27;
+}
+.btn-success:hover {
+  background-color: rgb(2.3005714286, 131.8994285714, 29.9074285714);
+  border-color: rgb(2.1257142857, 121.8742857143, 27.6342857143);
+}
+.btn-success:focus {
+  box-shadow: 0 0 0 0.2rem rgba(3, 172, 39, 0.25);
+}
+
+.btn-outline-success {
+  border-color: #03AC27;
+  color: #03AC27;
+}
+.btn-outline-success:hover {
+  background-color: #03AC27;
+  border-color: #03AC27;
+}
+
+.bg-danger {
+  background-color: #E10000 !important;
+}
+
+.bg-success {
+  background-color: #03AC27 !important;
+}
+
+.text-danger {
+  color: #E10000 !important;
+}
+
+.text-success {
+  color: #03AC27 !important;
+}
+
+.border-danger {
+  border-color: #E10000 !important;
+}
+
+.border-success {
+  border-color: #03AC27 !important;
+}
+
+.badge.bg-outline-danger {
+  color: #E10000;
+  background-color: rgb(252, 229.5, 229.5);
+  border-color: #f39999;
+}
+
+.badge.bg-outline-success {
+  color: #03AC27;
+  background-color: rgb(229.8, 246.7, 233.4);
+  border-color: rgb(154.2, 221.8, 168.6);
+}
+
+.alert-danger {
+  color: #E10000;
+  background-color: rgb(252, 229.5, 229.5);
+  border-color: rgb(246, 178.5, 178.5);
+}
+
+.alert-success {
+  color: #03AC27;
+  background-color: rgb(229.8, 246.7, 233.4);
+  border-color: rgb(179.4, 230.1, 190.2);
+}
+/* Form status semantic variables (Phase 3 — UI redesign aligned with guide portal) */
+:root {
+  --trip-label-color: #c19c5d;
+  --form-border-pending: #ca8a04;
+  --form-border-submitted: #15803d;
+  --form-border-overdue: #7c2d12;
+  --form-icon-pending: #ca8a04;
+  --form-icon-submitted: #15803d;
+  --form-icon-overdue: #7c2d12;
+}
+
+/* Form cards with colored left border and hover shadow */
+.form-card-pending,
+.form-card-submitted,
+.form-card-overdue {
+  transition: box-shadow 0.2s ease;
+}
+.form-card-pending:hover,
+.form-card-submitted:hover,
+.form-card-overdue:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+.form-card-pending { border-left: 4px solid var(--form-border-pending) !important; }
+.form-card-submitted { border-left: 4px solid var(--form-border-submitted) !important; }
+.form-card-overdue { border-left: 4px solid var(--form-border-overdue) !important; }
+.form-icon-pending { color: var(--form-icon-pending); }
+.form-icon-submitted { color: var(--form-icon-submitted); }
+.form-icon-overdue { color: var(--form-icon-overdue); }
+.form-overdue-text { color: var(--form-icon-overdue); }
