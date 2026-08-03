@@ -338,37 +338,30 @@ async def change_password_submit(
     user_type = request.session.get("user_type")
 
     try:
+        # Both account types use the same password update endpoint: vendors
+        # send their vendor ID, guides their client ID (the legacy
+        # vendor-specific endpoint is retired).
         if user_type == 2:  # Vendor
-            vendor_id = request.session.get("vendor_id")
-            if not vendor_id:
-                return RedirectResponse(
-                    url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
-                    status_code=303
-                )
-            await auth_service.change_vendor_password(
-                vendor_id=vendor_id,
-                new_password=new_password,
-                company_code=company_code,
-                mode=mode
-            )
-            request.session.pop("temp_password", None)
-            return RedirectResponse(url="/vendor/home", status_code=303)
-
+            user_id = request.session.get("vendor_id")
+            home_url = "/vendor/home"
         else:  # Guide (type == 1)
-            guide_id = request.session.get("guide_id")
-            if not guide_id:
-                return RedirectResponse(
-                    url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
-                    status_code=303
-                )
-            await auth_service.change_password(
-                client_id=guide_id,
-                new_password=new_password,
-                company_code=company_code,
-                mode=mode
+            user_id = request.session.get("guide_id")
+            home_url = "/guide/home"
+
+        if not user_id:
+            return RedirectResponse(
+                url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
+                status_code=303
             )
-            request.session.pop("temp_password", None)
-            return RedirectResponse(url="/guide/home", status_code=303)
+
+        await auth_service.change_password(
+            client_id=user_id,
+            new_password=new_password,
+            company_code=company_code,
+            mode=mode
+        )
+        request.session.pop("temp_password", None)
+        return RedirectResponse(url=home_url, status_code=303)
 
     except httpx.HTTPError as e:
         logger.error("Change password API error for user type %s: %s", user_type, e)
