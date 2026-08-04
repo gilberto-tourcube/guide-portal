@@ -185,6 +185,10 @@ async def login_submit(
         if must_change_password:
             request.session["temp_password"] = True
 
+        # Client ID of the person behind the account, for both guides and
+        # vendors. This is what the password endpoint is keyed on.
+        request.session["client_id"] = login_response.guide_client_id
+
         # Store user-specific data based on type
         if login_response.type == 1:  # Guide
             # Store guide-specific data
@@ -337,38 +341,29 @@ async def change_password_submit(
 
     user_type = request.session.get("user_type")
 
-    try:
-        if user_type == 2:  # Vendor
-            vendor_id = request.session.get("vendor_id")
-            if not vendor_id:
-                return RedirectResponse(
-                    url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
-                    status_code=303
-                )
-            await auth_service.change_vendor_password(
-                vendor_id=vendor_id,
-                new_password=new_password,
-                company_code=company_code,
-                mode=mode
-            )
-            request.session.pop("temp_password", None)
-            return RedirectResponse(url="/vendor/home", status_code=303)
+    home_url = "/vendor/home" if user_type == 2 else "/guide/home"
 
-        else:  # Guide (type == 1)
-            guide_id = request.session.get("guide_id")
-            if not guide_id:
-                return RedirectResponse(
-                    url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
-                    status_code=303
-                )
-            await auth_service.change_password(
-                client_id=guide_id,
-                new_password=new_password,
-                company_code=company_code,
-                mode=mode
-            )
-            request.session.pop("temp_password", None)
-            return RedirectResponse(url="/guide/home", status_code=303)
+    # Both account types use the same endpoint, keyed on the client ID of the
+    # person behind the account (the vendor-specific endpoint is retired).
+    client_id = request.session.get("client_id")
+    if not client_id:
+        # The login response carried no client ID for this account, so there is
+        # nothing to update. Fail loudly instead of reporting a false success.
+        logger.error("Change password blocked: no client_id in session for user type %s", user_type)
+        return RedirectResponse(
+            url="/auth/change-password?error=api_error",
+            status_code=303
+        )
+
+    try:
+        await auth_service.change_password(
+            client_id=client_id,
+            new_password=new_password,
+            company_code=company_code,
+            mode=mode
+        )
+        request.session.pop("temp_password", None)
+        return RedirectResponse(url=home_url, status_code=303)
 
     except httpx.HTTPError as e:
         logger.error("Change password API error for user type %s: %s", user_type, e)

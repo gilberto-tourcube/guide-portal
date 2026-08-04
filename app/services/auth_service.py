@@ -275,10 +275,13 @@ class AuthService:
         mode: Optional[str] = None
     ) -> bool:
         """
-        Change user password via Tourcube API
+        Change portal password via Tourcube API.
+
+        Used for both account types: guides pass their client ID and
+        vendors pass their vendor ID (the API resolves both).
 
         Args:
-            client_id: Guide's client ID
+            client_id: Guide's client ID or vendor's vendor ID
             new_password: New password to set
             company_code: Company identifier
             mode: "Test" or "Production"
@@ -318,61 +321,6 @@ class AuthService:
             raise
         except Exception as e:
             logger.error("Change password API unexpected error for client %s: %s", client_id, e)
-            capture_exception_with_context(e, mode=mode, company_code=company_code)
-            raise
-
-
-    async def change_vendor_password(
-        self,
-        vendor_id: int,
-        new_password: str,
-        company_code: Optional[str] = None,
-        mode: Optional[str] = None
-    ) -> bool:
-        """
-        Change vendor password via Tourcube API
-
-        Args:
-            vendor_id: Vendor's unique ID
-            new_password: New password to set
-            company_code: Company identifier
-            mode: "Test" or "Production"
-
-        Returns:
-            True if password was changed successfully
-
-        Raises:
-            httpx.HTTPError: If API call fails
-        """
-        company_config = settings.get_company_config(company_code, mode)
-
-        endpoint = f"{company_config.api_url}/tourcube/guidePortal/{vendor_id}/{new_password}"
-
-        try:
-            async with httpx.AsyncClient(
-                timeout=self.timeout,
-                verify=self.ssl_verify
-            ) as client:
-                response = await client.put(
-                    endpoint,
-                    json={},
-                    headers={
-                        "tc-api-key": company_config.api_key,
-                        "Content-Type": "application/json"
-                    }
-                )
-                response.raise_for_status()
-                return True
-        except httpx.TimeoutException as e:
-            logger.error("Change vendor password API timeout for vendor %s: %s", vendor_id, e)
-            capture_exception_with_context(e, mode=mode, company_code=company_code)
-            raise
-        except httpx.HTTPStatusError as e:
-            logger.error("Change vendor password API HTTP error for vendor %s: %s (status: %s)", vendor_id, e, e.response.status_code)
-            capture_exception_with_context(e, mode=mode, company_code=company_code)
-            raise
-        except Exception as e:
-            logger.error("Change vendor password API unexpected error for vendor %s: %s", vendor_id, e)
             capture_exception_with_context(e, mode=mode, company_code=company_code)
             raise
 
