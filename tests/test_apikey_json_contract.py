@@ -1,4 +1,4 @@
-"""apikey.json contract (#160).
+"""apikey.json contract (#160 and Obsidian #243).
 
 Every tenant entry must declare ``PWAEnabled`` and
 ``OfflineDocumentsEnabled`` as booleans. The tracked example template
@@ -23,6 +23,13 @@ def _assert_contract(tenants: list) -> None:
         assert "OfflineDocumentsEnabled" in entry, f"{cid} missing OfflineDocumentsEnabled"
         assert isinstance(entry["PWAEnabled"], bool), f"{cid} PWAEnabled not bool"
         assert isinstance(entry["OfflineDocumentsEnabled"], bool), f"{cid} OfflineDocumentsEnabled not bool"
+        if "PWAThemeColor" in entry:
+            color = entry["PWAThemeColor"]
+            assert isinstance(color, str), f"{cid} PWAThemeColor not string"
+            assert len(color) == 7 and color.startswith("#"), (
+                f"{cid} PWAThemeColor must use #RRGGBB"
+            )
+            int(color[1:], 16)
 
 
 def test_apikey_json_example_carries_pwa_schema():

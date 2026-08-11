@@ -201,7 +201,7 @@ guide-portal/
 The application supports multiple companies with different configurations via `config/apikey.json` (git-ignored, restored from the `APIKEY_JSON` secret in CI):
 
 - Keys/URLs: `Test`/`Production` and `TestURL`/`ProductionURL`
-- Branding: `Logo`, `SkinName`, `TourcubeOnline`
+- Branding: `Logo`, `SkinName`, optional `PWAThemeColor`, `TourcubeOnline`
 - **Domain mapping**: `TestDomains` and `ProductionDomains` let you resolve company/mode from the request host when `company_code`/`mode` are not in the query. Resolution order: query params > host mapping > defaults (`COMPANY_CODE`/`MODE`).
 - Distribution: `config/apikey.json` is git-ignored and reconstructed in CI from the `APIKEY_JSON` secret (see `.github/workflows/main_guideportal.yml`).
 

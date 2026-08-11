@@ -15,6 +15,7 @@
             "SkinName": "theme-wt-blue",
             "PWAEnabled": true,
             "OfflineDocumentsEnabled": true,
+            "PWAThemeColor": "#0F4374",
             "Logo": "wt-horizontal-logo-black-type.png",
             "LoginBackground": "leader-portal-background-01.jpg"
         },

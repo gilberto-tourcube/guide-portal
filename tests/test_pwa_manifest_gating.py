@@ -5,7 +5,9 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
+from app.config import CompanyConfig
 from app.main import app
+from app.routes.pwa import DEFAULT_PWA_THEME_COLOR
 
 
 IPHONE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) Mobile/15E148"
@@ -91,3 +93,51 @@ def test_manifest_anonymous_returns_404():
     client = TestClient(app)
     resp = client.get("/manifest.json", headers={"User-Agent": IPHONE_UA})
     assert resp.status_code == 404
+
+
+def _pwa_config(company_code: str, skin_name: str, color: str = "") -> CompanyConfig:
+    return CompanyConfig(
+        company_id=company_code,
+        logo="logo.png",
+        tourcube_online=True,
+        skin_name=skin_name,
+        test_api_key="test-key",
+        test_url="https://test.example.com",
+        production_api_key="production-key",
+        production_url="https://example.com",
+        api_url="https://test.example.com",
+        api_key="test-key",
+        pwa_enabled=True,
+        pwa_theme_color=color,
+    )
+
+
+@pytest.mark.parametrize(
+    ("company_code", "skin_name", "configured_color", "expected_color"),
+    [
+        ("WT", "theme-wt-blue", "", "#0F4374"),
+        ("MTS", "theme-blue", "", "#2c3782"),
+        ("THIRD", "tenant-custom", "#123456", "#123456"),
+        ("UNKNOWN", "not-a-real-skin", "", DEFAULT_PWA_THEME_COLOR),
+    ],
+)
+def test_manifest_theme_color_is_tenant_aware_and_unknown_skin_is_neutral(
+    monkeypatch,
+    company_code,
+    skin_name,
+    configured_color,
+    expected_color,
+):
+    from app.config import settings
+
+    config = _pwa_config(company_code, skin_name, configured_color)
+    monkeypatch.setattr(
+        type(settings),
+        "get_company_config",
+        lambda _self, *_args: config,
+    )
+
+    response = _manifest(company_code, IPHONE_UA)
+
+    assert response.status_code == 200
+    assert response.json()["theme_color"] == expected_color

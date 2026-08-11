@@ -15,6 +15,11 @@ def test_get_company_config_switches_mode_correctly():
     assert prod_config.api_key == prod_config.production_api_key
 
 
+def test_settings_has_no_implicit_company_tenant():
+    settings = Settings(secret_key="dummy-secret")
+    assert settings.company_code == ""
+
+
 def test_get_company_config_invalid_company_code():
     settings = Settings(secret_key="dummy-secret")
     with pytest.raises(InvalidCompanyCodeError):

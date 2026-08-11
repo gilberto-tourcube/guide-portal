@@ -24,6 +24,7 @@ class CompanyConfig(BaseModel):
     production_url: str
     login_background: str = ""
     favicon: str = ""
+    pwa_theme_color: str = ""
     test_domains: List[str] = []
     production_domains: List[str] = []
 
@@ -68,13 +69,11 @@ class Settings(BaseSettings):
     sentry_dsn: str = "https://48cf3c57b373f08326c0298b1445933a@o4510551040458752.ingest.us.sentry.io/4510551042490368"
     app_env: str = "test"  # Application environment for Sentry (test/production)
 
-    # Company Configuration - Default/Fallback Values
-    # These values are used when:
-    # 1. User accesses root (/) without parameters
-    # 2. Session doesn't contain company_code/mode during logout
-    # Can be overridden via environment variables in .env file
-    company_code: str = "WT"  # Default company code (fallback)
-    mode: str = "Test"  # Default mode: "Test" or "Production" (fallback)
+    # Optional integration-test defaults. Runtime tenant resolution never reads
+    # these values; keep company_code neutral so no caller can accidentally
+    # revive an implicit WT tenant.
+    company_code: str = ""
+    mode: str = "Test"
     api_key_json_path: str = "./config/apikey.json"
 
     # Cache for company configurations
@@ -131,6 +130,7 @@ class Settings(BaseSettings):
                 logo=company.get('Logo', 'logo.png'),
                 login_background=company.get('LoginBackground', ''),
                 favicon=company.get('Favicon', ''),
+                pwa_theme_color=company.get('PWAThemeColor', ''),
                 tourcube_online=company.get('TourcubeOnline', True),
                 skin_name=skin_name,
                 test_api_key=company.get('Test', ''),

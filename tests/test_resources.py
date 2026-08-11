@@ -42,7 +42,7 @@ async def test_departure_requires_auth_renders_neutral_error_without_tenant(
     assert response.status_code == 401
     body = response.text
     assert "Tenant Required" in body
-    assert settings.company_code not in body
+    assert "WT" not in body
 
 
 @pytest.mark.asyncio
@@ -107,7 +107,7 @@ async def test_trip_requires_auth_renders_neutral_error_without_tenant(
     assert response.status_code == 401
     body = response.text
     assert "Tenant Required" in body
-    assert settings.company_code not in body
+    assert "WT" not in body
 
 
 @pytest.mark.asyncio
@@ -169,7 +169,7 @@ async def test_client_requires_auth_renders_neutral_error_without_tenant(
     assert response.status_code == 401
     body = response.text
     assert "Tenant Required" in body
-    assert settings.company_code not in body
+    assert "WT" not in body
 
 
 @pytest.mark.asyncio
