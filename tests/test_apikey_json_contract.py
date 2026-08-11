@@ -13,8 +13,10 @@ import json
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
 from app.config import Settings
+from app.main import app
 
 
 def _assert_contract(tenants: list) -> None:
@@ -70,9 +72,28 @@ def test_integrity_and_inca_share_backend_credentials_but_keep_distinct_branding
     assert (inca.logo, inca.skin_name) != (integrity.logo, integrity.skin_name)
 
 
-def test_integrity_and_inca_brand_assets_are_packaged_and_visually_distinct():
+def test_mts_test_uses_the_accepted_web2_credentials_and_branding():
+    """MTS test must use the API-key/backend pair accepted by Guide Portal."""
+    settings = Settings(
+        secret_key="test-secret",
+        api_key_json_path="config/apikey.json.example",
+    )
+
+    mts_test = settings.get_company_config("MTS", "Test")
+    mts_production = settings.get_company_config("MTS", "Production")
+
+    assert mts_test.api_url == mts_production.api_url == "https://web2.tourcube.net"
+    assert mts_test.api_key == mts_production.api_key
+    assert (mts_test.logo, mts_test.skin_name) == ("mts-logo.jpg", "theme-mts")
+
+
+def test_configured_brand_assets_are_packaged_and_visually_distinct():
     """Every configured logo and skin must ship in the deployment artifact."""
     assets = {
+        "MTS": (
+            Path("static/images/mts-logo.jpg"),
+            Path("static/css/skins/theme-mts.css"),
+        ),
         "INCA": (
             Path("static/images/inca-logo.svg"),
             Path("static/css/skins/theme-inca.css"),
@@ -88,6 +109,11 @@ def test_integrity_and_inca_brand_assets_are_packaged_and_visually_distinct():
         assert skin.is_file(), f"missing branded skin: {skin}"
         assert logo.stat().st_size > 0
         assert skin.stat().st_size > 0
+
+    client = TestClient(app)
+    for logo, skin in assets.values():
+        assert client.get(f"/static/images/{logo.name}").status_code == 200
+        assert client.get(f"/static/css/skins/{skin.name}").status_code == 200
 
     assert assets["INCA"][0].read_bytes() != assets["IG"][0].read_bytes()
     assert assets["INCA"][1].read_bytes() != assets["IG"][1].read_bytes()
