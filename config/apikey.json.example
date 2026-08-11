@@ -22,17 +22,19 @@
             "CompanyID": "MTS",
             "Test": "REDACTED",
             "Production": "REDACTED",
-            "TestURL": "https://test-2.tourcube.net",
-            "ProductionURL": "https://test-2.tourcube.net",
+            "TestURL": "https://web2.tourcube.net",
+            "ProductionURL": "https://web2.tourcube.net",
             "TestDomains": [],
             "ProductionDomains": [],
             "HTMLHeader": "",
             "HTMLFooter": "",
             "TourcubeOnline": true,
             "TourcubeRootDrive": "c",
-            "SkinName": "",
+            "SkinName": "theme-mts",
             "PWAEnabled": false,
-            "OfflineDocumentsEnabled": false
+            "OfflineDocumentsEnabled": false,
+            "Logo": "mts-logo.jpg",
+            "LoginBackground": ""
         },
         {
             "CompanyID": "INCA",
