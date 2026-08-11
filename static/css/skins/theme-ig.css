@@ -1,0 +1,686 @@
+/*!
+ * Theme: IG (Integrity Galapagos)
+ * Package: DashLite v3.3.0
+ * Updated: 03.19.2026
+ * Author: TourCube
+ * Author URI: https://tourcube.com
+**/
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap");
+.nk-header {
+  background: #f5f6fa;
+  border-bottom-color: #e5e9f2;
+}
+.nk-header.is-dark:not([class*=bg-]) {
+  background: #0f192a;
+}
+.nk-header.is-theme:not([class*=bg-]) {
+  background: rgb(68.2381679389, 71.0045801527, 49.7954198473);
+}
+
+.is-dark .nk-menu-link {
+  color: rgb(134.2278846154, 153.2471153846, 177.9721153846);
+}
+.is-dark .nk-menu-icon {
+  color: rgb(159.1394230769, 174.2355769231, 193.8605769231);
+}
+.is-dark .nk-menu-badge {
+  color: rgb(173.0733944954, 176.5596330275, 143.4403669725);
+  background: rgb(28.4210526316, 47.3684210526, 79.5789473684);
+}
+.is-dark .nk-menu-sub .active > .nk-menu-link,
+.is-dark .nk-menu-link:hover, .is-dark .active > .nk-menu-link,
+.is-dark .nk-menu-link:hover .nk-menu-icon, .is-dark .nk-menu-item.active > .nk-menu-link .nk-menu-icon, .is-dark .nk-menu-item.current-menu > .nk-menu-link .nk-menu-icon {
+  color: rgb(151.0825688073, 155.504587156, 113.495412844);
+}
+.is-dark .nk-news-icon .icon {
+  color: #7c805a;
+}
+.is-dark .nk-news-text .icon {
+  color: #8094ae;
+}
+.is-dark .nk-news-text p span {
+  color: rgba(128, 148, 174, 0.9);
+}
+.is-dark .user-name, .is-dark .nk-news-text p {
+  color: rgb(143.5697115385, 161.1177884615, 183.9302884615);
+}
+.is-dark .nk-quick-nav-icon {
+  color: rgb(159.1394230769, 174.2355769231, 193.8605769231);
+}
+
+.is-theme .nk-menu-link {
+  color: rgb(176.8298342541, 183.1679558011, 135.6320441989);
+}
+.is-theme .nk-menu-icon {
+  color: rgb(193.5104972376, 198.4961325967, 161.1038674033);
+}
+.is-theme .nk-menu-badge {
+  color: rgb(195.0642201835, 197.6146788991, 173.3853211009);
+  background: rgb(97.0473282443, 100.9816793893, 70.8183206107);
+}
+.is-theme .nk-news-icon .icon {
+  color: rgb(162.0779816514, 166.0321100917, 128.4678899083);
+}
+.is-theme .nk-news-text .icon, .is-theme .nk-quick-nav-icon, .is-theme .overline-title {
+  color: #b5bb8e;
+}
+.is-theme .nk-news-text p span, .is-theme .nk-menu-heading .overline-title {
+  color: rgba(181, 187, 142, 0.8);
+}
+.is-theme .user-name, .is-theme .nk-news-text p {
+  color: rgb(191.4254143646, 196.5801104972, 157.9198895028);
+}
+
+.card-tools-nav li a:before,
+.nav-tabs .nav-link:after,
+.progress-bar, .dot-primary,
+.alert-fill.alert-primary,
+.bg-primary,
+.icon-circle,
+.noUi-connect,
+.nk-kycfm-label::after,
+.plan-item-card:after,
+.nk-msg-menu-item a:after,
+.ui-shady .nk-msg-item.active:after, .ui-shady .nk-msg-item.current:after,
+.ui-softy .nk-msg-item.active:after, .ui-softy .nk-msg-item.current:after {
+  background: #7c805a;
+}
+
+.card-bordered.is-dark {
+  border-color: #4a4d36;
+}
+
+.card.is-dark {
+  background: #4a4d36;
+}
+
+.user-avatar, [class^=user-avatar]:not([class*=-group]) {
+  background: rgb(151.0825688073, 155.504587156, 113.495412844);
+}
+
+.nk-news-item:hover .nk-news-text .icon {
+  color: rgb(151.0825688073, 155.504587156, 113.495412844);
+}
+
+.nk-menu-link:hover,
+.nk-menu-link:hover .nk-menu-icon,
+.nk-menu-item.active > .nk-menu-link .nk-menu-icon,
+.nk-menu-item.current-menu > .nk-menu-link .nk-menu-icon,
+.nk-menu-link:hover .count,
+.nk-menu-sub .nk-menu-link:hover,
+.nk-menu-sub .active > .nk-menu-link,
+.nk-menu-main .nk-menu-link:hover,
+.nk-menu-main .nk-menu-link:focus,
+.nk-menu-main .nk-menu-item.active > .nk-menu-link,
+.nk-menu-main .nk-menu-item.current-menu > .nk-menu-link,
+.nk-menu-main .nk-menu-item:hover > .nk-menu-link,
+.is-light .nk-menu-link:hover, .is-light .active > .nk-menu-link,
+.active > .nk-menu-link,
+.active > .nk-menu-link .count,
+.nav-tabs .nav-link:focus,
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.active .nav-link,
+.nk-menu-footer .nk-menu-icon,
+.nk-menu-footer .nk-menu-link:hover,
+.nk-footer-copyright a:hover,
+.page-link:hover,
+.list-plain a:hover,
+.link-check li a:hover,
+.link-list a:hover,
+.link-list-opt a:hover,
+.link-list-plain a:hover,
+.link-list-menu li.active > a,
+.link-list-menu a.active,
+.link-list-menu a:hover,
+.link-list-menu li.active > a .icon,
+.link-list-menu a.active .icon,
+.link-list-menu a:hover .icon,
+.link-list-menu li.active > a:after,
+.link-list-menu a.active:after,
+.link-list-menu a:hover:after,
+.list-checked li:before,
+.list-step li.list-step-current:before,
+.accordion-s2 .accordion-head .title,
+.accordion-s3 .accordion-head .title,
+.bg-outline-primary,
+.badge-dim.bg-primary,
+.badge-dot.bg-primary,
+.badge-dim.bg-outline-primary,
+.alert-primary,
+.form-clip,
+.form-text-hint,
+.search-submit:hover,
+.nk-news-icon .icon,
+.nk-refwg-name .title,
+.nk-iv-wg1-info, .nk-wg4-note span,
+.nk-iv-scheme-item .amount-ex,
+.nk-kycfm-control:checked ~ .nk-kycfm-label .label-icon,
+.attach-item .icon,
+.attach-download:hover span,
+.nk-reply-meta-info .whom,
+.nk-msg-tags li > span .icon,
+.nk-msg-menu-item a:hover,
+.nk-msg-menu-item.active a,
+.user-balance,
+.user-avatar[class*=-primary-dim],
+.nk-order-ovwg-data.sell .amount,
+.nk-order-ovwg-data.sell .title .icon,
+.nk-wg-action-content p strong, a,
+.dropzone .dz-message-text span,
+.nk-switch-icon.active,
+.link-list-plain a .icon,
+.chat-upload-option a,
+.is-unread .chat-context .status,
+.add-opt:hover .sub-text, .add-opt:hover .icon,
+.icon[class*=bg-primary-dim] {
+  color: #7c805a;
+}
+
+a:hover {
+  color: rgb(100.7926605505, 104.0440366972, 73.1559633028);
+}
+
+.text-primary, .link-primary {
+  color: #7c805a !important;
+}
+
+.link-primary:hover, a.text-primary:hover, a.text-primary:focus, .chat-upload-option a:hover {
+  color: rgb(100.7926605505, 104.0440366972, 73.1559633028) !important;
+}
+
+.border-primary, .nk-kycfm-control:checked ~ .nk-kycfm-label {
+  border-color: #7c805a !important;
+}
+
+.bg-lighter {
+  background-color: #f5f6fa !important;
+}
+
+.bg-primary {
+  background-color: #7c805a !important;
+}
+
+a.bg-primary:hover, a.bg-primary:focus, button.bg-primary:hover, button.bg-primary:focus {
+  background-color: rgb(94.9908256881, 98.0550458716, 68.9449541284) !important;
+}
+
+.bg-primary-dim {
+  background-color: rgb(241.9, 242.3, 238.5) !important;
+}
+
+.text-primary-dim {
+  color: rgb(241.9, 242.3, 238.5) !important;
+}
+
+.alert-primary, .badge-dim.bg-outline-primary {
+  background-color: rgb(241.9, 242.3, 238.5);
+  border-color: rgb(202.6, 204.2, 189);
+}
+
+.alert-pro.alert-primary, .bg-primary,
+.plan-control:checked + .plan-item-card,
+.form-control:focus,
+.form-control.focus,
+.form-file-input:focus ~ .form-file-label,
+.custom-control-input:focus:not(:checked) ~ .custom-control-label::before,
+.select2-container--default .select2-selection--single:focus,
+.select2-container--default.select2-container--focus .select2-selection--multiple {
+  border-color: #7c805a;
+}
+
+.nk-order-ovwg-data.sell, .bg-outline-primary {
+  border-color: rgb(202.6, 204.2, 189);
+}
+
+.dropdown-menu-s1 {
+  border-top-color: #7c805a;
+}
+
+.nk-iv-wg2-amount.ui-v2 {
+  border-bottom-color: #7c805a;
+}
+
+.page-item.active .page-link,
+.plan-control:checked + .plan-item-card .plan-label,
+.custom-control-input:checked ~ .custom-control-label::before,
+.custom-control-input:not(:disabled):active ~ .custom-control-label::before {
+  background-color: #7c805a;
+  border-color: #7c805a;
+}
+
+.custom-checkbox .custom-control-input:disabled:checked ~ .custom-control-label::before,
+.custom-radio .custom-control-input:disabled:checked ~ .custom-control-label::before,
+.custom-switch .custom-control-input:disabled:checked ~ .custom-control-label::before {
+  background-color: rgb(176.4, 178.8, 156);
+}
+
+.form-check-input:checked {
+  background-color: #7c805a;
+  border-color: #7c805a;
+}
+
+.form-check-input:focus {
+  border-color: rgb(189.5, 191.5, 172.5);
+  box-shadow: 0 0 0 0.25rem rgba(124, 128, 90, 0.25);
+}
+
+.form-check-input[type=checkbox]:indeterminate {
+  background-color: #7c805a;
+  border-color: #7c805a;
+}
+
+.badge-dim.bg-primary {
+  background-color: rgb(241.9, 242.3, 238.5);
+  border-color: rgb(241.9, 242.3, 238.5);
+}
+
+.bg-primary.badge-dot {
+  background: transparent !important;
+}
+
+.nk-error-head {
+  background: -webkit-linear-gradient(#7c805a, rgb(102.8091603053, 106.9770992366, 75.0229007634));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nav-switch .nav-link.active {
+  background: #7c805a;
+  color: #ffffff;
+}
+
+.icon-avatar, .nk-iv-scheme-icon.is-running {
+  color: #7c805a;
+  background-color: rgb(235.35, 235.95, 230.25);
+}
+
+.is-dark .nk-wgw-icon {
+  background: rgb(150.2, 153.4, 123);
+}
+
+.is-dark .nk-iv-wg2-title .title {
+  color: #b5bb8e;
+}
+
+.is-theme .nk-quick-nav-icon:before {
+  background-color: rgb(45.1908396947, 47.0229007634, 32.9770992366);
+}
+
+.btn-primary {
+  background-color: #7c805a;
+  border-color: #7c805a;
+}
+.btn-primary:hover {
+  background-color: rgb(112.3963302752, 116.0220183486, 81.5779816514);
+  border-color: rgb(106.5944954128, 110.0330275229, 77.3669724771);
+}
+.btn-primary:focus {
+  background-color: rgb(112.3963302752, 116.0220183486, 81.5779816514);
+  border-color: rgb(106.5944954128, 110.0330275229, 77.3669724771);
+}
+.btn-primary.btn-dim {
+  color: #7c805a;
+  background-color: rgb(240.59, 241.03, 236.85);
+  border-color: rgb(240.59, 241.03, 236.85);
+}
+
+.btn-dim.btn-outline-primary {
+  color: #7c805a;
+  background-color: rgb(240.59, 241.03, 236.85);
+  border-color: rgb(202.6, 204.2, 189);
+}
+.btn-dim.btn-outline-primary.btn-white {
+  background-color: #ffffff;
+}
+
+.btn-outline-primary {
+  border-color: #7c805a;
+  color: #7c805a;
+}
+.btn-outline-primary:hover {
+  background-color: #7c805a;
+  border-color: #7c805a;
+}
+
+.btn-primary:not(:disabled):not(.disabled):active,
+.btn-primary:not(:disabled):not(.disabled).active,
+.show > .btn-primary.dropdown-toggle {
+  background-color: rgb(115.2972477064, 119.0165137615, 83.6834862385);
+  border-color: rgb(112.3963302752, 116.0220183486, 81.5779816514);
+}
+
+.btn-primary:focus,
+.btn-outline-primary:focus,
+.btn-primary:not(:disabled):not(.disabled):active,
+.btn-primary:not(:disabled):not(.disabled):active:focus,
+.btn-primary.btn-dim:focus,
+.btn-primary.btn-dim:not(:disabled):not(.disabled):active,
+.btn-primary.btn-dim:not(:disabled):not(.disabled):active:focus,
+.btn-dim.btn-outline-primary:focus,
+.btn-dim.btn-outline-primary:not(:disabled):not(.disabled):active,
+.btn-dim.btn-outline-primary:not(:disabled):not(.disabled):active:focus,
+.show > .btn-primary.dropdown-toggle:focus,
+.btn-outline-primary:not(:disabled):not(.disabled):active,
+.btn-outline-primary:not(:disabled):not(.disabled):active:focus,
+.btn-outline-primary:not(:disabled):not(.disabled).active,
+.btn-outline-primary:not(:disabled):not(.disabled).active:focus,
+.show > .btn-outline-primary.dropdown-toggle,
+.show > .btn-outline-primary.dropdown-toggle:focus {
+  box-shadow: 0 0 0 0.2rem rgba(124, 128, 90, 0.2);
+}
+
+.btn-outline-light:focus, .btn-outline-light.focus,
+.btn-outline-light:not(:disabled):not(.disabled):active:focus,
+.btn-outline-light:not(:disabled):not(.disabled).active:focus,
+.show > .btn-outline-light.dropdown-toggle:focus {
+  box-shadow: 0 0 0 0.2rem rgba(128, 148, 174, 0.1);
+}
+
+.btn-trigger:focus {
+  box-shadow: none;
+}
+
+.form-control:focus, .form-control.focus,
+.custom-control-input:focus ~ .custom-control-label::before,
+.form-file-input:focus ~ .form-file-label,
+.select2-container--default .select2-selection--single:focus,
+.select2-container--default.select2-container--focus .select2-selection--multiple {
+  box-shadow: 0 0 0 3px rgba(124, 128, 90, 0.1);
+}
+
+.form-control-simple:focus {
+  box-shadow: none;
+}
+
+.btn-primary.btn-dim:not(:disabled):not(.disabled):hover,
+.btn-dim.btn-outline-primary:not(:disabled):not(.disabled):hover,
+.btn-outline-primary:not(:disabled):not(.disabled):active,
+.btn-outline-primary:not(:disabled):not(.disabled).active,
+.show > .btn-outline-primary.dropdown-toggle,
+.btn-primary.disabled, .btn-primary:disabled,
+.invest-amount-control:checked ~ .invest-amount-label {
+  background-color: #7c805a;
+  border-color: #7c805a;
+}
+
+.form-focus-none:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+@media (min-width: 992px) {
+  .nk-menu-main > li > .nk-menu-link:before {
+    background: #7c805a;
+  }
+  .is-theme .nk-menu-main > li > .nk-menu-link {
+    color: #b5bb8e;
+  }
+  .is-theme .nk-menu-main > li > .nk-menu-link.nk-menu-toggle:after {
+    color: rgba(181, 187, 142, 0.7);
+  }
+}
+.datepicker table tr td.today, .datepicker table tr td.today:hover, .datepicker table tr td.today.disabled, .datepicker table tr td.today.disabled:hover {
+  background-color: rgb(235.35, 235.95, 230.25);
+  color: #7c805a;
+}
+
+.datepicker table tr td.today:hover, .datepicker table tr td.today:hover:hover,
+.datepicker table tr td.today.disabled:hover, .datepicker table tr td.today.disabled:hover:hover,
+.datepicker table tr td.today:active, .datepicker table tr td.today:hover:active,
+.datepicker table tr td.today.disabled:active, .datepicker table tr td.today.disabled:hover:active,
+.datepicker table tr td.today.active, .datepicker table tr td.today:hover.active,
+.datepicker table tr td.today.disabled.active, .datepicker table tr td.today.disabled:hover.active,
+.datepicker table tr td.today.disabled, .datepicker table tr td.today:hover.disabled,
+.datepicker table tr td.today.disabled.disabled, .datepicker table tr td.today.disabled:hover.disabled,
+.datepicker table tr td.today[disabled], .datepicker table tr td.today:hover[disabled],
+.datepicker table tr td.today.disabled[disabled], .datepicker table tr td.today.disabled:hover[disabled] {
+  background-color: rgb(149.2679558011, 157.638121547, 94.861878453);
+}
+
+.datepicker table tr td.active:active, .datepicker table tr td.active:hover:active,
+.datepicker table tr td.active.disabled:active, .datepicker table tr td.active.disabled:hover:active,
+.datepicker table tr td.active.active, .datepicker table tr td.active:hover.active,
+.datepicker table tr td.active.disabled.active, .datepicker table tr td.active.disabled:hover.active,
+.datepicker table tr td span:hover, .datepicker table tr td span.focused {
+  background-color: #7c805a;
+}
+
+.code-tag {
+  color: blue;
+}
+
+.alert-pro {
+  background: #ffffff;
+  color: #4b4949;
+}
+
+.nk-menu-badge, .nk-menu-main .nk-menu-sub .nk-menu-badge {
+  color: rgb(163.3, 166.1, 139.5);
+  background-color: rgb(241.9, 242.3, 238.5);
+}
+
+.is-theme .nk-sidebar-footer, .nk-apps-sidebar.is-theme, .is-theme .nk-sidebar-profile-fixed {
+  background: rgb(68.2381679389, 71.0045801527, 49.7954198473);
+  border-color: rgb(97.0473282443, 100.9816793893, 70.8183206107);
+}
+
+.is-theme .nk-menu-footer .nk-menu-link, .is-theme .sub-text, .is-theme .lead-text span {
+  color: #b5bb8e;
+}
+
+.nav-switch-s2 .nav-link:hover, .nav-switch-s2 .nav-link:focus {
+  color: #4b4949;
+}
+
+.nav-switch-s2 .nav-link.active {
+  color: #121212;
+}
+
+.active .nk-ibx-menu-text,
+.active .nk-ibx-menu-item .icon,
+.nk-reply-form-nav li a:hover,
+.nk-reply-form-input .toggle-opt:hover {
+  color: #7c805a;
+}
+
+.nk-ibx-menu li.active {
+  background: rgb(244.52, 244.84, 241.8);
+}
+
+.nk-fmg-menu li.active {
+  background: rgb(244.52, 244.84, 241.8);
+}
+
+.nk-file-name .asterisk .icon, .nk-file-name-text a.title:hover,
+.nk-file-link:hover .title, .active .nk-fmg-menu-item .icon, .active .nk-fmg-menu-text {
+  color: #7c805a;
+}
+
+.nk-files-view-list .nk-file.selected {
+  background-color: #eef0e4;
+}
+
+.chat.is-me .chat-msg {
+  background-color: #7c805a;
+}
+
+.kanban-add-task {
+  color: #7c805a;
+}
+.kanban-add-task:hover {
+  background: #7c805a;
+  border-color: #7c805a;
+}
+
+.actions ul li a {
+  border-color: #7c805a;
+  background: #7c805a;
+}
+
+.nk-wizard-simple .steps ul li.done h5, .nk-wizard-simple .steps ul li.done .number, .nk-wizard-simple .steps ul li.current h5, .nk-wizard-simple .steps ul li.current .number {
+  color: #7c805a;
+}
+
+.nk-wizard-simple .steps ul li:after {
+  background: #7c805a;
+}
+
+.invoice-contact ul .icon, .invoice-desc .title, .invoice-bills .table th {
+  color: #7c805a;
+}
+
+.product-gallery .slider-nav .slider-item.slick-current .thumb,
+.custom-control-pro.no-control .custom-control-input:checked ~ .custom-control-label,
+.custom-control-pro.no-control .custom-control-input:not(:disabled):active ~ .custom-control-label,
+.custom-control.color-control .custom-control-label:before {
+  border-color: #7c805a !important;
+}
+
+.nk-stepper-nav > * .step-item:before,
+.nk-stepper-nav > * .step-item:after {
+  color: #7c805a;
+  background: rgba(124, 128, 90, 0.15);
+}
+
+.nk-stepper-nav > *.current .step-item:before,
+.nk-stepper-nav > *.current .step-item:after {
+  color: #fff;
+  background: #7c805a;
+}
+
+.nk-stepper-nav > *.done .step-item:before,
+.nk-stepper-nav > *.done .step-item:after {
+  color: #7c805a;
+  background: rgba(124, 128, 90, 0.15);
+}
+
+.nk-stepper-nav-s2 > *.current .step-item {
+  border-left-color: #7c805a;
+}
+
+body,
+.nk-body,
+.nk-wrap,
+.nk-header,
+.nk-sidebar,
+.nk-menu,
+.nk-menu-link,
+.nk-content,
+.card,
+.btn,
+.form-control,
+.dropdown-menu,
+.modal,
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6,
+.title, .lead-text, .sub-text,
+.overline-title, .caption-text {
+  font-family: "Open Sans", sans-serif;
+}
+
+.nk-header h3,
+.nk-header .title,
+.nk-header-wrap h3,
+.nk-header-center h3,
+.nk-content h3,
+.nk-wrap h3,
+.nk-block h3,
+.nk-block-head h3,
+.nk-block-head-content h3,
+.page-title h3,
+h3.title,
+h3.nk-block-title {
+  font-family: "Open Sans", sans-serif !important;
+}
+
+h1, h2, .h1, .h2 {
+  font-weight: 300;
+  letter-spacing: 1px;
+}
+
+h3, h4, h5, h6,
+.h3, .h4, .h5, .h6,
+.overline-title {
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+.page-title h3,
+h3.nk-block-title,
+.nk-block-head-content h3,
+.title, .nk-block-title {
+  font-weight: 300;
+}
+
+body, p, span, li, td, th, label,
+.sub-text, .lead-text, .caption-text {
+  font-weight: 400;
+}
+
+.nk-menu-link,
+.nav-tabs .nav-link,
+.nav-switch .nav-link,
+[role=tab] {
+  font-weight: 400;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.btn {
+  font-weight: 400;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.nk-wizard-simple .steps ul li h5,
+.nk-wizard-simple .steps ul li .number {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 300;
+}
+
+.btn,
+.form-control,
+.form-select,
+.input-group,
+.input-group-text,
+.custom-select,
+.custom-file-label,
+.card,
+.alert,
+.badge,
+.modal-content,
+.dropdown-menu,
+.nav-tabs .nav-link,
+.user-avatar {
+  border-radius: 0 !important;
+}
+/* Form status semantic variables (Phase 3 — UI redesign aligned with guide portal) */
+:root {
+  --trip-label-color: #8a8c6e;
+  --form-border-pending: #b45309;
+  --form-border-submitted: #65a30d;
+  --form-border-overdue: #b91c1c;
+  --form-icon-pending: #b45309;
+  --form-icon-submitted: #65a30d;
+  --form-icon-overdue: #b91c1c;
+}
+
+/* Form cards with colored left border and hover shadow */
+.form-card-pending,
+.form-card-submitted,
+.form-card-overdue {
+  transition: box-shadow 0.2s ease;
+}
+.form-card-pending:hover,
+.form-card-submitted:hover,
+.form-card-overdue:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+.form-card-pending { border-left: 4px solid var(--form-border-pending) !important; }
+.form-card-submitted { border-left: 4px solid var(--form-border-submitted) !important; }
+.form-card-overdue { border-left: 4px solid var(--form-border-overdue) !important; }
+.form-icon-pending { color: var(--form-icon-pending); }
+.form-icon-submitted { color: var(--form-icon-submitted); }
+.form-icon-overdue { color: var(--form-icon-overdue); }
+.form-overdue-text { color: var(--form-icon-overdue); }

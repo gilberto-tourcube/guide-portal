@@ -33,6 +33,42 @@
             "SkinName": "",
             "PWAEnabled": false,
             "OfflineDocumentsEnabled": false
+        },
+        {
+            "CompanyID": "INCA",
+            "Test": "REDACTED",
+            "Production": "REDACTED",
+            "TestURL": "https://web2.tourcube.net",
+            "ProductionURL": "https://web2.tourcube.net",
+            "TestDomains": [],
+            "ProductionDomains": [],
+            "HTMLHeader": "",
+            "HTMLFooter": "",
+            "TourcubeOnline": true,
+            "TourcubeRootDrive": "c",
+            "SkinName": "theme-inca",
+            "PWAEnabled": false,
+            "OfflineDocumentsEnabled": false,
+            "Logo": "inca-logo.svg",
+            "LoginBackground": ""
+        },
+        {
+            "CompanyID": "IG",
+            "Test": "REDACTED",
+            "Production": "REDACTED",
+            "TestURL": "https://web2.tourcube.net",
+            "ProductionURL": "https://web2.tourcube.net",
+            "TestDomains": [],
+            "ProductionDomains": [],
+            "HTMLHeader": "",
+            "HTMLFooter": "",
+            "TourcubeOnline": true,
+            "TourcubeRootDrive": "c",
+            "SkinName": "theme-ig",
+            "PWAEnabled": false,
+            "OfflineDocumentsEnabled": false,
+            "Logo": "ig-logo.png",
+            "LoginBackground": ""
         }
     ]
 }
