@@ -121,3 +121,51 @@ def test_integrity_keeps_its_brand_while_using_inca_backend():
     assert (integrity.logo, integrity.skin_name) == ("ig-logo.png", "theme-ig")
     assert (integrity.logo, integrity.skin_name) != (inca.logo, inca.skin_name)
     assert (integrity.api_url, integrity.api_key) == (inca.api_url, inca.api_key)
+
+
+@pytest.mark.asyncio
+async def test_guide_hash_with_explicit_company_code_and_no_mode_reaches_guide_home(
+    secure_client, reset_debug, example_tenant_config, monkeypatch
+):
+    """Regression guard for PR #70: explicit companyCode with guideHash and no
+    mode, on a Production host mapped to the SAME tenant, must still reach
+    the guide-home bypass — not a neutral 400. This is the guides'
+    auto-login entry point on the live MTS Production host.
+
+    GuideHashMiddleware (app/main.py) intercepts any request carrying
+    guide_hash/guideHash before it reaches a route handler and tries to
+    resolve it via the real Tourcube API. Mock that lookup here (as
+    tests/test_no_default_tenant_leak.py does for the same middleware) so
+    this test exercises resolve_company_and_mode's routing decision instead
+    of making a live network call.
+    """
+    settings.debug = False
+    monkeypatch.setattr(
+        settings,
+        "_domain_map",
+        {"mts.guideportal.tourcube.net": ("MTS", "Production")},
+    )
+
+    async def fake_get_guide_id_by_hash(*args, **kwargs):
+        return 1
+
+    async def fake_get_guide_homepage(*args, **kwargs):
+        raise RuntimeError("homepage lookup is best-effort and should be skipped in this test")
+
+    monkeypatch.setattr(
+        "app.main.guide_service.get_guide_id_by_hash", fake_get_guide_id_by_hash
+    )
+    monkeypatch.setattr(
+        "app.main.guide_service.get_guide_homepage", fake_get_guide_homepage
+    )
+
+    response = await secure_client.get(
+        "/?guideHash=ABC123&companyCode=MTS",
+        headers={"x-forwarded-host": "mts.guideportal.tourcube.net"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["location"] == (
+        "/guide/home?company_code=MTS&mode=Production&guide_hash=ABC123"
+    )

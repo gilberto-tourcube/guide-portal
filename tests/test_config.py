@@ -69,6 +69,39 @@ def test_resolve_company_and_mode_does_not_leak_default_tenant():
     assert mode is None
 
 
+def test_resolve_company_and_mode_inherits_mode_from_matching_host():
+    """Regression guard for PR #70: an explicit company_code with no mode
+    must still inherit the mapped mode when the host maps to the SAME
+    tenant (e.g. the guide_hash auto-login entry point, which supplies
+    company_code but not mode)."""
+    settings = _settings()
+    settings._domain_map = {
+        "guideportal.tourcube.net": ("WT", "Production"),
+    }
+
+    assert settings.resolve_company_and_mode(
+        company_code="WT",
+        mode=None,
+        host="guideportal.tourcube.net",
+    ) == ("WT", "Production")
+
+
+def test_resolve_company_and_mode_does_not_inherit_mode_from_mismatched_host():
+    """A host mapped to a DIFFERENT tenant must never supply a mode (or
+    tenant identity) for an explicitly requested company code — the
+    hardening PR #70 introduced must survive the mode-inheritance fix."""
+    settings = _settings()
+    settings._domain_map = {
+        "mts.guideportal.tourcube.net": ("MTS", "Production"),
+    }
+
+    assert settings.resolve_company_and_mode(
+        company_code="WT",
+        mode=None,
+        host="mts.guideportal.tourcube.net",
+    ) == ("WT", None)
+
+
 def test_resolve_company_and_mode_loads_domain_map_lazily(tmp_path):
     """Host-based tenant resolution must work on a cold Settings instance.
 

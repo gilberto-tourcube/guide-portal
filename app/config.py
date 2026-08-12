@@ -236,19 +236,34 @@ class Settings(BaseSettings):
         if mode is not None and normalized_mode is None:
             return normalized_company_code, None
 
-        # An explicit company code always wins over the hostname, even if it
-        # is unknown. Callers will reject the unknown value instead of using a
-        # host-mapped WT (or any other) tenant.
-        if normalized_company_code:
-            return normalized_company_code, normalized_mode
-
-        # Try host mapping. Load configs lazily so a cold process can resolve
-        # tenant context by Host before any route has called get_company_config.
+        # Resolve the host mapping BEFORE deciding on the explicit-company-code
+        # early return. This must happen even when an explicit company_code is
+        # present, otherwise a caller that supplies company_code but omits mode
+        # (e.g. the guide_hash auto-login entry point) never gets a mode at
+        # all, and callers that gate on `if not mode` treat a perfectly valid
+        # explicit-tenant request as unresolved.
         norm_host = self._normalize_host(host)
         if norm_host and self._domain_map is None:
             self._load_company_configs()
+        mapped_company, mapped_mode = (None, None)
         if norm_host and self._domain_map and norm_host in self._domain_map:
             mapped_company, mapped_mode = self._domain_map[norm_host]
+
+        # An explicit company code always wins over the hostname, even if it
+        # is unknown. Callers will reject the unknown value instead of using a
+        # host-mapped WT (or any other) tenant. The host's mode may only be
+        # inherited when the host maps to the SAME tenant as the explicit
+        # company code — a host for tenant A must never supply a mode (or a
+        # tenant identity) for an explicitly requested tenant B.
+        if normalized_company_code:
+            if normalized_mode:
+                return normalized_company_code, normalized_mode
+            if mapped_company == normalized_company_code and mapped_mode:
+                return normalized_company_code, mapped_mode
+            return normalized_company_code, None
+
+        # No explicit company code: fall back to the host mapping in full.
+        if mapped_company:
             return mapped_company, normalized_mode or mapped_mode
 
         # No default-tenant fallback. Return whatever the caller supplied
