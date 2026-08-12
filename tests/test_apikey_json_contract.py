@@ -72,19 +72,37 @@ def test_integrity_and_inca_share_backend_credentials_but_keep_distinct_branding
     assert (inca.logo, inca.skin_name) != (integrity.logo, integrity.skin_name)
 
 
-def test_mts_test_uses_the_accepted_web2_credentials_and_branding():
-    """MTS test must use the API-key/backend pair accepted by Guide Portal."""
+def _assert_mts_test_isolated_from_production(path: str) -> None:
+    """MTS Test must use the dedicated test backend and API key."""
     settings = Settings(
         secret_key="test-secret",
-        api_key_json_path="config/apikey.json.example",
+        api_key_json_path=path,
     )
 
-    mts_test = settings.get_company_config("MTS", "Test")
-    mts_production = settings.get_company_config("MTS", "Production")
+    mts_test_url, mts_test_key = settings.get_api_credentials("MTS", "Test")
+    mts_production_url, mts_production_key = settings.get_api_credentials(
+        "MTS", "Production"
+    )
+    mts_branding = settings.get_company_config("MTS", "Test")
 
-    assert mts_test.api_url == mts_production.api_url == "https://web2.tourcube.net"
-    assert mts_test.api_key == mts_production.api_key
-    assert (mts_test.logo, mts_test.skin_name) == ("mts-logo.jpg", "theme-mts")
+    assert mts_test_url == "https://test-2.tourcube.net"
+    assert mts_production_url == "https://web2.tourcube.net"
+    assert mts_test_key != mts_production_key
+    assert (mts_branding.logo, mts_branding.skin_name) == (
+        "mts-logo.jpg",
+        "theme-mts",
+    )
+
+
+def test_mts_example_isolates_test_from_production():
+    _assert_mts_test_isolated_from_production("config/apikey.json.example")
+
+
+def test_mts_live_config_isolates_test_from_production_when_present():
+    path = Path("config/apikey.json")
+    if not path.exists():
+        pytest.skip("config/apikey.json not present locally — CI or fresh env")
+    _assert_mts_test_isolated_from_production(str(path))
 
 
 def test_configured_brand_assets_are_packaged_and_visually_distinct():
