@@ -75,7 +75,7 @@
         {
             "CompanyID": "SLV",
             "Test": "REDACTED_TEST_KEY",
-            "Production": "REDACTED_PRODUCTION_KEY",
+            "Production": "",
             "TestURL": "https://test-2.tourcube.net",
             "ProductionURL": "https://web2.tourcube.net",
             "TestDomains": [],
@@ -93,7 +93,7 @@
         {
             "CompanyID": "ARN",
             "Test": "REDACTED_TEST_KEY",
-            "Production": "REDACTED_PRODUCTION_KEY",
+            "Production": "",
             "TestURL": "https://test-2.tourcube.net",
             "ProductionURL": "https://web2.tourcube.net",
             "TestDomains": [],
@@ -111,7 +111,7 @@
         {
             "CompanyID": "EXC",
             "Test": "REDACTED_TEST_KEY",
-            "Production": "REDACTED_PRODUCTION_KEY",
+            "Production": "",
             "TestURL": "https://test-2.tourcube.net",
             "ProductionURL": "https://web2.tourcube.net",
             "TestDomains": [],
@@ -129,7 +129,7 @@
         {
             "CompanyID": "BJ",
             "Test": "REDACTED_TEST_KEY",
-            "Production": "REDACTED_PRODUCTION_KEY",
+            "Production": "",
             "TestURL": "https://test-2.tourcube.net",
             "ProductionURL": "https://web2.tourcube.net",
             "TestDomains": [],
@@ -147,7 +147,7 @@
         {
             "CompanyID": "CTJ",
             "Test": "REDACTED_TEST_KEY",
-            "Production": "REDACTED_PRODUCTION_KEY",
+            "Production": "",
             "TestURL": "https://test-2.tourcube.net",
             "ProductionURL": "https://web2.tourcube.net",
             "TestDomains": [],

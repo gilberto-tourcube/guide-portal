@@ -160,12 +160,37 @@ def test_shared_tenant_example_has_environment_and_branding_contract():
         assert settings.get_api_credentials(company_code, "Test")[0] == (
             "https://test-2.tourcube.net"
         )
-        assert settings.get_api_credentials(company_code, "Production")[0] == (
-            "https://web2.tourcube.net"
+        test_url, test_key = settings.get_api_credentials(company_code, "Test")
+        production_url, production_key = settings.get_api_credentials(
+            company_code, "Production"
         )
+        assert test_url == "https://test-2.tourcube.net"
+        assert test_key
+        assert production_url == "https://web2.tourcube.net"
+        assert production_key == ""
+        assert production_key != test_key
         assert (test.logo, test.skin_name) == (logo, skin)
         assert test.pwa_enabled is False
         assert test.offline_documents_enabled is True
+
+
+def test_shared_tenant_live_config_is_test_only_when_present():
+    """The deploy candidate must fail closed for the five Production modes."""
+    path = Path("config/apikey.json")
+    if not path.exists():
+        pytest.skip("config/apikey.json not present locally — CI or fresh env")
+
+    settings = Settings(secret_key="test-secret", api_key_json_path=str(path))
+    for company_code in SHARED_TENANTS:
+        test_url, test_key = settings.get_api_credentials(company_code, "Test")
+        production_url, production_key = settings.get_api_credentials(
+            company_code, "Production"
+        )
+        assert test_url == "https://test-2.tourcube.net"
+        assert test_key
+        assert production_url == "https://web2.tourcube.net"
+        assert production_key == ""
+        assert production_key != test_key
 
 
 def test_shared_tenant_login_pages_reference_their_brand_assets():
