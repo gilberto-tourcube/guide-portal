@@ -20,9 +20,9 @@
         },
         {
             "CompanyID": "MTS",
-            "Test": "REDACTED",
-            "Production": "REDACTED",
-            "TestURL": "https://web2.tourcube.net",
+            "Test": "REDACTED_TEST_KEY",
+            "Production": "REDACTED_PRODUCTION_KEY",
+            "TestURL": "https://test-2.tourcube.net",
             "ProductionURL": "https://web2.tourcube.net",
             "TestDomains": [],
             "ProductionDomains": [],
