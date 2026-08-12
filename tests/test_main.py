@@ -50,7 +50,7 @@ async def test_root_renders_neutral_error_without_tenant_context(
     body = response.text
     assert "Tenant Required" in body
     # Default-tenant leak guards: the env-var values must NOT appear anywhere.
-    assert settings.company_code not in body
+    assert "WT" not in body
     assert "Wilderness Travel" not in body
     # Make sure the page is not redirecting to a tenant-branded login.
     assert "location" not in {k.lower() for k in response.headers}

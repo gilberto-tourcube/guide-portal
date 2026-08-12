@@ -38,6 +38,10 @@ SKIN_COLORS = {
     "theme-red": "#e85347",
 }
 
+# Used only when a tenant has neither an explicit PWAThemeColor nor a known
+# skin mapping. Gray is deliberately tenant-neutral.
+DEFAULT_PWA_THEME_COLOR = "#6C757D"
+
 
 @router.get("/manifest.json")
 async def manifest(request: Request):
@@ -47,8 +51,7 @@ async def manifest(request: Request):
     surface anymore. Only opted-in tenants on mobile UAs receive a manifest.
     """
     company_code = (
-        request.query_params.get("companyCode")
-        or request.query_params.get("company_code")
+        settings.company_code_from_query(request.query_params)
         or request.session.get("company_code")
     )
     mode = (
@@ -71,7 +74,11 @@ async def manifest(request: Request):
         raise HTTPException(status_code=404)
 
     app_name = f"{config.company_id} Guide Portal"
-    theme_color = SKIN_COLORS.get(config.skin_name, "#0F4374")
+    theme_color = (
+        config.pwa_theme_color
+        or SKIN_COLORS.get(config.skin_name)
+        or DEFAULT_PWA_THEME_COLOR
+    )
     icons = []
     if config.favicon:
         icon_path = f"/static/images/{config.favicon}"

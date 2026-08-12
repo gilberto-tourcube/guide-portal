@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app.config import Settings
+from app.config import Settings, UnavailableCompanyModeError
 from app.main import app
 
 
@@ -58,6 +58,13 @@ def _assert_contract(tenants: list) -> None:
         assert "OfflineDocumentsEnabled" in entry, f"{cid} missing OfflineDocumentsEnabled"
         assert isinstance(entry["PWAEnabled"], bool), f"{cid} PWAEnabled not bool"
         assert isinstance(entry["OfflineDocumentsEnabled"], bool), f"{cid} OfflineDocumentsEnabled not bool"
+        if "PWAThemeColor" in entry:
+            color = entry["PWAThemeColor"]
+            assert isinstance(color, str), f"{cid} PWAThemeColor not string"
+            assert len(color) == 7 and color.startswith("#"), (
+                f"{cid} PWAThemeColor must use #RRGGBB"
+            )
+            int(color[1:], 16)
 
 
 def test_apikey_json_example_carries_pwa_schema():
@@ -161,14 +168,10 @@ def test_shared_tenant_example_has_environment_and_branding_contract():
             "https://test-2.tourcube.net"
         )
         test_url, test_key = settings.get_api_credentials(company_code, "Test")
-        production_url, production_key = settings.get_api_credentials(
-            company_code, "Production"
-        )
         assert test_url == "https://test-2.tourcube.net"
         assert test_key
-        assert production_url == "https://web2.tourcube.net"
-        assert production_key == ""
-        assert production_key != test_key
+        with pytest.raises(UnavailableCompanyModeError):
+            settings.get_api_credentials(company_code, "Production")
         assert (test.logo, test.skin_name) == (logo, skin)
         assert test.pwa_enabled is False
         assert test.offline_documents_enabled is True
@@ -183,14 +186,10 @@ def test_shared_tenant_live_config_is_test_only_when_present():
     settings = Settings(secret_key="test-secret", api_key_json_path=str(path))
     for company_code in SHARED_TENANTS:
         test_url, test_key = settings.get_api_credentials(company_code, "Test")
-        production_url, production_key = settings.get_api_credentials(
-            company_code, "Production"
-        )
         assert test_url == "https://test-2.tourcube.net"
         assert test_key
-        assert production_url == "https://web2.tourcube.net"
-        assert production_key == ""
-        assert production_key != test_key
+        with pytest.raises(UnavailableCompanyModeError):
+            settings.get_api_credentials(company_code, "Production")
 
 
 def test_shared_tenant_login_pages_reference_their_brand_assets():

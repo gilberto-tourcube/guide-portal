@@ -71,7 +71,7 @@ class GuideHashMiddleware(BaseHTTPMiddleware):
 
         # Resolve company/mode from query or host. No default-tenant fallback (#148).
         host = request.headers.get("x-forwarded-host") or request.headers.get("host")
-        company_code = request.query_params.get("company_code")
+        company_code = settings.company_code_from_query(request.query_params)
         mode = request.query_params.get("mode")
         company_code, mode = settings.resolve_company_and_mode(
             company_code=company_code,
@@ -206,7 +206,7 @@ async def guide_hash_auto_login(request: Request, call_next):
 
     # Resolve company/mode from query or host. No default-tenant fallback (#148).
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
-    company_code = request.query_params.get("company_code")
+    company_code = settings.company_code_from_query(request.query_params)
     mode = request.query_params.get("mode")
     company_code, mode = settings.resolve_company_and_mode(
         company_code=company_code,
@@ -289,8 +289,7 @@ def _error_context(request: Request, sentry_event_id: str | None = None) -> dict
     """
     session = getattr(request, "session", {}) or {}
     company_code = (
-        request.query_params.get("company_code")
-        or request.query_params.get("companyCode")
+        settings.company_code_from_query(request.query_params)
         or session.get("company_code")
     )
     mode = (
@@ -302,6 +301,10 @@ def _error_context(request: Request, sentry_event_id: str | None = None) -> dict
     company_logo = session.get("company_logo")
     company_favicon = session.get("company_favicon")
     theme_color = None
+    company_code, mode = settings.resolve_company_and_mode(
+        company_code=company_code,
+        mode=mode,
+    )
     tenant_resolved = bool(company_code and mode)
 
     # Best-effort tenant lookup so the error page picks up the right skin
@@ -407,9 +410,9 @@ async def root(request: Request):
     params = request.query_params
     guide_hash = params.get("guide_hash") or params.get("guideHash")
     company_code, mode = settings.resolve_company_and_mode(
-        company_code=params.get("company_code"),
+        company_code=settings.company_code_from_query(params),
         mode=params.get("mode"),
-        host=request.headers.get("host"),
+        host=request.headers.get("x-forwarded-host") or request.headers.get("host"),
     )
 
     if not company_code or not mode:

@@ -166,3 +166,10 @@ def test_client_emergency_phone_uses_same_display_formatter_as_primary_phone():
     assert "{{ client.mobile | format_us_phone }}" in template
     assert "{{ client.emergency_contact_phone | format_us_phone }}" in template
     assert 'href="tel:{{ client.emergency_contact_phone }}"' in template
+
+
+def test_client_trip_count_uses_tenant_neutral_copy():
+    template = _read("templates/pages/client.html")
+
+    assert "Past Trips" in template
+    assert "Past WT Trips" not in template

@@ -202,7 +202,7 @@ The application supports multiple companies with different configurations via `c
 
 - Keys/URLs: `Test`/`Production` and `TestURL`/`ProductionURL`
 - Branding: `Logo`, `SkinName`, `TourcubeOnline`
-- **Domain mapping**: `TestDomains` and `ProductionDomains` let you resolve company/mode from the request host when `company_code`/`mode` are not in the query. Resolution order: query params > host mapping > defaults (`COMPANY_CODE`/`MODE`).
+- **Domain mapping**: `TestDomains` and `ProductionDomains` let you resolve company/mode from the request host when no company code is in the query. Resolution order: `companyCode` > `company_code` > host mapping; an explicit valid `mode` overrides the host mode. There is no default tenant fallback, and `mode` must be exactly `Test` or `Production`.
 - Distribution: `config/apikey.json` is git-ignored and reconstructed in CI from the `APIKEY_JSON` secret (see `.github/workflows/main_guideportal.yml`).
 
 ### Environment Variables

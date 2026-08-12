@@ -8,5 +8,6 @@ Beyond the existing `CompanyID`, `Test`, `Production`, `TestURL`, `ProductionURL
 
 - `PWAEnabled` (bool, default `false`): when true, the tenant gets the PWA install surface (manifest, service worker, install affordance) on mobile UAs only.
 - `OfflineDocumentsEnabled` (bool, default `false`): when true, the View buttons on `pages/trip_departure.html` carry `data-offline-cache="true"` and the booking-level Save Offline button renders (also requires `PWAEnabled=true` and `departure.documents_ready=true`).
+- `PWAThemeColor` (optional `#RRGGBB`): explicit manifest color; an unknown skin otherwise receives the neutral fallback color.
 
 After updating `apikey.json` in any environment, restart the app — the parser caches configs at startup.

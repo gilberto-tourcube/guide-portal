@@ -3,8 +3,16 @@ import pytest
 from app.config import InvalidCompanyCodeError, Settings
 
 
+def _settings(**overrides) -> Settings:
+    return Settings(
+        secret_key="dummy-secret",
+        api_key_json_path="config/apikey.json.example",
+        **overrides,
+    )
+
+
 def test_get_company_config_switches_mode_correctly():
-    settings = Settings(secret_key="dummy-secret")
+    settings = _settings()
 
     test_config = settings.get_company_config("WT", mode="Test")
     assert test_config.api_url == test_config.test_url
@@ -16,7 +24,7 @@ def test_get_company_config_switches_mode_correctly():
 
 
 def test_get_company_config_invalid_company_code():
-    settings = Settings(secret_key="dummy-secret")
+    settings = _settings()
     with pytest.raises(InvalidCompanyCodeError):
         settings.get_company_config("UNKNOWN_CODE", mode="Test")
 
@@ -29,7 +37,7 @@ def test_resolve_company_and_mode_precedence():
     callers render a neutral / 400 response instead of impersonating the
     env-var tenant.
     """
-    settings = Settings(secret_key="dummy-secret", company_code="DEFAULT_CO", mode="Test")
+    settings = _settings(company_code="DEFAULT_CO", mode="Test")
     settings._domain_map = {"portal.example": ("MAPPED_CO", "Production")}
 
     assert settings.resolve_company_and_mode(
@@ -49,8 +57,7 @@ def test_resolve_company_and_mode_does_not_leak_default_tenant():
     appear in the return value of `resolve_company_and_mode` when neither
     the caller nor the host map supply it.
     """
-    settings = Settings(
-        secret_key="dummy-secret",
+    settings = _settings(
         company_code="LEAKY_DEFAULT",
         mode="Test",
     )
@@ -106,7 +113,7 @@ def test_resolve_company_and_mode_loads_domain_map_lazily(tmp_path):
 
 def test_get_company_config_requires_mode():
     """#148: `get_company_config` must not fall back to `settings.mode`."""
-    settings = Settings(secret_key="dummy-secret")
+    settings = _settings()
     with pytest.raises(ValueError, match="mode is required"):
         settings.get_company_config("WT", None)  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="company_code is required"):

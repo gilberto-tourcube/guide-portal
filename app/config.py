@@ -12,6 +12,16 @@ class InvalidCompanyCodeError(Exception):
     pass
 
 
+class InvalidModeError(ValueError):
+    """Raised when a request supplies a mode outside the public contract."""
+    pass
+
+
+class UnavailableCompanyModeError(ValueError):
+    """Raised when a tenant has no credentials for the requested mode."""
+    pass
+
+
 class CompanyConfig(BaseModel):
     """Company-specific configuration from apikey.json"""
     company_id: str
@@ -24,6 +34,7 @@ class CompanyConfig(BaseModel):
     production_url: str
     login_background: str = ""
     favicon: str = ""
+    pwa_theme_color: str = ""
     test_domains: List[str] = []
     production_domains: List[str] = []
 
@@ -68,13 +79,10 @@ class Settings(BaseSettings):
     sentry_dsn: str = "https://48cf3c57b373f08326c0298b1445933a@o4510551040458752.ingest.us.sentry.io/4510551042490368"
     app_env: str = "test"  # Application environment for Sentry (test/production)
 
-    # Company Configuration - Default/Fallback Values
-    # These values are used when:
-    # 1. User accesses root (/) without parameters
-    # 2. Session doesn't contain company_code/mode during logout
-    # Can be overridden via environment variables in .env file
-    company_code: str = "WT"  # Default company code (fallback)
-    mode: str = "Test"  # Default mode: "Test" or "Production" (fallback)
+    # Optional integration-test defaults. Runtime request resolution must never
+    # use these values as a tenant fallback.
+    company_code: str = ""
+    mode: str = "Test"
     api_key_json_path: str = "./config/apikey.json"
 
     # Cache for company configurations
@@ -104,7 +112,7 @@ class Settings(BaseSettings):
         configs: Dict[str, CompanyConfig] = {}
         domain_map: Dict[str, tuple[str, str]] = {}
         for company in data.get('TourcubeAPIKey', []):
-            company_id = company.get('CompanyID')
+            company_id = self._normalize_company_code(company.get('CompanyID'))
             if not company_id:
                 continue  # Skip entries without CompanyID
 
@@ -131,6 +139,7 @@ class Settings(BaseSettings):
                 logo=company.get('Logo', 'logo.png'),
                 login_background=company.get('LoginBackground', ''),
                 favicon=company.get('Favicon', ''),
+                pwa_theme_color=company.get('PWAThemeColor', ''),
                 tourcube_online=company.get('TourcubeOnline', True),
                 skin_name=skin_name,
                 test_api_key=company.get('Test', ''),
@@ -177,10 +186,10 @@ class Settings(BaseSettings):
         Raises:
             ValueError: If company_code or mode is missing or unknown.
         """
+        company_code = self._normalize_company_code(company_code)
         if not company_code:
             raise ValueError("company_code is required")
-        if not mode:
-            raise ValueError("mode is required")
+        mode = self._require_mode(mode)
 
         configs = self._load_company_configs()
 
@@ -191,6 +200,10 @@ class Settings(BaseSettings):
 
         # Set active API credentials based on mode
         if mode == "Production":
+            if not config.production_api_key:
+                raise UnavailableCompanyModeError(
+                    f"{company_code} is not configured for Production"
+                )
             config.api_url = config.production_url
             config.api_key = config.production_api_key
         else:
@@ -215,9 +228,19 @@ class Settings(BaseSettings):
            unresolved tenant (render neutral / 400), not silently rebranded
            as the env-var default.
         """
-        # Explicit values win
-        if company_code and mode:
-            return company_code, mode
+        normalized_company_code = self._normalize_company_code(company_code)
+        normalized_mode = self._normalize_mode(mode)
+
+        # A supplied invalid mode is a hard failure signal. In particular, it
+        # must not be replaced by a Production mode from the hostname map.
+        if mode is not None and normalized_mode is None:
+            return normalized_company_code, None
+
+        # An explicit company code always wins over the hostname, even if it
+        # is unknown. Callers will reject the unknown value instead of using a
+        # host-mapped WT (or any other) tenant.
+        if normalized_company_code:
+            return normalized_company_code, normalized_mode
 
         # Try host mapping. Load configs lazily so a cold process can resolve
         # tenant context by Host before any route has called get_company_config.
@@ -226,11 +249,45 @@ class Settings(BaseSettings):
             self._load_company_configs()
         if norm_host and self._domain_map and norm_host in self._domain_map:
             mapped_company, mapped_mode = self._domain_map[norm_host]
-            return mapped_company, mapped_mode
+            return mapped_company, normalized_mode or mapped_mode
 
         # No default-tenant fallback. Return whatever the caller supplied
         # (which may be a single populated side, e.g. mode-only).
-        return company_code, mode
+        return None, normalized_mode
+
+    @staticmethod
+    def company_code_from_query(query_params) -> Optional[str]:
+        """Read both legacy company-code spellings with stable precedence.
+
+        Existing Guide links use both ``companyCode`` and ``company_code``.
+        Keep camelCase first to match the shared portal contract, then accept
+        snake_case when no camelCase value was supplied.
+        """
+        return query_params.get("companyCode") or query_params.get("company_code")
+
+    @staticmethod
+    def _normalize_company_code(company_code: Optional[str]) -> Optional[str]:
+        if not company_code:
+            return None
+        normalized = company_code.strip().upper()
+        return normalized or None
+
+    @staticmethod
+    def _normalize_mode(mode: Optional[str]) -> Optional[str]:
+        if mode is None or mode == "":
+            return None
+        if mode in {"Test", "Production"}:
+            return mode
+        return None
+
+    @classmethod
+    def _require_mode(cls, mode: Optional[str]) -> str:
+        normalized = cls._normalize_mode(mode)
+        if normalized is None:
+            if mode is None or mode == "":
+                raise ValueError("mode is required")
+            raise InvalidModeError("mode must be exactly Test or Production")
+        return normalized
 
     @staticmethod
     def _normalize_host(host: Optional[str]) -> Optional[str]:
@@ -260,11 +317,6 @@ class Settings(BaseSettings):
         Raises:
             ValueError: If company_code or mode is missing or unknown.
         """
-        if not company_code:
-            raise ValueError("company_code is required")
-        if not mode:
-            raise ValueError("mode is required")
-
         config = self.get_company_config(company_code, mode)
 
         if mode == "Production":
