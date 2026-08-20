@@ -17,6 +17,7 @@ from app.config import settings
 from app.routes import guide, auth, vendor, resources, pwa
 from app.services.guide_service import guide_service
 from app.utils.sentry_utils import capture_exception_with_context
+from app.utils.sentry_scrubbing import scrub_breadcrumb, scrub_event
 from app.utils.templates import create_templates
 
 # Templates instance for global error pages — mirrors the per-route loaders
@@ -38,6 +39,17 @@ if settings.sentry_enabled and settings.sentry_dsn:
         environment=settings.app_env,
         # Set release version
         release=f"guide-portal@{settings.app_version}",
+        # GUIDE-PORTAL-26: AuthService.change_password puts the new password
+        # in a URL path segment (V7 API contract), so it can leak into the
+        # exception message/URL/culprit/breadcrumbs. before_send/before_breadcrumb
+        # recursively scrub those. We keep send_default_pii=True instead of
+        # turning it off: the scrubber already replaces the whole `cookies`
+        # dict and the `Cookie`/`Authorization` headers wholesale (their keys
+        # match the sensitive-key substring pattern), which closes the
+        # signed-session-cookie leak, while still letting Sentry capture IP
+        # address and request body for triage.
+        before_send=scrub_event,
+        before_breadcrumb=scrub_breadcrumb,
     )
 
 # Create FastAPI application
