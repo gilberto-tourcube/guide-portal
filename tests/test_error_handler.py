@@ -104,7 +104,7 @@ async def test_unhandled_exception_renders_neutral_page_without_tenant(
     body = response.text
     assert "Tenant Required" in body
     # Default-tenant leak guards.
-    assert settings.company_code not in body
+    assert "WT" not in body
     assert "Wilderness Travel" not in body
 
 
@@ -163,7 +163,7 @@ async def test_5xx_http_exception_without_tenant_renders_neutral_page(
     assert response.status_code == 500
     body = response.text
     assert "Tenant Required" in body
-    assert settings.company_code not in body
+    assert "WT" not in body
 
 
 @pytest.mark.asyncio

@@ -3,6 +3,7 @@
 import logging
 import re
 from typing import Optional
+from urllib.parse import urlencode
 
 import httpx
 from fastapi import APIRouter, Request, Form, HTTPException, status, Query, Depends
@@ -19,6 +20,14 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 # Jinja2 templates
 templates = create_templates()
 logger = logging.getLogger(__name__)
+
+
+def _login_url(company_code: str, mode: str, *, error: Optional[str] = None) -> str:
+    """Build a login redirect with only the canonical, safe tenant context."""
+    params = {"company_code": company_code, "mode": mode}
+    if error:
+        params["error"] = error
+    return f"/auth/login?{urlencode(params)}"
 
 
 def _neutral_tenant_error(
@@ -52,14 +61,14 @@ async def root(request: Request):
     """
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     company_code, mode = settings.resolve_company_and_mode(
-        company_code=request.query_params.get("company_code"),
+        company_code=settings.company_code_from_query(request.query_params),
         mode=request.query_params.get("mode"),
         host=host,
     )
     if not company_code or not mode:
         return _neutral_tenant_error(request)
     return RedirectResponse(
-        url=f"/auth/login?company_code={company_code}&mode={mode}",
+        url=_login_url(company_code, mode),
         status_code=302,
     )
 
@@ -95,7 +104,7 @@ async def login_page(
     # Resolve company and mode from query or host. No default-tenant fallback (#148).
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     company_code_resolved, mode_resolved = settings.resolve_company_and_mode(
-        company_code=company_code,
+        company_code=settings.company_code_from_query(request.query_params) or company_code,
         mode=mode,
         host=host
     )
@@ -105,7 +114,7 @@ async def login_page(
     # Get company configuration with mode
     try:
         company_config = settings.get_company_config(company_code_resolved, mode_resolved)
-    except InvalidCompanyCodeError as e:
+    except (InvalidCompanyCodeError, ValueError) as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)
@@ -157,28 +166,39 @@ async def login_submit(
         mode: Test or Production
         temp_password_override: Optional override to force change password flow
     """
+    company_code = settings._normalize_company_code(form_data.company_code)
+    try:
+        mode = settings._require_mode(form_data.mode)
+        if not company_code:
+            raise ValueError("company_code is required")
+        # Validate the tenant/mode before any API request. This blocks an
+        # explicit but unknown tenant and Test-only Production links locally.
+        settings.get_company_config(company_code, mode)
+    except (InvalidCompanyCodeError, ValueError):
+        return _neutral_tenant_error(request)
+
     try:
         # Call authentication service
         login_response = await auth_service.login(
             username=form_data.username,
             password=form_data.password,
-            company_code=form_data.company_code,
-            mode=form_data.mode
+            company_code=company_code,
+            mode=mode,
         )
 
         # Check if login failed
         if login_response.login_failed:
             # Redirect back to login with error
             return RedirectResponse(
-                url=f"/auth/login?company_code={form_data.company_code}&mode={form_data.mode}&error=invalid_credentials",
+                url=_login_url(company_code, mode, error="invalid_credentials"),
                 status_code=303
             )
 
         # Login successful - create session
         request.session["authenticated"] = True
         request.session["user_type"] = login_response.type
-        request.session["company_code"] = form_data.company_code
-        request.session["mode"] = form_data.mode
+        request.session["company_code"] = company_code
+        request.session["mode"] = mode
 
         # Check if user must change temporary password
         must_change_password = bool(login_response.temp_password) or temp_password_override == "True"
@@ -216,8 +236,8 @@ async def login_submit(
             try:
                 vendor_info = await auth_service.get_vendor_info(
                     vendor_id=login_response.guide_vendor_id,
-                    company_code=form_data.company_code,
-                    mode=form_data.mode
+                    company_code=company_code,
+                    mode=mode
                 )
                 vendor_name = vendor_info["vendor_name"]
             except Exception as e:
@@ -246,17 +266,17 @@ async def login_submit(
     except httpx.HTTPError as e:
         # API call failed
         logger.error("Login API error for user %s: %s", form_data.username, e)
-        capture_exception_with_context(e, mode=form_data.mode, company_code=form_data.company_code)
+        capture_exception_with_context(e, mode=mode, company_code=company_code)
         return RedirectResponse(
-            url=f"/auth/login?company_code={form_data.company_code}&mode={form_data.mode}&error=api_error",
+            url=_login_url(company_code, mode, error="api_error"),
             status_code=303
         )
     except Exception as e:
         # Unexpected error
         logger.error("Login unexpected error for user %s: %s", form_data.username, e)
-        capture_exception_with_context(e, mode=form_data.mode, company_code=form_data.company_code)
+        capture_exception_with_context(e, mode=mode, company_code=company_code)
         return RedirectResponse(
-            url=f"/auth/login?company_code={form_data.company_code}&mode={form_data.mode}&error=unexpected_error",
+            url=_login_url(company_code, mode, error="unexpected_error"),
             status_code=303
         )
 
@@ -276,7 +296,7 @@ async def change_password_page(
         if not company_code or not mode:
             return _neutral_tenant_error(request, status_code=401)
         return RedirectResponse(
-            url=f"/auth/login?company_code={company_code}&mode={mode}&error=unauthorized",
+            url=_login_url(company_code, mode, error="unauthorized"),
             status_code=302
         )
 
@@ -397,7 +417,7 @@ async def logout(request: Request):
 
     # Redirect to login with parameters
     return RedirectResponse(
-        url=f"/auth/login?company_code={company_code}&mode={mode}",
+        url=_login_url(company_code, mode),
         status_code=302
     )
 
@@ -413,7 +433,7 @@ async def forgot_password_page(
     # Resolve company and mode from query or host. No default-tenant fallback (#148).
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     company_code_resolved, mode_resolved = settings.resolve_company_and_mode(
-        company_code=company_code,
+        company_code=settings.company_code_from_query(request.query_params) or company_code,
         mode=mode,
         host=host
     )
@@ -423,7 +443,7 @@ async def forgot_password_page(
     # Get company configuration with mode
     try:
         company_config = settings.get_company_config(company_code_resolved, mode_resolved)
-    except InvalidCompanyCodeError as e:
+    except (InvalidCompanyCodeError, ValueError) as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)
@@ -494,7 +514,7 @@ async def forgot_username_page(
     # Resolve company and mode from query or host. No default-tenant fallback (#148).
     host = request.headers.get("x-forwarded-host") or request.headers.get("host")
     company_code_resolved, mode_resolved = settings.resolve_company_and_mode(
-        company_code=company_code,
+        company_code=settings.company_code_from_query(request.query_params) or company_code,
         mode=mode,
         host=host
     )
@@ -504,7 +524,7 @@ async def forgot_username_page(
     # Get company configuration with mode
     try:
         company_config = settings.get_company_config(company_code_resolved, mode_resolved)
-    except InvalidCompanyCodeError as e:
+    except (InvalidCompanyCodeError, ValueError) as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)

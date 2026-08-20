@@ -14,7 +14,7 @@ from app.main import app
 
 
 # Tenant identity markers that must never appear on an anonymous response.
-DEFAULT_COMPANY_CODE = settings.company_code
+DEFAULT_COMPANY_CODE = "WT"
 DEFAULT_TENANT_NAMES = ("Wilderness Travel",)
 
 
