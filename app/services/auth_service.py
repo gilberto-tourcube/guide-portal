@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any
 from app.models.schemas import LoginAPIRequest, LoginAPIResponse
 from app.config import settings
 from app.utils.sentry_utils import capture_exception_with_context
+from app.utils.sentry_scrubbing import redact_text
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -312,15 +313,17 @@ class AuthService:
                 response.raise_for_status()
                 return True
         except httpx.TimeoutException as e:
-            logger.error("Change password API timeout for client %s: %s", client_id, e)
+            # The endpoint (and therefore str(e)) contains the new password
+            # as a URL path segment (V7 API contract) -- redact before logging.
+            logger.error("Change password API timeout for client %s: %s", client_id, redact_text(str(e)))
             capture_exception_with_context(e, mode=mode, company_code=company_code)
             raise
         except httpx.HTTPStatusError as e:
-            logger.error("Change password API HTTP error for client %s: %s (status: %s)", client_id, e, e.response.status_code)
+            logger.error("Change password API HTTP error for client %s: %s (status: %s)", client_id, redact_text(str(e)), e.response.status_code)
             capture_exception_with_context(e, mode=mode, company_code=company_code)
             raise
         except Exception as e:
-            logger.error("Change password API unexpected error for client %s: %s", client_id, e)
+            logger.error("Change password API unexpected error for client %s: %s", client_id, redact_text(str(e)))
             capture_exception_with_context(e, mode=mode, company_code=company_code)
             raise
 
