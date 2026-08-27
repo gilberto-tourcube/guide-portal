@@ -62,3 +62,62 @@ def capture_exception_with_context(
 
         # Capture the exception with this scope
         sentry_sdk.capture_exception(exception)
+
+
+def capture_message_with_context(
+    message: str,
+    request: Optional[Request] = None,
+    mode: Optional[str] = None,
+    company_code: Optional[str] = None,
+    level: str = "warning",
+    **extra_tags
+) -> None:
+    """
+    Capture a message (not an exception) to Sentry with dynamic context.
+
+    Mirrors capture_exception_with_context, but for signals we want visible
+    in Sentry that are not raised as exceptions -- e.g. a tolerated
+    business-logic failure that the user intentionally never sees (see
+    app.services.auth_service._api_business_failure), where we still want
+    to know it happened without surfacing it to the caller.
+
+    Args:
+        message: The message to capture
+        request: Optional FastAPI Request object to extract session data
+        mode: Optional mode override (Test/Production)
+        company_code: Optional company code override
+        level: Sentry level for the message (default "warning")
+        **extra_tags: Additional tags to include in the Sentry event
+
+    Usage:
+        # In services without request:
+        capture_message_with_context(
+            "Temp password: unknown address", mode=mode, company_code=company_code
+        )
+    """
+    # Try to extract mode and company_code from request session if not provided
+    if request is not None:
+        if mode is None:
+            mode = request.session.get("mode")
+        if company_code is None:
+            company_code = request.session.get("company_code")
+
+    # Set tags for this specific event
+    with sentry_sdk.push_scope() as scope:
+        # Add mode tag (normalizes Test -> test, Production -> production)
+        if mode:
+            normalized_mode = mode.lower()
+            scope.set_tag("mode", normalized_mode)
+            # Also set environment tag to override the default if different
+            scope.set_tag("user_mode", normalized_mode)
+
+        # Add company_code tag
+        if company_code:
+            scope.set_tag("company_code", company_code)
+
+        # Add any extra tags
+        for key, value in extra_tags.items():
+            scope.set_tag(key, value)
+
+        # Capture the message with this scope
+        sentry_sdk.capture_message(message, level=level)

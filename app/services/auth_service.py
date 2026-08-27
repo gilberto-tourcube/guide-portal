@@ -2,13 +2,17 @@
 
 import json
 import logging
+from typing import NamedTuple
 from urllib.parse import quote
 
 import httpx
 from typing import Optional, Dict, Any
 from app.models.schemas import LoginAPIRequest, LoginAPIResponse
 from app.config import settings
-from app.utils.sentry_utils import capture_exception_with_context
+from app.utils.sentry_utils import (
+    capture_exception_with_context,
+    capture_message_with_context,
+)
 from app.utils.sentry_scrubbing import redact_text
 
 # Configure logging
@@ -23,11 +27,27 @@ _V7_RESPONSE_STATUS_MESSAGES = {
     "4": "record not found",
 }
 
+# Status used for the plain-text `Access Denied` body shape (there is no
+# `Response.status` in that case -- it maps onto the "invalid API key" code
+# since that's what it means).
+_ACCESS_DENIED_STATUS = "3"
 
-def _api_business_failure(
-    body_text: str,
-    treat_not_found_as_failure: bool = True,
-) -> Optional[str]:
+
+class ApiFailure(NamedTuple):
+    """A V7 business-logic failure positively detected in a response body.
+
+    `status` is the V7 `Response.status` string (or `_ACCESS_DENIED_STATUS`
+    for the plain-text `Access Denied` shape); `description` is the short,
+    secret-free human-readable meaning from `_V7_RESPONSE_STATUS_MESSAGES`.
+    Callers use `status` to decide *how* to react (e.g. tolerate "not
+    found" on public forms) and `description` for logging/Sentry.
+    """
+
+    status: str
+    description: str
+
+
+def _api_business_failure(body_text: str) -> Optional[ApiFailure]:
     """Detect a V7 business-logic failure hidden inside an HTTP 200/40x body.
 
     The V7 TourCube API sometimes signals failure entirely inside the
@@ -44,26 +64,27 @@ def _api_business_failure(
       carrying `Response.status`, where anything other than `1`/`"1"` is a
       failure (see `_V7_RESPONSE_STATUS_MESSAGES` for the code meanings).
 
-    Returns a short, secret-free description of the failure, or `None` when
-    the body does not positively indicate one. A body that can't be parsed
-    at all, or that has no `Response.status`, also returns `None` --
-    absence of evidence is not evidence of failure, so callers keep the
-    pre-existing "assume success" behavior rather than have this helper
-    invent a failure.
+    Returns an `ApiFailure(status, description)` when the body positively
+    indicates one, or `None` otherwise. A body that can't be parsed at all,
+    or that has no `Response.status`, also returns `None` -- absence of
+    evidence is not evidence of failure, so callers keep the pre-existing
+    "assume success" behavior rather than have this helper invent a
+    failure.
 
-    `treat_not_found_as_failure=False` makes status 4 ("record not found")
-    look like success. The email-sending flows (forgot username / forgot
-    password) pass it so that an unknown address stays indistinguishable
-    from a known one: surfacing "not found" there would turn the public
-    forms into an account-enumeration oracle. Password change keeps the
-    default, because a silent "not found" there is exactly the false
-    success this helper exists to prevent.
+    This helper is deliberately strict: it always reports what the body
+    says, including status 4 ("record not found"). Whether "not found"
+    should be *shown* to the caller (vs. tolerated and only logged, to
+    avoid turning a public form into an account-enumeration oracle) is a
+    decision for each call site, not for this helper -- see
+    `send_temp_password` / `send_forgot_username` for that policy.
     """
     if not body_text:
         return None
 
     if "Access Denied" in body_text:
-        return "API access denied (invalid API key)"
+        return ApiFailure(
+            _ACCESS_DENIED_STATUS, "API access denied (invalid API key)"
+        )
 
     try:
         parsed = json.loads(body_text)
@@ -85,11 +106,11 @@ def _api_business_failure(
     status_str = str(response["status"])
     if status_str == "1":
         return None
-    if status_str == "4" and not treat_not_found_as_failure:
-        return None
 
     description = _V7_RESPONSE_STATUS_MESSAGES.get(status_str, "unknown error")
-    return f"API business failure (status={status_str}: {description})"
+    return ApiFailure(
+        status_str, f"API business failure (status={status_str}: {description})"
+    )
 
 
 class AuthService:
@@ -260,8 +281,12 @@ class AuthService:
 
         Raises:
             httpx.HTTPError: If the API call fails, or if the response body
-                positively indicates a business-logic failure (see
-                `_api_business_failure`).
+                positively indicates a business-logic failure other than
+                "record not found" (see `_api_business_failure`). A "record
+                not found" (status 4) is tolerated so the public form never
+                reveals whether an email address is registered -- it is
+                still logged and reported to Sentry so we keep visibility
+                into it (DEVCUR-1761).
         """
         # Get company configuration with API credentials
         company_config = settings.get_company_config(company_code, mode)
@@ -290,17 +315,34 @@ class AuthService:
                 )
                 response.raise_for_status()
 
-                # Unknown addresses must stay indistinguishable from known
-                # ones on this public form -- see _api_business_failure.
-                failure = _api_business_failure(
-                    response.text, treat_not_found_as_failure=False
-                )
+                failure = _api_business_failure(response.text)
                 if failure:
-                    logger.error(
-                        "Temp password API business failure for email %s: %s",
-                        email, redact_text(failure)
-                    )
-                    raise httpx.HTTPError(f"Temp password request failed: {failure}")
+                    if failure.status == "4":
+                        # Unknown addresses must stay indistinguishable from
+                        # known ones on this public form -- the user still
+                        # sees success. But hiding the signal from the user
+                        # is not the same as hiding it from us: log and
+                        # report to Sentry so an unexpectedly high rate of
+                        # "not found" is visible, then fall through as if
+                        # nothing happened.
+                        logger.warning(
+                            "Temp password API: unknown address for email %s: %s",
+                            email, redact_text(failure.description)
+                        )
+                        capture_message_with_context(
+                            "Temp password request: record not found "
+                            "(tolerated -- not shown to user)",
+                            mode=mode,
+                            company_code=company_code,
+                        )
+                    else:
+                        logger.error(
+                            "Temp password API business failure for email %s: %s",
+                            email, redact_text(failure.description)
+                        )
+                        raise httpx.HTTPError(
+                            f"Temp password request failed: {failure.description}"
+                        )
 
                 return response.text
         except httpx.TimeoutException as e:
@@ -340,8 +382,12 @@ class AuthService:
 
         Raises:
             httpx.HTTPError: If the API call fails, or if the response body
-                positively indicates a business-logic failure (see
-                `_api_business_failure`).
+                positively indicates a business-logic failure other than
+                "record not found" (see `_api_business_failure`). A "record
+                not found" (status 4) is tolerated so the public form never
+                reveals whether an email address is registered -- it is
+                still logged and reported to Sentry so we keep visibility
+                into it (DEVCUR-1761).
         """
         # Get company configuration with API credentials
         company_config = settings.get_company_config(company_code, mode)
@@ -369,17 +415,34 @@ class AuthService:
                 )
                 response.raise_for_status()
 
-                # Unknown addresses must stay indistinguishable from known
-                # ones on this public form -- see _api_business_failure.
-                failure = _api_business_failure(
-                    response.text, treat_not_found_as_failure=False
-                )
+                failure = _api_business_failure(response.text)
                 if failure:
-                    logger.error(
-                        "Forgot username API business failure for email %s: %s",
-                        email, redact_text(failure)
-                    )
-                    raise httpx.HTTPError(f"Forgot username request failed: {failure}")
+                    if failure.status == "4":
+                        # Unknown addresses must stay indistinguishable from
+                        # known ones on this public form -- the user still
+                        # sees success. But hiding the signal from the user
+                        # is not the same as hiding it from us: log and
+                        # report to Sentry so an unexpectedly high rate of
+                        # "not found" is visible, then fall through as if
+                        # nothing happened.
+                        logger.warning(
+                            "Forgot username API: unknown address for email %s: %s",
+                            email, redact_text(failure.description)
+                        )
+                        capture_message_with_context(
+                            "Forgot username request: record not found "
+                            "(tolerated -- not shown to user)",
+                            mode=mode,
+                            company_code=company_code,
+                        )
+                    else:
+                        logger.error(
+                            "Forgot username API business failure for email %s: %s",
+                            email, redact_text(failure.description)
+                        )
+                        raise httpx.HTTPError(
+                            f"Forgot username request failed: {failure.description}"
+                        )
 
                 return response.text
         except httpx.TimeoutException as e:
@@ -456,16 +519,24 @@ class AuthService:
 
                 failure = _api_business_failure(response.text)
                 if failure:
-                    # `failure` is a secret-free status description (see
-                    # _api_business_failure) -- no redact_text needed on it,
-                    # but the client_id-scoped log line follows the same
-                    # redact_text(...) convention as the other except blocks
-                    # below for consistency.
+                    # Every failure raises here, including status 4 ("record
+                    # not found") -- unlike the email-sending flows, a
+                    # silent "not found" on a password change is exactly the
+                    # false success this guard exists to prevent (#DEVCUR
+                    # incident this whole helper was written for).
+                    #
+                    # `failure.description` is a secret-free status
+                    # description (see _api_business_failure) -- no
+                    # redact_text needed on it, but the client_id-scoped log
+                    # line follows the same redact_text(...) convention as
+                    # the other except blocks below for consistency.
                     logger.error(
                         "Change password API business failure for client %s: %s",
-                        client_id, redact_text(failure)
+                        client_id, redact_text(failure.description)
                     )
-                    raise httpx.HTTPError(f"Change password request failed: {failure}")
+                    raise httpx.HTTPError(
+                        f"Change password request failed: {failure.description}"
+                    )
 
                 return True
         except httpx.TimeoutException as e:

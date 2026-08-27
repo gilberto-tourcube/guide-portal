@@ -28,6 +28,18 @@ from app.config import settings
 from app.services.auth_service import _api_business_failure, auth_service
 
 
+def _fake_capture_message_with_context(monkeypatch):
+    """Replace capture_message_with_context with a recording stub; returns
+    the list of (args, kwargs) call records."""
+    calls = []
+
+    def fake(*args, **kwargs):
+        calls.append((args, kwargs))
+
+    monkeypatch.setattr(svc, "capture_message_with_context", fake)
+    return calls
+
+
 class _FakeResponse:
     def __init__(self, text="ok"):
         self.text = text
@@ -172,16 +184,32 @@ async def test_change_password_percent_encodes_special_characters(
 class TestApiBusinessFailure:
     """`_api_business_failure` is the guard against a V7 "false success":
     the API can return HTTP 200 (or a non-error 40x) while the body itself
-    says the operation failed."""
+    says the operation failed. It returns an `ApiFailure(status,
+    description)` NamedTuple, or `None` when nothing positively indicates
+    failure -- the (status, description) split lets callers decide *how*
+    to react to a given status without re-parsing the description string.
+    """
 
     def test_access_denied_body_is_a_failure(self):
-        assert _api_business_failure("Access Denied") is not None
+        failure = _api_business_failure("Access Denied")
+        assert failure is not None
+        assert failure.status == "3"
 
     def test_status_3_in_json_list_is_a_failure(self):
         body = '[{"Response":{"status":"3"}}]'
         failure = _api_business_failure(body)
         assert failure is not None
-        assert "3" in failure
+        assert failure.status == "3"
+        assert "3" in failure.description
+
+    def test_status_4_in_json_list_is_a_failure(self):
+        """The helper is strict -- it always reports status 4 ("record not
+        found"); tolerating it is a decision made at each call site, not
+        inside this helper (see DEVCUR-1761)."""
+        body = '[{"Response":{"status":"4"}}]'
+        failure = _api_business_failure(body)
+        assert failure is not None
+        assert failure.status == "4"
 
     def test_status_1_in_json_list_is_success(self):
         body = '[{"Response":{"status":"1"}}]'
@@ -245,52 +273,58 @@ async def test_change_password_raises_on_business_failure_and_error_excludes_pas
 
 
 class TestNotFoundIsNotAnEnumerationOracle:
-    """Status 4 ("record not found") must not leak account existence.
+    """Status 4 ("record not found") must not leak account existence to the
+    *user*, but must never go unnoticed by *us* (DEVCUR-1761: before the
+    fix, status 4 on the email flows was swallowed silently -- nothing
+    logged, nothing in Sentry, so the portal was blind to it).
 
-    The public forgot-username / forgot-password forms would otherwise
-    answer "this address exists" vs "it doesn't" for anyone who asked.
-    Password change keeps the strict reading: a silent "not found" there is
-    the false success this guard exists to prevent.
+    The public forgot-username / forgot-password forms tolerate status 4:
+    the user still sees success, but the service now always logs it and
+    reports it to Sentry. Password change keeps the strict reading: a
+    silent "not found" there is the false success this guard exists to
+    prevent, so it raises like any other failure.
     """
 
-    def test_status_4_is_a_failure_by_default(self):
+    def test_status_4_is_always_reported_by_the_helper(self):
+        """The helper itself no longer has a tolerance flag -- it always
+        reports what the body says; tolerance is a per-call-site decision
+        made in send_forgot_username / send_temp_password."""
         body = '[{"Response":{"status":"4"}}]'
-        assert _api_business_failure(body) is not None
-
-    def test_status_4_is_success_when_not_found_is_tolerated(self):
-        body = '[{"Response":{"status":"4"}}]'
-        assert (
-            _api_business_failure(body, treat_not_found_as_failure=False) is None
-        )
-
-    def test_invalid_api_key_still_fails_when_not_found_is_tolerated(self):
-        body = '[{"Response":{"status":"3"}}]'
-        assert (
-            _api_business_failure(body, treat_not_found_as_failure=False)
-            is not None
-        )
+        failure = _api_business_failure(body)
+        assert failure is not None
+        assert failure.status == "4"
 
 
 @pytest.mark.asyncio
-async def test_send_forgot_username_stays_silent_on_unknown_address(monkeypatch):
+async def test_send_forgot_username_stays_silent_on_unknown_address_but_reports_to_sentry(
+    monkeypatch
+):
     calls = []
     _install_fake_client(
         monkeypatch, calls, response_text='[{"Response":{"status":"4"}}]'
     )
+    sentry_calls = _fake_capture_message_with_context(monkeypatch)
 
-    # Must not raise: an unknown address looks exactly like a known one.
+    # Must not raise: an unknown address looks exactly like a known one to
+    # the user calling this...
     await auth_service.send_forgot_username(
         email="zz-nobody@example.invalid", company_code="WT", mode="Production"
     )
     assert calls[0]["method"] == "POST"
 
+    # ...but we must still know it happened.
+    assert len(sentry_calls) == 1
+
 
 @pytest.mark.asyncio
-async def test_send_temp_password_stays_silent_on_unknown_address(monkeypatch):
+async def test_send_temp_password_stays_silent_on_unknown_address_but_reports_to_sentry(
+    monkeypatch
+):
     calls = []
     _install_fake_client(
         monkeypatch, calls, response_text='[{"Response":{"status":"4"}}]'
     )
+    sentry_calls = _fake_capture_message_with_context(monkeypatch)
 
     await auth_service.send_temp_password(
         email="zz-nobody@example.invalid",
@@ -299,3 +333,69 @@ async def test_send_temp_password_stays_silent_on_unknown_address(monkeypatch):
         mode="Production",
     )
     assert calls[0]["method"] == "POST"
+    assert len(sentry_calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_send_forgot_username_status_3_still_raises_and_skips_sentry_message(
+    monkeypatch
+):
+    """Non-"not found" failures keep raising as before; they go through
+    capture_exception_with_context (via the except block) rather than
+    capture_message_with_context."""
+    calls = []
+    _install_fake_client(
+        monkeypatch, calls, response_text='[{"Response":{"status":"3"}}]'
+    )
+    sentry_calls = _fake_capture_message_with_context(monkeypatch)
+
+    import httpx
+
+    with pytest.raises(httpx.HTTPError):
+        await auth_service.send_forgot_username(
+            email="welcome@zalaz.me", company_code="WT", mode="Test"
+        )
+    assert sentry_calls == []
+
+
+@pytest.mark.asyncio
+async def test_send_temp_password_status_3_still_raises_and_skips_sentry_message(
+    monkeypatch
+):
+    calls = []
+    _install_fake_client(
+        monkeypatch, calls, response_text='[{"Response":{"status":"3"}}]'
+    )
+    sentry_calls = _fake_capture_message_with_context(monkeypatch)
+
+    import httpx
+
+    with pytest.raises(httpx.HTTPError):
+        await auth_service.send_temp_password(
+            email="welcome@zalaz.me",
+            first_name="Welcome",
+            company_code="WT",
+            mode="Test",
+        )
+    assert sentry_calls == []
+
+
+@pytest.mark.asyncio
+async def test_change_password_raises_on_status_4_not_found(monkeypatch):
+    """Unlike the email flows, change_password never tolerates status 4 --
+    a silent "not found" there is exactly the false success this guard was
+    built to prevent (see the module docstring)."""
+    calls = []
+    _install_fake_client(
+        monkeypatch, calls, response_text='[{"Response":{"status":"4"}}]'
+    )
+
+    import httpx
+
+    with pytest.raises(httpx.HTTPError):
+        await auth_service.change_password(
+            client_id=850669,
+            new_password="TotallyFakeTestPassword123",
+            company_code="WT",
+            mode="Test",
+        )
