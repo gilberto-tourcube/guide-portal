@@ -20,6 +20,15 @@ logger = logging.getLogger(__name__)
 
 # V7 API `Response.status` contract (verified against production, Aug 2026):
 # 1 = ok, 2 = empty parameter, 3 = invalid API key, 4 = record not found.
+#
+# NOTE: this table describes the legacy `guidePortal` route family. The
+# `v1/client` routes used by the recovery flows (DEVCUR-1761) reuse the same
+# status *strings* with different, route-specific meanings measured against
+# test/production (e.g. `resetPassword` returns status "2" for "account not
+# found", not "empty parameter"). `_V7_RESPONSE_STATUS_MESSAGES` is only used
+# below to build a generic, secret-free description for logs/Sentry -- call
+# sites for the `v1/client` routes branch on `failure.status` directly rather
+# than trusting this table's wording.
 _V7_RESPONSE_STATUS_MESSAGES = {
     "1": "ok",
     "2": "empty parameter",
@@ -31,6 +40,29 @@ _V7_RESPONSE_STATUS_MESSAGES = {
 # `Response.status` in that case -- it maps onto the "invalid API key" code
 # since that's what it means).
 _ACCESS_DENIED_STATUS = "3"
+
+# IMPORTANT: `Response.status` values from the `v1/client` routes are
+# per-route, NOT a shared global contract -- the same string means something
+# different depending on which legacy WinDev procedure produced it. Each
+# recovery route below gets its own "these statuses mean infrastructure/
+# config failure, not just an unremarkable business outcome" set, measured
+# against test/production for DEVCUR-1761:
+#
+# - `retrievePortalUsername` (-> `send_forgot_username`): the legacy
+#   procedure only assigns `nStatus=2` on the invalid-API-key branch: an
+#   unknown email address still comes back `status:"1"`. So here status "2"
+#   is an infrastructure/config failure exactly like "3"/Access Denied, and
+#   must raise -- tolerating it would silently swallow a bad API key and
+#   show "Email sent!" for every attempt.
+_RETRIEVE_USERNAME_RAISE_STATUSES = {_ACCESS_DENIED_STATUS, "2"}
+
+# - `resetPassword` (-> `request_password_reset`): here status "2" means
+#   "account not found" (also what a vendor's username gets back, since
+#   vendors aren't eligible via this route) -- an ordinary, expected outcome
+#   on a public form, not an infrastructure failure. Only "3"/Access Denied
+#   must raise; "2" is tolerated (logged + reported to Sentry, never shown
+#   to the user) so the form never becomes an account-enumeration oracle.
+_RESET_PASSWORD_RAISE_STATUSES = {_ACCESS_DENIED_STATUS}
 
 
 class ApiFailure(NamedTuple):
@@ -76,7 +108,7 @@ def _api_business_failure(body_text: str) -> Optional[ApiFailure]:
     should be *shown* to the caller (vs. tolerated and only logged, to
     avoid turning a public form into an account-enumeration oracle) is a
     decision for each call site, not for this helper -- see
-    `send_temp_password` / `send_forgot_username` for that policy.
+    `request_password_reset` / `send_forgot_username` for that policy.
     """
     if not body_text:
         return None
@@ -248,31 +280,36 @@ class AuthService:
             capture_exception_with_context(e, mode=mode, company_code=company_code)
             raise
 
-    async def send_temp_password(
+    async def send_forgot_username(
         self,
         email: str,
-        first_name: str,
         company_code: Optional[str] = None,
         mode: Optional[str] = None
     ) -> str:
         """
-        Send a temporary password email to the user.
+        Request the portal username to be emailed to the user.
 
-        Mirrors the legacy Guide Portal flow (GP_SendGuidePortalTempPasswordEmail):
-        the TourCube API generates a temporary password and emails it to the
-        user. The legacy looked up email + first_name from the username against
-        a local HyperFile DB; the modern portal has no such DB, so the form now
-        collects the email and first name directly (same shape as the working
-        forgot-username flow).
+        The legacy `POST /tourcube/guidePortal/forgotUserName/{email}` route
+        crashes *inside* the API on both test and production (measured Aug
+        2026, DEVCUR-1761): HTTP 500, "Wrong constant passed as parameter"
+        (error 70501, fatal) from an `HReadFirst(Brand, BrandID,
+        Company_control.DefaultBrand)` that runs before the API even looks
+        at our parameter. This is a pre-existing bug in that procedure (it
+        has no internal caller), not something this repo can fix.
 
-        Verified contract (OPTIONS against production, Aug 2026): this route
-        only allows POST -- GET returns 405 Method Not Allowed. The call must
-        carry a JSON body (`json={}` is enough; an empty body gets 411) and a
-        `Content-Type: application/json` header (its absence gets 415).
+        This now calls the client-portal equivalent instead, which works in
+        both environments: `GET /tourcube/v1/client/retrievePortalUsername/
+        {email}`. It is a GET with no body -- no JSON payload, no
+        Content-Type header, only the `tc-api-key` header.
+
+        Measured against test and production: this route responds
+        `200 [{"Response": {"status": "1"}}]` even for an email address
+        with no matching account, so on its own it does not signal whether
+        an account exists. See `_api_business_failure` handling below for
+        how any other status this route might report is treated.
 
         Args:
-            email: User's email address (recipient)
-            first_name: User's first name (used in the email greeting)
+            email: User's email address
             company_code: Company identifier
             mode: "Test" or "Production"
 
@@ -281,110 +318,11 @@ class AuthService:
 
         Raises:
             httpx.HTTPError: If the API call fails, or if the response body
-                positively indicates a business-logic failure other than
-                "record not found" (see `_api_business_failure`). A "record
-                not found" (status 4) is tolerated so the public form never
-                reveals whether an email address is registered -- it is
-                still logged and reported to Sentry so we keep visibility
-                into it (DEVCUR-1761).
-        """
-        # Get company configuration with API credentials
-        company_config = settings.get_company_config(company_code, mode)
-
-        # Build endpoint URL. Path order matches the legacy contract:
-        # tempPassword/{email}/{first_name}. Segments are percent-encoded so
-        # emails (@) and names with spaces survive the path.
-        endpoint = (
-            f"{company_config.api_url}/tourcube/guidePortal/tempPassword/"
-            f"{quote(email, safe='')}/{quote(first_name, safe='')}"
-        )
-
-        # Make API call
-        try:
-            async with httpx.AsyncClient(
-                timeout=self.timeout,
-                verify=self.ssl_verify
-            ) as client:
-                response = await client.post(
-                    endpoint,
-                    json={},
-                    headers={
-                        "tc-api-key": company_config.api_key,
-                        "Content-Type": "application/json"
-                    }
-                )
-                response.raise_for_status()
-
-                failure = _api_business_failure(response.text)
-                if failure:
-                    if failure.status == "4":
-                        # Unknown addresses must stay indistinguishable from
-                        # known ones on this public form -- the user still
-                        # sees success. But hiding the signal from the user
-                        # is not the same as hiding it from us: log and
-                        # report to Sentry so an unexpectedly high rate of
-                        # "not found" is visible, then fall through as if
-                        # nothing happened.
-                        logger.warning(
-                            "Temp password API: unknown address for email %s: %s",
-                            email, redact_text(failure.description)
-                        )
-                        capture_message_with_context(
-                            "Temp password request: record not found "
-                            "(tolerated -- not shown to user)",
-                            mode=mode,
-                            company_code=company_code,
-                        )
-                    else:
-                        logger.error(
-                            "Temp password API business failure for email %s: %s",
-                            email, redact_text(failure.description)
-                        )
-                        raise httpx.HTTPError(
-                            f"Temp password request failed: {failure.description}"
-                        )
-
-                return response.text
-        except httpx.TimeoutException as e:
-            logger.error("Temp password API timeout for email %s: %s", email, e)
-            capture_exception_with_context(e, mode=mode, company_code=company_code)
-            raise
-        except httpx.HTTPStatusError as e:
-            logger.error("Temp password API HTTP error for email %s: %s (status: %s)", email, e, e.response.status_code)
-            capture_exception_with_context(e, mode=mode, company_code=company_code)
-            raise
-        except Exception as e:
-            logger.error("Temp password API unexpected error for email %s: %s", email, e)
-            capture_exception_with_context(e, mode=mode, company_code=company_code)
-            raise
-
-    async def send_forgot_username(
-        self,
-        email: str,
-        company_code: Optional[str] = None,
-        mode: Optional[str] = None
-    ) -> str:
-        """
-        Send username reminder email to user
-
-        Verified contract (OPTIONS against production, Aug 2026): this route
-        allows POST/PUT -- GET returns 405 Method Not Allowed. The call must
-        carry a JSON body (`json={}`; an empty body gets 411) and a
-        `Content-Type: application/json` header (its absence gets 415).
-
-        Args:
-            email: User's email address
-            company_code: Company identifier
-            mode: "Test" or "Production"
-
-        Returns:
-            Response message from API
-
-        Raises:
-            httpx.HTTPError: If the API call fails, or if the response body
-                positively indicates a business-logic failure other than
-                "record not found" (see `_api_business_failure`). A "record
-                not found" (status 4) is tolerated so the public form never
+                positively indicates an infrastructure/config failure --
+                `Access Denied` (status "3") or status "2" (the legacy
+                procedure only assigns `nStatus=2` on its invalid-API-key
+                branch here; see `_RETRIEVE_USERNAME_RAISE_STATUSES`). Any
+                other business status is tolerated so the public form never
                 reveals whether an email address is registered -- it is
                 still logged and reported to Sentry so we keep visibility
                 into it (DEVCUR-1761).
@@ -395,7 +333,7 @@ class AuthService:
         # Build endpoint URL. The email is percent-encoded so its `@` (and any
         # other reserved characters) survive as a single path segment.
         endpoint = (
-            f"{company_config.api_url}/tourcube/guidePortal/forgotUserName/"
+            f"{company_config.api_url}/tourcube/v1/client/retrievePortalUsername/"
             f"{quote(email, safe='')}"
         )
 
@@ -405,43 +343,46 @@ class AuthService:
                 timeout=self.timeout,
                 verify=self.ssl_verify
             ) as client:
-                response = await client.post(
+                response = await client.get(
                     endpoint,
-                    json={},
-                    headers={
-                        "tc-api-key": company_config.api_key,
-                        "Content-Type": "application/json"
-                    }
+                    headers={"tc-api-key": company_config.api_key}
                 )
                 response.raise_for_status()
 
                 failure = _api_business_failure(response.text)
                 if failure:
-                    if failure.status == "4":
-                        # Unknown addresses must stay indistinguishable from
-                        # known ones on this public form -- the user still
-                        # sees success. But hiding the signal from the user
-                        # is not the same as hiding it from us: log and
-                        # report to Sentry so an unexpectedly high rate of
-                        # "not found" is visible, then fall through as if
-                        # nothing happened.
-                        logger.warning(
-                            "Forgot username API: unknown address for email %s: %s",
-                            email, redact_text(failure.description)
-                        )
-                        capture_message_with_context(
-                            "Forgot username request: record not found "
-                            "(tolerated -- not shown to user)",
-                            mode=mode,
-                            company_code=company_code,
-                        )
-                    else:
+                    if failure.status in _RETRIEVE_USERNAME_RAISE_STATUSES:
+                        # Infrastructure/config failure (Access Denied, or
+                        # status "2" -- which on THIS route only means
+                        # invalid API key, see
+                        # `_RETRIEVE_USERNAME_RAISE_STATUSES`) -- surface it,
+                        # this form cannot proceed at all.
                         logger.error(
                             "Forgot username API business failure for email %s: %s",
                             email, redact_text(failure.description)
                         )
                         raise httpx.HTTPError(
                             f"Forgot username request failed: {failure.description}"
+                        )
+                    else:
+                        # Any other business status (this route is known to
+                        # report status "1" even for unknown addresses, but
+                        # tolerate whatever it sends here defensively) must
+                        # stay indistinguishable from success on this public
+                        # form -- the user still sees success. Hiding the
+                        # signal from the user is not the same as hiding it
+                        # from us: log and report to Sentry (PR #74's rule,
+                        # now actually exercised by JSON-bearing responses).
+                        logger.warning(
+                            "Forgot username API: business status %s (tolerated, "
+                            "not shown to user) for email %s",
+                            failure.status, email
+                        )
+                        capture_message_with_context(
+                            f"Forgot username request: business status "
+                            f"{failure.status} (tolerated -- not shown to user)",
+                            mode=mode,
+                            company_code=company_code,
                         )
 
                 return response.text
@@ -455,6 +396,132 @@ class AuthService:
             raise
         except Exception as e:
             logger.error("Forgot username API unexpected error for email %s: %s", email, e)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
+
+    async def request_password_reset(
+        self,
+        portal_user_name: str,
+        company_code: Optional[str] = None,
+        mode: Optional[str] = None
+    ) -> str:
+        """
+        Request a temporary password for a portal account, keyed by
+        PORTAL USERNAME (not email).
+
+        The legacy `POST /tourcube/guidePortal/tempPassword/{email}/
+        {firstName}` route crashes *inside* the API on both test and
+        production (measured Aug 2026, DEVCUR-1761): the same pre-existing
+        `HReadFirst(Brand, BrandID, Company_control.DefaultBrand)` bug that
+        breaks `forgotUserName`, unrelated to what we send.
+
+        This now calls the client-portal equivalent instead, which works in
+        both environments: `GET /tourcube/v1/client/resetPassword/
+        {portalUserName}`. It is a GET with no body -- no JSON payload, no
+        Content-Type header, only the `tc-api-key` header.
+
+        Contract difference from the retired route: this one takes the
+        PORTAL USERNAME as its path parameter, not email/first name. The
+        legacy `GP_ResetPassword` procedure behind it looks the account up
+        by username, reads the email and first name from the database
+        itself, generates the temporary password, WRITES it to
+        `PortalPasswordHash`, and records history -- this is the same
+        design as the legacy guide portal's own reset screen, which also
+        asked for username.
+
+        Measured against test: a vendor account's username also reaches
+        this procedure (it is looked up against the client table) and comes
+        back with business status "2" ("not found") -- vendors are simply
+        not eligible via this route. This is documented behavior, not
+        something to route around.
+
+        Args:
+            portal_user_name: The account's portal username (not email)
+            company_code: Company identifier
+            mode: "Test" or "Production"
+
+        Returns:
+            Raw response body from the API
+
+        Raises:
+            httpx.HTTPError: If the API call fails, or if the response body
+                positively indicates an infrastructure/config failure (an
+                `Access Denied` body, status "3" -- see
+                `_api_business_failure`). Any other business status --
+                notably status "2" ("not found", also the case for vendor
+                accounts) -- is tolerated so the public form never reveals
+                whether a username is registered (or is a vendor account):
+                it is still logged and reported to Sentry so we keep
+                visibility into it (DEVCUR-1761).
+        """
+        # Get company configuration with API credentials
+        company_config = settings.get_company_config(company_code, mode)
+
+        # Build endpoint URL. The username is percent-encoded so it survives
+        # as a single path segment.
+        endpoint = (
+            f"{company_config.api_url}/tourcube/v1/client/resetPassword/"
+            f"{quote(portal_user_name, safe='')}"
+        )
+
+        # Make API call
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout,
+                verify=self.ssl_verify
+            ) as client:
+                response = await client.get(
+                    endpoint,
+                    headers={"tc-api-key": company_config.api_key}
+                )
+                response.raise_for_status()
+
+                failure = _api_business_failure(response.text)
+                if failure:
+                    if failure.status in _RESET_PASSWORD_RAISE_STATUSES:
+                        # Infrastructure/config failure (Access Denied) --
+                        # surface it, this form cannot proceed at all. Status
+                        # "2" on THIS route means "account not found" (see
+                        # `_RESET_PASSWORD_RAISE_STATUSES`), so it does NOT
+                        # land here -- it falls through to the tolerated
+                        # branch below.
+                        logger.error(
+                            "Password reset API business failure for username %s: %s",
+                            portal_user_name, redact_text(failure.description)
+                        )
+                        raise httpx.HTTPError(
+                            f"Password reset request failed: {failure.description}"
+                        )
+                    else:
+                        # Any other business status -- notably "2" ("not
+                        # found", also what a vendor username gets back --
+                        # must stay indistinguishable from success on this
+                        # public form. The user still sees success; hiding
+                        # the signal from the user is not the same as hiding
+                        # it from us: log and report to Sentry.
+                        logger.warning(
+                            "Password reset API: business status %s (tolerated, "
+                            "not shown to user) for username %s",
+                            failure.status, portal_user_name
+                        )
+                        capture_message_with_context(
+                            f"Password reset request: business status "
+                            f"{failure.status} (tolerated -- not shown to user)",
+                            mode=mode,
+                            company_code=company_code,
+                        )
+
+                return response.text
+        except httpx.TimeoutException as e:
+            logger.error("Password reset API timeout for username %s: %s", portal_user_name, e)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
+        except httpx.HTTPStatusError as e:
+            logger.error("Password reset API HTTP error for username %s: %s (status: %s)", portal_user_name, e, e.response.status_code)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            raise
+        except Exception as e:
+            logger.error("Password reset API unexpected error for username %s: %s", portal_user_name, e)
             capture_exception_with_context(e, mode=mode, company_code=company_code)
             raise
 

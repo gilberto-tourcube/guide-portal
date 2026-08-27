@@ -484,22 +484,32 @@ async def forgot_password_page(
 @router.post("/forgot-password")
 async def forgot_password_submit(
     request: Request,
-    email: str = Form(...),
-    first_name: str = Form(...),
+    username: str = Form(..., min_length=1, max_length=100),
     company_code: str = Form(...),
     mode: str = Form(...)
 ):
-    """Process forgot password form: send a temporary password email.
+    """Process forgot password form: request a temporary password.
 
-    The TourCube API generates the temporary password and emails it to the
-    user. We collect email + first name directly (the legacy username->email
-    DB lookup is not available to the modern portal).
+    The v1/client resetPassword route (DEVCUR-1761) is keyed on the portal
+    USERNAME, not email -- the API looks the account up by username and
+    derives the email/first name from the database itself. This is the
+    same shape as the legacy guide portal's own reset screen, which also
+    asked for username. `min_length=1` on the form field rejects an empty
+    username before the service is ever called, but it does not catch a
+    whitespace-only value (e.g. "   ") -- strip it and apply the same
+    rejection ourselves so the service never gets called with blanks.
     """
+    username = username.strip()
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="username is required",
+        )
+
     try:
-        # Call auth service to send the temporary password email
-        await auth_service.send_temp_password(
-            email=email,
-            first_name=first_name,
+        # Call auth service to request the temporary password
+        await auth_service.request_password_reset(
+            portal_user_name=username,
             company_code=company_code,
             mode=mode
         )
@@ -511,7 +521,7 @@ async def forgot_password_submit(
         )
 
     except httpx.HTTPError as e:
-        logger.error("Temp password API error for email %s: %s", email, e)
+        logger.error("Password reset API error: %s", e)
         capture_exception_with_context(e, mode=mode, company_code=company_code)
         return RedirectResponse(
             url=f"/auth/forgot-password?company_code={company_code}&mode={mode}&success=false",
