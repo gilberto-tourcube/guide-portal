@@ -21,6 +21,15 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 templates = create_templates()
 logger = logging.getLogger(__name__)
 
+# Characters a new password must not contain. This is not a password-policy
+# preference: the V7 change-password API transports the new password as a URL
+# path segment. Measured against test-2.tourcube.net, IIS rejects '/' and '\'
+# even percent-encoded, rejects a literal '+', and rejects '%' whenever what
+# follows looks like another percent-escape (unpredictable either way). These
+# four characters have no way to reach the API regardless of encoding, so we
+# reject them client- and server-side before attempting the change.
+PASSWORD_URL_UNSAFE_CHARS = set("%+/\\")
+
 
 def _login_url(company_code: str, mode: str, *, error: Optional[str] = None) -> str:
     """Build a login redirect with only the canonical, safe tenant context."""
@@ -356,6 +365,14 @@ async def change_password_submit(
     if len(new_password) < 6:
         return RedirectResponse(
             url="/auth/change-password?error=password_too_short",
+            status_code=303
+        )
+
+    # Validate against characters the change-password API cannot transport
+    # (see PASSWORD_URL_UNSAFE_CHARS above).
+    if any(char in PASSWORD_URL_UNSAFE_CHARS for char in new_password):
+        return RedirectResponse(
+            url="/auth/change-password?error=password_invalid_chars",
             status_code=303
         )
 
