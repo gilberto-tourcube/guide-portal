@@ -1,18 +1,26 @@
 """Contract tests for app.services.auth_service (DEVCUR-1761).
 
-Covers the V7 API method/body contract verified against production
-(web2.tourcube.net) in Aug 2026:
+Covers the V7 API method/body contract verified against test AND production
+in Aug 2026:
 
-    route                                          Allow (real)
-    /tourcube/guidePortal/forgotUserName/{email}    POST, PUT
-    /tourcube/guidePortal/tempPassword/{email}/{fn} POST
-    /tourcube/v1/client/{id}/password/{pwd}         PUT
+    route                                              verb   result
+    /tourcube/guidePortal/forgotUserName/{email}        POST   500 (both envs)
+    /tourcube/guidePortal/tempPassword/{email}/{fn}     POST   500 (both envs)
+    /tourcube/v1/client/retrievePortalUsername/{email}  GET    200 (works)
+    /tourcube/v1/client/resetPassword/{username}        GET    200 (works)
+    /tourcube/v1/client/{id}/password/{pwd}             PUT    (unrelated, works)
 
-Before the fix, `send_forgot_username` and `send_temp_password` sent GET
-(405 Method Not Allowed in production) and `change_password` interpolated
-the raw password into the URL path (a literal `%` broke the path and
-returned 400 -- how a guide's password change silently failed while the
-portal reported success).
+The two `guidePortal` routes crash *inside* the API on both environments
+(HTTP 500, "Wrong constant passed as parameter", error 70501 -- an
+`HReadFirst(Brand, BrandID, Company_control.DefaultBrand)` that blows up
+before the API even looks at our parameter). `send_forgot_username` and
+`request_password_reset` (formerly `send_temp_password`) now call the
+working `v1/client` equivalents instead, over GET with no body.
+
+`change_password` still interpolates the raw password into the URL path
+and must percent-encode it (a literal `%` broke the path and returned 400
+-- how a guide's password change silently failed while the portal reported
+success).
 
 Also covers `_api_business_failure`, the guard against a V7 response that
 signals failure inside a 200/40x body instead of via HTTP status.
@@ -82,21 +90,29 @@ def _install_fake_client(monkeypatch, calls, response_text="ok"):
 
 
 @pytest.mark.asyncio
-async def test_send_forgot_username_posts_json_with_content_type(monkeypatch):
-    """Would fail before the fix: the old code called client.get(...) with no
-    body, which 405'd against production (Allow: POST, PUT)."""
+async def test_send_forgot_username_gets_client_retrieve_portal_username(monkeypatch):
+    """Would fail if this route regresses back to `guidePortal/forgotUserName`:
+    that route crashes inside the API (500) on both test and production
+    (DEVCUR-1761). The working replacement is a plain GET, no body, no
+    Content-Type header."""
     calls = []
     _install_fake_client(monkeypatch, calls)
 
+    cfg = settings.get_company_config("WT", "Test")
     await auth_service.send_forgot_username(
         email="welcome@zalaz.me", company_code="WT", mode="Test"
     )
 
     assert len(calls) == 1
     call = calls[0]
-    assert call["method"] == "POST"
-    assert call["json"] == {}
-    assert call["headers"]["Content-Type"] == "application/json"
+    assert call["method"] == "GET"
+    expected = (
+        f"{cfg.api_url}/tourcube/v1/client/retrievePortalUsername/"
+        "welcome%40zalaz.me"
+    )
+    assert call["url"] == expected
+    assert call["headers"]["tc-api-key"] == cfg.api_key
+    assert "Content-Type" not in (call["headers"] or {})
 
 
 @pytest.mark.asyncio
@@ -111,29 +127,55 @@ async def test_send_forgot_username_percent_encodes_email_in_path(monkeypatch):
         email="welcome@zalaz.me", company_code="WT", mode="Test"
     )
 
-    expected = f"{cfg.api_url}/tourcube/guidePortal/forgotUserName/welcome%40zalaz.me"
+    expected = (
+        f"{cfg.api_url}/tourcube/v1/client/retrievePortalUsername/"
+        "welcome%40zalaz.me"
+    )
     assert calls[0]["url"] == expected
 
 
 @pytest.mark.asyncio
-async def test_send_temp_password_posts_json_with_content_type(monkeypatch):
-    """Would fail before the fix: the old code called client.get(...) with no
-    body, which 405'd against production (Allow: POST)."""
+async def test_request_password_reset_gets_client_reset_password(monkeypatch):
+    """Would fail if this route regresses back to `guidePortal/tempPassword`:
+    that route crashes inside the API (500) on both test and production
+    (DEVCUR-1761). The working replacement is a plain GET keyed on the
+    PORTAL USERNAME (not email/first name), no body, no Content-Type
+    header."""
     calls = []
     _install_fake_client(monkeypatch, calls)
 
-    await auth_service.send_temp_password(
-        email="guide@example.com",
-        first_name="Guide",
+    cfg = settings.get_company_config("WT", "Test")
+    await auth_service.request_password_reset(
+        portal_user_name="jsmith",
         company_code="WT",
         mode="Test",
     )
 
     assert len(calls) == 1
     call = calls[0]
-    assert call["method"] == "POST"
-    assert call["json"] == {}
-    assert call["headers"]["Content-Type"] == "application/json"
+    assert call["method"] == "GET"
+    expected = f"{cfg.api_url}/tourcube/v1/client/resetPassword/jsmith"
+    assert call["url"] == expected
+    assert call["headers"]["tc-api-key"] == cfg.api_key
+    assert "Content-Type" not in (call["headers"] or {})
+
+
+@pytest.mark.asyncio
+async def test_request_password_reset_percent_encodes_username_in_path(monkeypatch):
+    """The username is a URL path segment; reserved characters must be
+    percent-encoded so the path stays well-formed."""
+    calls = []
+    _install_fake_client(monkeypatch, calls)
+
+    cfg = settings.get_company_config("WT", "Test")
+    await auth_service.request_password_reset(
+        portal_user_name="jo ann/smith",
+        company_code="WT",
+        mode="Test",
+    )
+
+    expected = f"{cfg.api_url}/tourcube/v1/client/resetPassword/jo%20ann%2Fsmith"
+    assert calls[0]["url"] == expected
 
 
 @pytest.mark.parametrize(
@@ -273,35 +315,34 @@ async def test_change_password_raises_on_business_failure_and_error_excludes_pas
 
 
 class TestNotFoundIsNotAnEnumerationOracle:
-    """Status 4 ("record not found") must not leak account existence to the
-    *user*, but must never go unnoticed by *us* (DEVCUR-1761: before the
-    fix, status 4 on the email flows was swallowed silently -- nothing
-    logged, nothing in Sentry, so the portal was blind to it).
+    """The `v1/client` recovery routes (DEVCUR-1761) report status "2" for
+    "not found" (a different meaning than the legacy `guidePortal` family's
+    status 2 -- see the note on `_V7_RESPONSE_STATUS_MESSAGES`). Status "2"
+    must not leak account existence to the *user*, but must never go
+    unnoticed by *us*.
 
-    The public forgot-username / forgot-password forms tolerate status 4:
-    the user still sees success, but the service now always logs it and
-    reports it to Sentry. Password change keeps the strict reading: a
-    silent "not found" there is the false success this guard exists to
-    prevent, so it raises like any other failure.
+    The public forgot-username / forgot-password forms tolerate status "2"
+    (and any other business status besides "3"/Access Denied): the user
+    still sees success, but the service always logs it and reports it to
+    Sentry. Password change keeps the strict reading (untouched by this
+    ticket): a silent "not found" there is the false success that guard
+    exists to prevent, so it raises like any other failure.
     """
 
-    def test_status_4_is_always_reported_by_the_helper(self):
-        """The helper itself no longer has a tolerance flag -- it always
-        reports what the body says; tolerance is a per-call-site decision
-        made in send_forgot_username / send_temp_password."""
-        body = '[{"Response":{"status":"4"}}]'
+    def test_status_2_is_reported_by_the_helper(self):
+        body = '[{"Response":{"status":"2"}}]'
         failure = _api_business_failure(body)
         assert failure is not None
-        assert failure.status == "4"
+        assert failure.status == "2"
 
 
 @pytest.mark.asyncio
-async def test_send_forgot_username_stays_silent_on_unknown_address_but_reports_to_sentry(
+async def test_send_forgot_username_stays_silent_on_status_2_but_reports_to_sentry(
     monkeypatch
 ):
     calls = []
     _install_fake_client(
-        monkeypatch, calls, response_text='[{"Response":{"status":"4"}}]'
+        monkeypatch, calls, response_text='[{"Response":{"status":"2"}}]'
     )
     sentry_calls = _fake_capture_message_with_context(monkeypatch)
 
@@ -310,39 +351,41 @@ async def test_send_forgot_username_stays_silent_on_unknown_address_but_reports_
     await auth_service.send_forgot_username(
         email="zz-nobody@example.invalid", company_code="WT", mode="Production"
     )
-    assert calls[0]["method"] == "POST"
+    assert calls[0]["method"] == "GET"
 
     # ...but we must still know it happened.
     assert len(sentry_calls) == 1
 
 
 @pytest.mark.asyncio
-async def test_send_temp_password_stays_silent_on_unknown_address_but_reports_to_sentry(
+async def test_request_password_reset_stays_silent_on_status_2_but_reports_to_sentry(
     monkeypatch
 ):
+    """Status "2" is also what a vendor's username gets back (the procedure
+    looks the username up against the client table) -- same tolerate-and-
+    report policy applies regardless of why the account isn't eligible."""
     calls = []
     _install_fake_client(
-        monkeypatch, calls, response_text='[{"Response":{"status":"4"}}]'
+        monkeypatch, calls, response_text='[{"Response":{"status":"2"}}]'
     )
     sentry_calls = _fake_capture_message_with_context(monkeypatch)
 
-    await auth_service.send_temp_password(
-        email="zz-nobody@example.invalid",
-        first_name="Zzprobe",
+    await auth_service.request_password_reset(
+        portal_user_name="zzprobe",
         company_code="WT",
         mode="Production",
     )
-    assert calls[0]["method"] == "POST"
+    assert calls[0]["method"] == "GET"
     assert len(sentry_calls) == 1
 
 
 @pytest.mark.asyncio
-async def test_send_forgot_username_status_3_still_raises_and_skips_sentry_message(
+async def test_send_forgot_username_access_denied_still_raises_and_skips_sentry_message(
     monkeypatch
 ):
-    """Non-"not found" failures keep raising as before; they go through
-    capture_exception_with_context (via the except block) rather than
-    capture_message_with_context."""
+    """Only the infrastructure/config failure (Access Denied, status "3")
+    keeps raising; it goes through capture_exception_with_context (via the
+    except block) rather than capture_message_with_context."""
     calls = []
     _install_fake_client(
         monkeypatch, calls, response_text='[{"Response":{"status":"3"}}]'
@@ -359,7 +402,7 @@ async def test_send_forgot_username_status_3_still_raises_and_skips_sentry_messa
 
 
 @pytest.mark.asyncio
-async def test_send_temp_password_status_3_still_raises_and_skips_sentry_message(
+async def test_request_password_reset_access_denied_still_raises_and_skips_sentry_message(
     monkeypatch
 ):
     calls = []
@@ -371,9 +414,8 @@ async def test_send_temp_password_status_3_still_raises_and_skips_sentry_message
     import httpx
 
     with pytest.raises(httpx.HTTPError):
-        await auth_service.send_temp_password(
-            email="welcome@zalaz.me",
-            first_name="Welcome",
+        await auth_service.request_password_reset(
+            portal_user_name="welcome",
             company_code="WT",
             mode="Test",
         )
