@@ -119,8 +119,13 @@ async def test_forgot_password_page_shows_success_message(secure_client, reset_d
 
 @pytest.mark.asyncio
 async def test_send_temp_password_builds_legacy_endpoint(monkeypatch):
-    """The service hits the legacy contract: GET tempPassword/{email}/{first_name}
+    """The service hits the legacy contract: POST tempPassword/{email}/{first_name}
     with the tc-api-key header, percent-encoding the path segments.
+
+    Verified against production (Aug 2026, DEVCUR-1761): the route only
+    allows POST -- GET returns 405 Method Not Allowed -- and requires a
+    JSON body + Content-Type: application/json (a bare GET with no body
+    used to be sent here, which 405'd in production).
     """
     captured = {}
 
@@ -140,8 +145,9 @@ async def test_send_temp_password_builds_legacy_endpoint(monkeypatch):
         async def __aexit__(self, *args):
             return False
 
-        async def get(self, url, headers=None):
+        async def post(self, url, json=None, headers=None):
             captured["url"] = url
+            captured["json"] = json
             captured["headers"] = headers
             return FakeResponse()
 
@@ -162,4 +168,6 @@ async def test_send_temp_password_builds_legacy_endpoint(monkeypatch):
         f"{cfg.api_url}/tourcube/guidePortal/tempPassword/"
         "jo%20ann%40example.com/Jo%20Ann"
     )
+    assert captured["json"] == {}
     assert captured["headers"]["tc-api-key"] == cfg.api_key
+    assert captured["headers"]["Content-Type"] == "application/json"
