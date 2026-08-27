@@ -41,6 +41,29 @@ _V7_RESPONSE_STATUS_MESSAGES = {
 # since that's what it means).
 _ACCESS_DENIED_STATUS = "3"
 
+# IMPORTANT: `Response.status` values from the `v1/client` routes are
+# per-route, NOT a shared global contract -- the same string means something
+# different depending on which legacy WinDev procedure produced it. Each
+# recovery route below gets its own "these statuses mean infrastructure/
+# config failure, not just an unremarkable business outcome" set, measured
+# against test/production for DEVCUR-1761:
+#
+# - `retrievePortalUsername` (-> `send_forgot_username`): the legacy
+#   procedure only assigns `nStatus=2` on the invalid-API-key branch: an
+#   unknown email address still comes back `status:"1"`. So here status "2"
+#   is an infrastructure/config failure exactly like "3"/Access Denied, and
+#   must raise -- tolerating it would silently swallow a bad API key and
+#   show "Email sent!" for every attempt.
+_RETRIEVE_USERNAME_RAISE_STATUSES = {_ACCESS_DENIED_STATUS, "2"}
+
+# - `resetPassword` (-> `request_password_reset`): here status "2" means
+#   "account not found" (also what a vendor's username gets back, since
+#   vendors aren't eligible via this route) -- an ordinary, expected outcome
+#   on a public form, not an infrastructure failure. Only "3"/Access Denied
+#   must raise; "2" is tolerated (logged + reported to Sentry, never shown
+#   to the user) so the form never becomes an account-enumeration oracle.
+_RESET_PASSWORD_RAISE_STATUSES = {_ACCESS_DENIED_STATUS}
+
 
 class ApiFailure(NamedTuple):
     """A V7 business-logic failure positively detected in a response body.
@@ -295,12 +318,14 @@ class AuthService:
 
         Raises:
             httpx.HTTPError: If the API call fails, or if the response body
-                positively indicates an infrastructure/config failure (an
-                `Access Denied` body, status "3" -- see
-                `_api_business_failure`). Any other business status is
-                tolerated so the public form never reveals whether an email
-                address is registered -- it is still logged and reported to
-                Sentry so we keep visibility into it (DEVCUR-1761).
+                positively indicates an infrastructure/config failure --
+                `Access Denied` (status "3") or status "2" (the legacy
+                procedure only assigns `nStatus=2` on its invalid-API-key
+                branch here; see `_RETRIEVE_USERNAME_RAISE_STATUSES`). Any
+                other business status is tolerated so the public form never
+                reveals whether an email address is registered -- it is
+                still logged and reported to Sentry so we keep visibility
+                into it (DEVCUR-1761).
         """
         # Get company configuration with API credentials
         company_config = settings.get_company_config(company_code, mode)
@@ -326,9 +351,12 @@ class AuthService:
 
                 failure = _api_business_failure(response.text)
                 if failure:
-                    if failure.status == _ACCESS_DENIED_STATUS:
-                        # Infrastructure/config failure (invalid API key) --
-                        # surface it, this form cannot proceed at all.
+                    if failure.status in _RETRIEVE_USERNAME_RAISE_STATUSES:
+                        # Infrastructure/config failure (Access Denied, or
+                        # status "2" -- which on THIS route only means
+                        # invalid API key, see
+                        # `_RETRIEVE_USERNAME_RAISE_STATUSES`) -- surface it,
+                        # this form cannot proceed at all.
                         logger.error(
                             "Forgot username API business failure for email %s: %s",
                             email, redact_text(failure.description)
@@ -450,9 +478,13 @@ class AuthService:
 
                 failure = _api_business_failure(response.text)
                 if failure:
-                    if failure.status == _ACCESS_DENIED_STATUS:
-                        # Infrastructure/config failure (invalid API key) --
-                        # surface it, this form cannot proceed at all.
+                    if failure.status in _RESET_PASSWORD_RAISE_STATUSES:
+                        # Infrastructure/config failure (Access Denied) --
+                        # surface it, this form cannot proceed at all. Status
+                        # "2" on THIS route means "account not found" (see
+                        # `_RESET_PASSWORD_RAISE_STATUSES`), so it does NOT
+                        # land here -- it falls through to the tolerated
+                        # branch below.
                         logger.error(
                             "Password reset API business failure for username %s: %s",
                             portal_user_name, redact_text(failure.description)

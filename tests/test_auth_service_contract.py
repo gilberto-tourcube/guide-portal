@@ -315,18 +315,23 @@ async def test_change_password_raises_on_business_failure_and_error_excludes_pas
 
 
 class TestNotFoundIsNotAnEnumerationOracle:
-    """The `v1/client` recovery routes (DEVCUR-1761) report status "2" for
-    "not found" (a different meaning than the legacy `guidePortal` family's
-    status 2 -- see the note on `_V7_RESPONSE_STATUS_MESSAGES`). Status "2"
-    must not leak account existence to the *user*, but must never go
-    unnoticed by *us*.
+    """The `v1/client` recovery routes (DEVCUR-1761) report status "2", but
+    its *meaning* is per-route, not shared -- see `_api_business_failure`'s
+    NOTE and `_RETRIEVE_USERNAME_RAISE_STATUSES` /
+    `_RESET_PASSWORD_RAISE_STATUSES`:
 
-    The public forgot-username / forgot-password forms tolerate status "2"
-    (and any other business status besides "3"/Access Denied): the user
-    still sees success, but the service always logs it and reports it to
-    Sentry. Password change keeps the strict reading (untouched by this
-    ticket): a silent "not found" there is the false success that guard
-    exists to prevent, so it raises like any other failure.
+    - `resetPassword` (-> `request_password_reset`): status "2" means
+      "account not found" (also what a vendor's username gets back). This
+      must not leak account existence to the *user* -- the public form
+      tolerates it and still reports success -- but must never go unnoticed
+      by *us*: it is logged and reported to Sentry. See
+      `TestRetrieveUsernameStatus2IsInfraFailure` for the contrasting
+      `retrievePortalUsername` case, where status "2" instead means invalid
+      API key and must raise.
+
+    Password change keeps the strict reading (untouched by this ticket): a
+    silent "not found" there is the false success that guard exists to
+    prevent, so it raises like any other failure.
     """
 
     def test_status_2_is_reported_by_the_helper(self):
@@ -334,27 +339,6 @@ class TestNotFoundIsNotAnEnumerationOracle:
         failure = _api_business_failure(body)
         assert failure is not None
         assert failure.status == "2"
-
-
-@pytest.mark.asyncio
-async def test_send_forgot_username_stays_silent_on_status_2_but_reports_to_sentry(
-    monkeypatch
-):
-    calls = []
-    _install_fake_client(
-        monkeypatch, calls, response_text='[{"Response":{"status":"2"}}]'
-    )
-    sentry_calls = _fake_capture_message_with_context(monkeypatch)
-
-    # Must not raise: an unknown address looks exactly like a known one to
-    # the user calling this...
-    await auth_service.send_forgot_username(
-        email="zz-nobody@example.invalid", company_code="WT", mode="Production"
-    )
-    assert calls[0]["method"] == "GET"
-
-    # ...but we must still know it happened.
-    assert len(sentry_calls) == 1
 
 
 @pytest.mark.asyncio
@@ -399,6 +383,50 @@ async def test_send_forgot_username_access_denied_still_raises_and_skips_sentry_
             email="welcome@zalaz.me", company_code="WT", mode="Test"
         )
     assert sentry_calls == []
+
+
+class TestRetrieveUsernameStatus2IsInfraFailure:
+    """`retrievePortalUsername` (-> `send_forgot_username`) only assigns
+    `nStatus=2` on the invalid-API-key branch of the legacy procedure --
+    an unknown email still comes back status "1". So status "2" must be
+    treated as an infrastructure/config failure here, exactly like "3"/
+    Access Denied, unlike `resetPassword` (-> `request_password_reset`)
+    where status "2" means "account not found" and stays tolerated.
+    """
+
+    @pytest.mark.asyncio
+    async def test_send_forgot_username_raises_on_status_2(self, monkeypatch):
+        calls = []
+        _install_fake_client(
+            monkeypatch, calls, response_text='[{"Response":{"status":"2"}}]'
+        )
+        sentry_calls = _fake_capture_message_with_context(monkeypatch)
+
+        import httpx
+
+        with pytest.raises(httpx.HTTPError):
+            await auth_service.send_forgot_username(
+                email="welcome@zalaz.me", company_code="WT", mode="Test"
+            )
+        # Status "2" here is an infrastructure failure, not a tolerated
+        # business outcome -- it must not be reported via
+        # capture_message_with_context (that path is for tolerated statuses).
+        assert sentry_calls == []
+
+    @pytest.mark.asyncio
+    async def test_request_password_reset_does_not_raise_on_status_2(self, monkeypatch):
+        calls = []
+        _install_fake_client(
+            monkeypatch, calls, response_text='[{"Response":{"status":"2"}}]'
+        )
+        sentry_calls = _fake_capture_message_with_context(monkeypatch)
+
+        # Must not raise: "2" means "account not found" on this route, an
+        # ordinary tolerated outcome on a public form.
+        await auth_service.request_password_reset(
+            portal_user_name="jsmith", company_code="WT", mode="Test"
+        )
+        assert len(sentry_calls) == 1
 
 
 @pytest.mark.asyncio

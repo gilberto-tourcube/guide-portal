@@ -135,6 +135,63 @@ async def test_forgot_password_submit_rejects_empty_username_without_calling_ser
 
 
 @pytest.mark.asyncio
+async def test_forgot_password_submit_rejects_whitespace_only_username_without_calling_service(
+    monkeypatch, secure_client, reset_debug
+):
+    """`min_length=1` alone lets a whitespace-only username ("   ") through
+    to the service (DEVCUR-1761 bug) -- the route must strip and reject it
+    itself, the same way it already rejects an empty username."""
+    settings.debug = False
+    calls = {"n": 0}
+
+    async def fake_request_password_reset(portal_user_name, company_code=None, mode=None):
+        calls["n"] += 1
+        return "OK"
+
+    monkeypatch.setattr(
+        auth_service, "request_password_reset", fake_request_password_reset
+    )
+
+    response = await secure_client.post(
+        "/auth/forgot-password",
+        data={"username": "   ", "company_code": "WT", "mode": "Test"},
+        headers={"Accept": "text/html"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 422
+    assert calls["n"] == 0
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_submit_strips_username_before_calling_service(
+    monkeypatch, secure_client, reset_debug
+):
+    """A username with leading/trailing spaces but real content must reach
+    the service already stripped."""
+    settings.debug = False
+    calls = {}
+
+    async def fake_request_password_reset(portal_user_name, company_code=None, mode=None):
+        calls["portal_user_name"] = portal_user_name
+        return "OK"
+
+    monkeypatch.setattr(
+        auth_service, "request_password_reset", fake_request_password_reset
+    )
+
+    response = await secure_client.post(
+        "/auth/forgot-password",
+        data={"username": "  alguem  ", "company_code": "WT", "mode": "Test"},
+        headers={"Accept": "text/html"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert calls["portal_user_name"] == "alguem"
+
+
+@pytest.mark.asyncio
 async def test_forgot_password_page_shows_success_message(secure_client, reset_debug):
     settings.debug = False
 

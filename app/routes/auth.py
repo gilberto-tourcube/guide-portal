@@ -495,8 +495,17 @@ async def forgot_password_submit(
     derives the email/first name from the database itself. This is the
     same shape as the legacy guide portal's own reset screen, which also
     asked for username. `min_length=1` on the form field rejects an empty
-    username before the service is ever called.
+    username before the service is ever called, but it does not catch a
+    whitespace-only value (e.g. "   ") -- strip it and apply the same
+    rejection ourselves so the service never gets called with blanks.
     """
+    username = username.strip()
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="username is required",
+        )
+
     try:
         # Call auth service to request the temporary password
         await auth_service.request_password_reset(
