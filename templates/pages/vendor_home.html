@@ -1,5 +1,35 @@
 {% extends "layouts/dashboard.html" %}
 
+{#
+  Forms badge for a vendor trip card.
+
+  `trip.forms_badge` is computed by vendor_service._apply_forms_badges from the
+  vendor's actual forms, NOT from the API's `formsDue` counter — that counter only
+  counts forms that are already past due, so an outstanding form arrives as 0 and
+  used to render as "Complete", exactly like a trip that never had a form.
+
+  States: due | pending | complete | empty | none (render nothing).
+#}
+{% macro forms_badge(trip, extra_class="") %}
+    {% if trip.forms_badge == "due" %}
+    <span class="badge bg-outline-danger px-3 py-1 {{ extra_class }}">
+        <em class="icon ni ni-alert-circle me-1"></em>{{ trip.forms_due_count }} Form{{ "" if trip.forms_due_count == 1 else "s" }} Due
+    </span>
+    {% elif trip.forms_badge == "pending" %}
+    <span class="badge bg-outline-warning px-3 py-1 {{ extra_class }}">
+        <em class="icon ni ni-alert-circle me-1"></em>{{ trip.forms_incomplete_count }} Form{{ "" if trip.forms_incomplete_count == 1 else "s" }} Pending
+    </span>
+    {% elif trip.forms_badge == "complete" %}
+    <span class="badge bg-outline-success px-3 py-1 {{ extra_class }}">
+        <em class="icon ni ni-check-circle me-1"></em>Complete
+    </span>
+    {% elif trip.forms_badge == "empty" %}
+    <span class="badge bg-outline-warning px-3 py-1 {{ extra_class }}">
+        <em class="icon ni ni-alert-circle me-1"></em>No Forms
+    </span>
+    {% endif %}
+{% endmacro %}
+
 {% block title %}My Trips - Tourcube Vendor Portal{% endblock %}
 
 {% block extra_css %}
@@ -44,11 +74,7 @@
                                 <em class="icon ni ni-alert-circle me-1"></em>{{ trip.departure_docs_count }} Departure Docs
                             </span>
                             {% endif %}
-                            {% if trip.forms_due_count is not none and trip.forms_due_count > 0 %}
-                            <span class="badge bg-outline-danger px-3 py-1 ms-1">
-                                <em class="icon ni ni-alert-circle me-1"></em>{{ trip.forms_due_count }} Forms Due
-                            </span>
-                            {% endif %}
+                            {{ forms_badge(trip, "ms-1") }}
                         </div>
 
                         <div class="flex-grow-1">
@@ -136,15 +162,7 @@
 
                     <!-- Forms Status Badge -->
                     <div class="ms-3 flex-shrink-0">
-                        {% if trip.forms_due_count is not none and trip.forms_due_count > 0 %}
-                        <span class="badge bg-outline-danger px-2 py-1">
-                            <em class="icon ni ni-alert-circle me-1"></em>{{ trip.forms_due_count }} Forms Due
-                        </span>
-                        {% elif trip.forms_due_count is not none and trip.forms_due_count == 0 %}
-                        <span class="badge bg-outline-success px-2 py-1">
-                            <em class="icon ni ni-check-circle me-1"></em>Complete
-                        </span>
-                        {% endif %}
+                        {{ forms_badge(trip) }}
                     </div>
                 </div>
             </div>

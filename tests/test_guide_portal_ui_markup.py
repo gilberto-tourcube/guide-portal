@@ -71,6 +71,26 @@ def test_vendor_home_limits_past_trips_and_adds_toggle():
     assert "vendor.past_trips|length > 3" in template
 
 
+def test_vendor_home_forms_badge_distinguishes_empty_from_complete():
+    """Both trip lists must render the same four-state badge, driven by forms_badge.
+
+    The old markup branched on `forms_due_count == 0` and therefore rendered
+    "Complete" both for a trip whose forms were all returned and for a trip that
+    never had a form at all.
+    """
+    template = _read("templates/pages/vendor_home.html")
+
+    assert "{% macro forms_badge(trip" in template
+    for state in ("due", "pending", "complete", "empty"):
+        assert f'trip.forms_badge == "{state}"' in template
+    assert "No Forms" in template
+    assert 'Form{{ "" if trip.forms_incomplete_count == 1 else "s" }} Pending' in template
+    # The macro is used by BOTH the future and the past trip cards.
+    assert template.count("{{ forms_badge(trip") == 2
+    # The old "zero due means complete" branch must be gone.
+    assert "trip.forms_due_count == 0" not in template
+
+
 def test_guide_home_toggle_underline_is_scoped_to_text():
     template = _read("templates/pages/guide_home.html")
 

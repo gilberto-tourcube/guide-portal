@@ -569,6 +569,19 @@ class VendorTripSummary(BaseModel):
     forms_due_count: Optional[int] = Field(None, description="Number of forms due for the trip")
     departure_date: Optional[date] = Field(None, description="Parsed departure date (used for sorting)")
 
+    # Departure status resolved by the portal via getTripPage (the vendor homepage
+    # payload carries no status). None means "could not be resolved".
+    departure_status: Optional[str] = Field(None, description="Departure status, e.g. Open/Closed/Canceled")
+
+    # Forms state resolved by the portal from the vendor forms payload.
+    # has_forms is tri-state: True/False are assertions, None means "unknown".
+    has_forms: Optional[bool] = Field(None, description="Whether the trip has any vendor form on record")
+    forms_incomplete_count: Optional[int] = Field(None, description="Forms that have not been received yet")
+    forms_badge: Optional[str] = Field(
+        None,
+        description="Badge state for the trip card: due | pending | complete | empty | None (render nothing)",
+    )
+
     class Config:
         populate_by_name = True
         json_schema_extra = {
@@ -595,6 +608,10 @@ class VendorForm(BaseModel):
     received: bool = Field(False, description="Whether form has been submitted")
     editable_after_submit: bool = Field(False, alias="EditableAfterSubmit", description="Can be edited after submission")
     url: Optional[str] = Field(None, alias="URL", description="URL to access the form")
+    # Legacy TourcubeFormType — "Evaluation" follows its own due-date rule (see vendor_service._is_form_due)
+    form_type: Optional[str] = Field(None, alias="Type", description="Legacy TourcubeFormType, e.g. Upload/Evaluation")
+    # Legacy Receipt_Required — a form that is not required is never counted as "due"
+    receipt_required: bool = Field(False, alias="required", description="Whether a receipt/return is required")
 
     # Contact information (varies by company)
     ops_name: Optional[str] = Field(None, alias="OpsName", description="Operations contact name")
