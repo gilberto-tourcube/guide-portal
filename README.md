@@ -215,10 +215,6 @@ API_BASE_URL=https://api.tourcube.com
 API_KEY=your_api_key_here
 API_TIMEOUT=30
 
-# Company Configuration
-COMPANY_CODE=WT
-MODE=Test
-
 # Application Settings
 DEBUG=false
 APP_NAME=Tourcube Guide Portal

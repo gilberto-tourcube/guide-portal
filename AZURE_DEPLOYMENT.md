@@ -37,8 +37,6 @@ After the App Service is created:
    SECRET_KEY=<your-secret-key>              # required
    APP_NAME=Tourcube Guide Portal
    DEBUG=False
-   COMPANY_CODE=<default-company-code>       # fallback
-   MODE=Production                           # fallback
    SSL_VERIFY=true
    ALLOWED_ORIGINS=[]                        # JSON list, e.g., ["https://portal.example.com"]
    ```

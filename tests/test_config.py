@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from app.config import InvalidCompanyCodeError, Settings
 
@@ -30,14 +31,14 @@ def test_get_company_config_invalid_company_code():
 
 
 def test_resolve_company_and_mode_precedence():
-    """Explicit args win; then host mapping; then (None, None).
+    """Explicit args win, then host mapping, then (None, None).
 
-    There is intentionally NO default-tenant fallback (#148) — a request with
+    There is intentionally NO default-tenant fallback (#148). A request with
     no explicit context and no host mapping must surface as unresolved so
-    callers render a neutral / 400 response instead of impersonating the
-    env-var tenant.
+    callers render a neutral / 400 response instead of impersonating some
+    other tenant.
     """
-    settings = _settings(company_code="DEFAULT_CO", mode="Test")
+    settings = _settings()
     settings._domain_map = {"portal.example": ("MAPPED_CO", "Production")}
 
     assert settings.resolve_company_and_mode(
@@ -47,26 +48,29 @@ def test_resolve_company_and_mode_precedence():
     ) == ("EXPLICIT_CO", "Production")
 
     assert settings.resolve_company_and_mode(host="portal.example") == ("MAPPED_CO", "Production")
-    # No host mapping + no explicit args → (None, None), never DEFAULT_CO.
+    # No host mapping and no explicit args resolves to (None, None).
     assert settings.resolve_company_and_mode(host="unknown.example") == (None, None)
     assert settings.resolve_company_and_mode() == (None, None)
 
 
-def test_resolve_company_and_mode_does_not_leak_default_tenant():
-    """Regression guard for #148. The env-var default tenant must never
-    appear in the return value of `resolve_company_and_mode` when neither
-    the caller nor the host map supply it.
-    """
-    settings = _settings(
-        company_code="LEAKY_DEFAULT",
-        mode="Test",
-    )
-    settings._domain_map = {}
+def test_settings_has_no_default_tenant_fields():
+    """Regression guard for #148 and its follow-up (ENG-521).
 
-    code, mode = settings.resolve_company_and_mode(host="random.host")
-    assert code != "LEAKY_DEFAULT"
-    assert code is None
-    assert mode is None
+    `company_code` and `mode` were not just left unused on `Settings`, they
+    were deleted entirely. `Settings` uses `extra="forbid"` (pydantic-settings
+    default), so passing either as a constructor kwarg, the only way a
+    default-tenant value could ever have been injected, must be rejected.
+    This proves structurally that there is no field left for a default
+    tenant to leak through.
+    """
+    with pytest.raises(ValidationError):
+        _settings(company_code="LEAKY_DEFAULT", mode="Test")
+
+    with pytest.raises(ValidationError):
+        _settings(mode="Test")
+
+    with pytest.raises(ValidationError):
+        _settings(company_code="LEAKY_DEFAULT")
 
 
 def test_resolve_company_and_mode_inherits_mode_from_matching_host():
@@ -132,8 +136,6 @@ def test_resolve_company_and_mode_loads_domain_map_lazily(tmp_path):
     )
     settings = Settings(
         secret_key="dummy-secret",
-        company_code="LEAKY_DEFAULT",
-        mode="Test",
         api_key_json_path=str(apikey),
     )
     assert settings._domain_map is None
@@ -145,7 +147,7 @@ def test_resolve_company_and_mode_loads_domain_map_lazily(tmp_path):
 
 
 def test_get_company_config_requires_mode():
-    """#148: `get_company_config` must not fall back to `settings.mode`."""
+    """#148: `get_company_config` must not fall back to a default mode."""
     settings = _settings()
     with pytest.raises(ValueError, match="mode is required"):
         settings.get_company_config("WT", None)  # type: ignore[arg-type]

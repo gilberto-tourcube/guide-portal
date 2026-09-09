@@ -103,7 +103,7 @@ User Browser
 
 **Optional Support Link (guide_hash)**:
 - If the query includes `guide_hash`, `/guide/home` resolves it via `/tourcube/v1/clientHash/{guide_hash}` to obtain `guide_id` and bootstraps a guide session (bypassing form login) for support staff.
-- Company/mode resolution order: query params > domain mapping (`TestDomains`/`ProductionDomains`) > defaults from `.env`.
+- Company/mode resolution order: query params > domain mapping (`TestDomains`/`ProductionDomains`). An unresolved request is handled as unresolved (neutral error page), never defaulted to a tenant.
 ```
 
 #### Session Management
@@ -452,10 +452,6 @@ jobs:
 SECRET_KEY=your_secret_key_here_generate_with_secrets_token_urlsafe_32
 SESSION_COOKIE_NAME=guide_portal_session
 SESSION_MAX_AGE=86400
-
-# Company Configuration (Optional - has defaults)
-COMPANY_CODE=WT
-MODE=Test
 
 # API Configuration Path (Optional - has default)
 API_KEY_JSON_PATH=./config/apikey.json

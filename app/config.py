@@ -79,10 +79,6 @@ class Settings(BaseSettings):
     sentry_dsn: str = "https://48cf3c57b373f08326c0298b1445933a@o4510551040458752.ingest.us.sentry.io/4510551042490368"
     app_env: str = "test"  # Application environment for Sentry (test/production)
 
-    # Optional integration-test defaults. Runtime request resolution must never
-    # use these values as a tenant fallback.
-    company_code: str = ""
-    mode: str = "Test"
     api_key_json_path: str = "./config/apikey.json"
 
     # Cache for company configurations

@@ -44,7 +44,8 @@ def _neutral_tenant_error(
 ) -> HTMLResponse:
     """Render the neutral error page (no tenant identity) when a request
     arrives without a resolvable tenant (#148). Used by every auth route
-    that previously fell back to ``settings.company_code`` / ``settings.mode``.
+    that previously fell back to the default-tenant fields removed from
+    `Settings` (#148, and their final removal in ENG-521).
     """
     return templates.TemplateResponse(
         "pages/error.html",

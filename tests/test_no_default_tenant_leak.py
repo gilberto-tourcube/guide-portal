@@ -1,10 +1,11 @@
 """Regression tests for #148.
 
-Every public endpoint must refuse to leak the default tenant
-(`settings.company_code` / `settings.mode`) into the response when the
-request lacks any resolvable tenant context. A neutral / 400 / error
-response is acceptable; a redirect or render that carries the env-var
-default tenant's identity is not.
+Every public endpoint must refuse to leak a default tenant into the response
+when the request lacks any resolvable tenant context. A neutral / 400 / error
+response is acceptable, a redirect or render that carries a default tenant's
+identity is not. `Settings` has no default-tenant fields at all (removed in
+ENG-521, following the resolution fix in #148), so these tests pin the
+literal legacy value instead.
 """
 
 import pytest
@@ -13,8 +14,10 @@ from app.config import settings
 from app.main import app
 
 
-# Tenant identity markers that must never appear on an anonymous response.
-DEFAULT_COMPANY_CODE = "WT"
+# LEGACY_DEFAULT_COMPANY_CODE is the value `Settings.company_code` used to
+# default to before it was removed entirely (#148, ENG-521). It must never
+# appear on an anonymous response.
+LEGACY_DEFAULT_COMPANY_CODE = "WT"
 DEFAULT_TENANT_NAMES = ("Wilderness Travel",)
 
 
@@ -24,8 +27,8 @@ def _assert_no_default_tenant_leak(response, *, allow_in_query_string: bool = Fa
     the caller supplied that tenant in their own query string).
     """
     body = response.text
-    assert DEFAULT_COMPANY_CODE not in body, (
-        f"Default tenant company_code {DEFAULT_COMPANY_CODE!r} leaked into "
+    assert LEGACY_DEFAULT_COMPANY_CODE not in body, (
+        f"Default tenant company_code {LEGACY_DEFAULT_COMPANY_CODE!r} leaked into "
         f"response body. Snippet: {body[:200]!r}"
     )
     for name in DEFAULT_TENANT_NAMES:
@@ -35,8 +38,8 @@ def _assert_no_default_tenant_leak(response, *, allow_in_query_string: bool = Fa
 
     if not allow_in_query_string:
         location = response.headers.get("location", "")
-        assert DEFAULT_COMPANY_CODE not in location, (
-            f"Default tenant {DEFAULT_COMPANY_CODE!r} leaked into Location "
+        assert LEGACY_DEFAULT_COMPANY_CODE not in location, (
+            f"Default tenant {LEGACY_DEFAULT_COMPANY_CODE!r} leaked into Location "
             f"header: {location!r}"
         )
 
@@ -227,7 +230,7 @@ async def test_manifest_anonymous_returns_404(
     response = await secure_client.get("/manifest.json")
     assert response.status_code == 404
     # Body must not contain the default tenant identifiers.
-    assert DEFAULT_COMPANY_CODE not in response.text
+    assert LEGACY_DEFAULT_COMPANY_CODE not in response.text
     for name in DEFAULT_TENANT_NAMES:
         assert name not in response.text
 
@@ -249,4 +252,4 @@ async def test_manifest_with_tenant_query_non_mobile_returns_404(
     assert response.status_code == 404
     # #148: even though we requested with the default-tenant query, the
     # 404 body must not echo the tenant code back to the client.
-    assert DEFAULT_COMPANY_CODE not in response.text
+    assert LEGACY_DEFAULT_COMPANY_CODE not in response.text

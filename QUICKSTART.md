@@ -44,10 +44,6 @@ nano .env  # or use your preferred editor
 
 Required values in `.env`:
 ```env
-# Company defaults
-COMPANY_CODE=WT
-MODE=Test
-
 # API Configuration (fallback)
 API_BASE_URL=https://api.tourcube.com
 API_KEY=your_api_key_here

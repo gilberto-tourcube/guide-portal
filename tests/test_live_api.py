@@ -6,7 +6,7 @@ These are opt-in to avoid hitting the external API by default. Enable with:
 and provide credentials via env vars:
     TOURCUBE_GUIDE_USERNAME / TOURCUBE_GUIDE_PASSWORD
     TOURCUBE_VENDOR_USERNAME / TOURCUBE_VENDOR_PASSWORD
-Optionally override company/mode:
+Required tenant context (there is no default tenant to fall back to):
     TOURCUBE_COMPANY_CODE / TOURCUBE_MODE
 """
 
@@ -15,7 +15,6 @@ import os
 import pytest
 import pytest_asyncio
 
-from app.config import settings
 from app.services.auth_service import auth_service
 from app.services.guide_service import guide_service
 from app.services.vendor_service import vendor_service
@@ -26,9 +25,13 @@ pytestmark = pytest.mark.integration
 def _require_live_env() -> dict:
     if os.getenv("RUN_TOURCUBE_LIVE") != "1":
         pytest.skip("Set RUN_TOURCUBE_LIVE=1 to run live Tourcube API tests")
+    company_code = os.getenv("TOURCUBE_COMPANY_CODE")
+    mode = os.getenv("TOURCUBE_MODE")
+    if not company_code or not mode:
+        pytest.skip("Set TOURCUBE_COMPANY_CODE and TOURCUBE_MODE to run live Tourcube API tests")
     return {
-        "company_code": os.getenv("TOURCUBE_COMPANY_CODE", settings.company_code),
-        "mode": os.getenv("TOURCUBE_MODE", settings.mode),
+        "company_code": company_code,
+        "mode": mode,
     }
 
 
