@@ -219,13 +219,20 @@ def _days_ago(days):
     return date.today() - timedelta(days=days)
 
 
-def _range_string(start):
-    """Render a same-month GP_DateString-style range for a given start date."""
-    end = start + timedelta(days=1)
-    if end.month != start.month:
-        # Keep the range inside one month so the string stays a same-month shape.
-        start = start.replace(day=1)
-        end = start + timedelta(days=1)
+def _range_string(start, days=1):
+    """Render a departure range exactly the way the legacy GP_DateString does.
+
+    Faithful to UtilityProcedures.wdg:5536, all three shapes, because the tests
+    below depend on the portal being able to read `start` back out of it. An
+    earlier version dodged month boundaries by moving `start` to the 1st, which
+    silently desynced the card's date from the form's DepartureDate whenever the
+    run date landed near the end of a month.
+    """
+    end = start + timedelta(days=days)
+    if start.year != end.year:
+        return f"{start.strftime('%B')} {start.day}, {start.year}-{end.strftime('%B')} {end.day}, {end.year}"
+    if start.month != end.month:
+        return f"{start.strftime('%B')} {start.day}-{end.strftime('%B')} {end.day}, {start.year}"
     return f"{start.strftime('%B')} {start.day}-{end.day}, {start.year}"
 
 
@@ -550,3 +557,18 @@ async def test_one_unparseable_form_does_not_discard_the_others(monkeypatch):
 
     assert len(homepage.forms) == 1
     assert homepage.past_trips[0].forms_badge == "due"
+
+
+def test_range_string_round_trips_through_the_parser_on_every_date():
+    """Guard: the test helper and the parser must agree for ANY run date.
+
+    These tests build their fixtures from `date.today()`, so a helper that only
+    works mid-month passes for 27 days and then breaks the build. Walk a full
+    year, including every month boundary and the year boundary.
+    """
+    start = date(2026, 1, 1)
+    for offset in range(400):
+        day = start + timedelta(days=offset)
+        for span in (1, 10):
+            rendered = _range_string(day, days=span)
+            assert vendor_service._parse_trip_start_date(rendered) == day, rendered
