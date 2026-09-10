@@ -24,8 +24,10 @@
         <em class="icon ni ni-check-circle me-1"></em>Complete
     </span>
     {% elif trip.forms_badge == "empty" %}
-    <span class="badge bg-outline-warning px-3 py-1 {{ extra_class }}">
-        <em class="icon ni ni-alert-circle me-1"></em>No Forms
+    {# Neutral, not amber: a vendor with no forms at all would otherwise get a column
+       of warnings. It still has to read as "nothing here", never as "all done". #}
+    <span class="badge bg-outline-gray px-3 py-1 {{ extra_class }}">
+        <em class="icon ni ni-info me-1"></em>No Forms
     </span>
     {% endif %}
 {% endmacro %}

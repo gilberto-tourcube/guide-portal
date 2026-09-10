@@ -135,7 +135,7 @@ def test_vendor_home_renders_every_forms_badge_state():
         [("bg-outline-danger", "2 Forms Due")],
         [("bg-outline-warning", "1 Form Pending")],
         [("bg-outline-success", "Complete")],
-        [("bg-outline-warning", "No Forms")],
+        [("bg-outline-gray", "No Forms")],  # neutral, not a warning
         [],  # unknown state renders no badge at all
     ]
 
