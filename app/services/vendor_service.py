@@ -1,10 +1,12 @@
 """Business logic for vendor-related operations"""
 
+import asyncio
+import json
 import logging
 import re
-from datetime import date, datetime
-from typing import List, Optional
-from app.services.api_client import api_client
+from datetime import date, datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+from app.services.api_client import APIClient, api_client
 from app.utils.sentry_utils import capture_exception_with_context
 from app.models.schemas import (
     VendorHomepageData,
@@ -18,12 +20,44 @@ from app.config import settings
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Legacy departure status string returned by getTripPage for a canceled departure
+# (COL_GuidePortal.wdg GP_TripPage, Departure_Status = 3).
+CANCELED_DEPARTURE_STATUS = "Canceled"
+
+# The vendor homepage payload carries no departure status, so the portal resolves it
+# with one extra getTripPage call per DISTINCT TripID (one call returns every
+# departure of that trip). These bound the fan-out.
+TRIP_STATUS_CONCURRENCY = 6
+TRIP_STATUS_TIMEOUT_SECONDS = 8.0
+
+# GP_VendorForms drops any form whose dueDate is more than 60 days old, so an empty
+# forms payload only proves "this trip has no forms" for recent/future departures.
+# Outside this window the portal shows no forms badge at all instead of asserting.
+NO_FORMS_ASSERTION_WINDOW_DAYS = 30
+
 
 class VendorService:
     """Service for vendor-related business logic"""
 
     def __init__(self):
         self.api_client = api_client
+
+    @staticmethod
+    def _client_for(company_config) -> APIClient:
+        """
+        Build a REQUEST-SCOPED API client for this tenant.
+
+        The module-level `api_client` is a process-wide singleton whose base_url and
+        api_key are mutated in place. That is safe only while a request holds it across
+        a single await; the vendor homepage now awaits several calls, including a
+        fan-out, so a concurrent request for another tenant could overwrite the
+        credentials mid-flight and send one company's key to another company's host.
+        A per-request instance removes that window entirely.
+        """
+        client = APIClient()
+        client.base_url = company_config.api_url
+        client.api_key = company_config.api_key
+        return client
 
     async def get_vendor_id_by_hash(
         self,
@@ -92,12 +126,12 @@ class VendorService:
         # Get company configuration with API credentials
         company_config = settings.get_company_config(company_code, mode)
 
-        # Configure api_client with correct credentials for this request
-        self.api_client.base_url = company_config.api_url
-        self.api_client.api_key = company_config.api_key
+        # Request-scoped client: this method awaits several calls, so it must not rely
+        # on credentials parked on the shared singleton (see _client_for).
+        client = self._client_for(company_config)
 
         # Fetch homepage data from API
-        homepage_response = await self.api_client.get(
+        homepage_response = await client.get(
             f"/tourcube/guidePortal/getVendorHomepage/{vendor_id}"
         )
 
@@ -112,6 +146,22 @@ class VendorService:
             self._parse_trip_summary(trip) for trip in homepage_data.past_trips
         ]
 
+        # Process forms with status calculation.
+        # forms_available tells the badge logic whether an empty list is an assertion
+        # ("this vendor has no forms") or simply the result of a failed call.
+        forms, forms_pending_count, forms_available = await self._fetch_vendor_forms(
+            client=client,
+            vendor_id=vendor_id,
+            company_code=company_code,
+            mode=mode,
+        )
+
+        # Drop canceled departures. The vendor homepage payload has no status field,
+        # so the status is resolved with one extra getTripPage call per distinct TripID.
+        future_trips, past_trips = await self._drop_canceled_departures(
+            future_trips, past_trips, client=client, company_code=company_code, mode=mode
+        )
+
         # Sort past trips in descending order by departure date (most recent first).
         # When departure_date is missing, fall back to date.min so those trips sort last.
         past_trips.sort(
@@ -119,22 +169,45 @@ class VendorService:
             reverse=True,
         )
 
-        # Process forms with status calculation
-        forms = []
+        # Recompute the forms badge from the forms the portal actually knows about.
+        # The API's own `formsDue` counter is not usable here — see _apply_forms_badges.
+        self._apply_forms_badges(future_trips + past_trips, forms, forms_available)
+
+        # Build the complete response
+        return VendorHomepageData(
+            vendor_id=vendor_id,
+            vendor_name=homepage_data.name,
+            future_trips=future_trips,
+            past_trips=past_trips,
+            forms=forms,
+            forms_pending_count=forms_pending_count
+        )
+
+    async def _fetch_vendor_forms(
+        self,
+        client: APIClient,
+        vendor_id: int,
+        company_code: str,
+        mode: str,
+    ) -> Tuple[List[VendorForm], int, bool]:
+        """
+        Fetch every vendor form in one call (GP_VendorForms with tripDepartureID = 0).
+
+        Returns (forms, pending_count, available) where `available` is False when the
+        call failed — an empty list is then "unknown", not "this vendor has no forms".
+        """
+        forms: List[VendorForm] = []
         forms_pending_count = 0
 
-        # Try to fetch forms, but don't fail if API returns error
         try:
-            forms_response = await self.api_client.get(
+            forms_response = await client.get(
                 f"/tourcube/guidePortal/getVendorForms/{vendor_id}/0"
             )
 
             # Parse forms API response
             # The API returns: {'forms': '[{...}, {...}]', 'requestStatus': 'OK'}
-            # where 'forms' is a JSON string that needs to be parsed
-            import json
-
-            # Extract the forms field from the response dict
+            # where 'forms' is a JSON string that needs to be parsed.
+            # When the vendor has no forms at all it returns {'requestStatus': 'EMPTY'}.
             forms_list = forms_response.get("forms", []) if isinstance(forms_response, dict) else forms_response
 
             # If forms_list is a JSON string, parse it
@@ -146,7 +219,18 @@ class VendorService:
                 forms_list = []
 
             for form_dict in forms_list:
-                form = self._parse_vendor_form(form_dict, company_code)
+                # Parse per form: one malformed row must not discard the forms that did
+                # parse, because losing them would silently disable the badge for EVERY
+                # trip of this vendor and fall back to the counter this fix replaces.
+                try:
+                    form = self._parse_vendor_form(form_dict, company_code)
+                except Exception as e:
+                    logger.warning(
+                        "Skipping unparseable vendor form for vendor %s: %s", vendor_id, e
+                    )
+                    capture_exception_with_context(e, mode=mode, company_code=company_code)
+                    continue
+
                 forms.append(form)
 
                 # Count forms that need attention (pending or overdue)
@@ -156,17 +240,201 @@ class VendorService:
             # Log the error but continue without forms
             logger.warning("Failed to fetch vendor forms for vendor %s: %s", vendor_id, e)
             capture_exception_with_context(e, mode=mode, company_code=company_code)
-            # forms list remains empty
+            return [], 0, False
 
-        # Build the complete response
-        return VendorHomepageData(
-            vendor_id=vendor_id,
-            vendor_name=homepage_data.name,
-            future_trips=future_trips,
-            past_trips=past_trips,
-            forms=forms,
-            forms_pending_count=forms_pending_count
+        return forms, forms_pending_count, True
+
+    async def _drop_canceled_departures(
+        self,
+        future_trips: List[VendorTripSummary],
+        past_trips: List[VendorTripSummary],
+        client: APIClient,
+        company_code: str,
+        mode: str,
+    ) -> Tuple[List[VendorTripSummary], List[VendorTripSummary]]:
+        """
+        Resolve each departure's status and remove the canceled ones.
+
+        getVendorHomepage does not return a departure status (COL_GuidePortal.wdg
+        GP_VendorHomepage builds TripID/dates/Trip_Name/SignUps/Trip_DepartureID/
+        documentsReady/formsDue/thumbnail and nothing else), so the status comes from
+        getTripPage, which returns every departure of a trip WITH its status — the same
+        source the guide flow already filters on (guide_service.get_trip_page).
+
+        Degrades open: a trip whose status could not be resolved is KEPT. Hiding a
+        legitimate trip because of a network error is worse than showing a canceled one.
+        """
+        trips = future_trips + past_trips
+        trip_ids = sorted({trip.trip_id for trip in trips if trip.trip_id})
+        if not trip_ids:
+            return future_trips, past_trips
+
+        status_by_trip = await self._fetch_departure_statuses(
+            trip_ids, client=client, company_code=company_code, mode=mode
         )
+
+        def keep(trip: VendorTripSummary) -> bool:
+            statuses = status_by_trip.get(trip.trip_id)
+            if not statuses:
+                return True
+            # Departures outside getTripPage's +/-730 day window are simply absent.
+            status = statuses.get(trip.trip_departure_id)
+            trip.departure_status = status
+            return status != CANCELED_DEPARTURE_STATUS
+
+        return [t for t in future_trips if keep(t)], [t for t in past_trips if keep(t)]
+
+    async def _fetch_departure_statuses(
+        self,
+        trip_ids: List[int],
+        client: APIClient,
+        company_code: str,
+        mode: str,
+    ) -> Dict[int, Dict[int, str]]:
+        """
+        Fan out getTripPage over distinct trip IDs and return
+        {trip_id: {trip_departure_id: status}}. A trip that failed is simply absent.
+        """
+        semaphore = asyncio.Semaphore(TRIP_STATUS_CONCURRENCY)
+
+        async def fetch(trip_id: int) -> Tuple[int, Optional[Dict[int, str]]]:
+            # Parsing stays inside the guard: an unexpected payload shape must degrade
+            # this one trip to "status unknown", never bubble out of gather() and 500
+            # the whole page.
+            async with semaphore:
+                try:
+                    response = await asyncio.wait_for(
+                        client.get(
+                            f"/tourcube/guidePortal/getTripPage/{trip_id}"
+                        ),
+                        timeout=TRIP_STATUS_TIMEOUT_SECONDS,
+                    )
+                    departures = response.get("departures") if isinstance(response, dict) else None
+                    if not isinstance(departures, list):
+                        return trip_id, None
+
+                    statuses = {}
+                    for departure in departures:
+                        if not isinstance(departure, dict):
+                            continue
+                        departure_id = departure.get("tripdepID")
+                        if departure_id is not None:
+                            statuses[departure_id] = departure.get("status")
+                    return trip_id, statuses
+                except Exception as e:
+                    logger.warning(
+                        "Failed to resolve departure status for trip %s: %s", trip_id, e
+                    )
+                    capture_exception_with_context(e, mode=mode, company_code=company_code)
+                    return trip_id, None
+
+        results = await asyncio.gather(*(fetch(trip_id) for trip_id in trip_ids))
+        return {trip_id: statuses for trip_id, statuses in results if statuses}
+
+    def _apply_forms_badges(
+        self,
+        trips: List[VendorTripSummary],
+        forms: List[VendorForm],
+        forms_available: bool,
+    ) -> None:
+        """
+        Recompute each trip card's forms badge from the vendor's actual forms.
+
+        Why not use the API's `formsDue`: GP_VendorHomepage only increments it when
+        `Received=False AND Receipt_Required=True AND DueDate<=today` (or, for
+        Evaluation forms, `Travel_End_Date<today AND Received=False`). A form that is
+        outstanding but not yet past due therefore arrives as formsDue = 0, and the
+        template used to render that as "Complete" — the same value it renders for a
+        trip that never had a form at all.
+
+        The forms payload carries the raw `DepartureDate` (YYYYMMDD) and a `TripInfo`
+        of "<Trip_Name> - <Mmm. D, YYYY>", so forms are attributed to a trip card by
+        (trip name, departure date) — an exact key on both sides, not a heuristic.
+
+        Sets forms_badge to one of:
+            "due"      - at least one form is outstanding and actionable now
+            "pending"  - forms exist and are unreturned, but none is due yet
+            "complete" - forms exist and all of them were received
+            "empty"    - the trip has no forms on record (recent departures only)
+            None       - unknown; the card renders no badge
+        """
+        today = date.today()
+        forms_by_trip = self._index_forms_by_trip(forms)
+        assertion_cutoff = today - timedelta(days=NO_FORMS_ASSERTION_WINDOW_DAYS)
+
+        for trip in trips:
+            if not forms_available or trip.departure_date is None:
+                # Nothing reliable to say. Keep the API's own alert if it raised one,
+                # but never claim "Complete" on a guess.
+                trip.has_forms = None
+                trip.forms_incomplete_count = None
+                trip.forms_badge = "due" if (trip.forms_due_count or 0) > 0 else None
+                continue
+
+            matched = forms_by_trip.get(self._forms_key(trip.trip_name, trip.departure_date), [])
+            trip.has_forms = bool(matched)
+            trip.forms_due_count = sum(1 for form in matched if self._is_form_due(form, today))
+            trip.forms_incomplete_count = sum(1 for form in matched if not form.received)
+
+            if trip.forms_due_count:
+                trip.forms_badge = "due"
+            elif trip.forms_incomplete_count:
+                trip.forms_badge = "pending"
+            elif matched:
+                trip.forms_badge = "complete"
+            elif trip.departure_date >= assertion_cutoff:
+                # No forms on record, and recent enough that GP_VendorForms would still
+                # be reporting them if they existed.
+                trip.forms_badge = "empty"
+            else:
+                trip.forms_badge = None
+
+    @staticmethod
+    def _forms_key(trip_name: Optional[str], departure_date: Optional[date]) -> Tuple[str, Optional[date]]:
+        """Join key shared by trip cards and forms: normalized trip name + departure date."""
+        return ((trip_name or "").strip().casefold(), departure_date)
+
+    def _index_forms_by_trip(self, forms: List[VendorForm]) -> Dict[Tuple[str, Optional[date]], List[VendorForm]]:
+        """
+        Group forms by (trip name, departure date), both taken from the form payload.
+
+        The forms payload carries no TripID, so two departures of the same trip leaving
+        on the same day would share one bucket and therefore one badge. That is the
+        finest key the API offers.
+        """
+        index: Dict[Tuple[str, Optional[date]], List[VendorForm]] = {}
+        for form in forms:
+            if form.departure_date is None or not form.trip_info:
+                # Without a departure date the form cannot be attributed to a card.
+                continue
+            # TripInfo is "<Trip_Name> - <Mmm. D, YYYY>"; trip names may contain " - ",
+            # so split from the right.
+            trip_name = form.trip_info.rsplit(" - ", 1)[0]
+            index.setdefault(self._forms_key(trip_name, form.departure_date), []).append(form)
+        return index
+
+    @staticmethod
+    def _is_form_due(form: VendorForm, today: date) -> bool:
+        """
+        Whether a form is outstanding AND actionable today.
+
+        Mirrors the legacy counter in GP_VendorHomepage:
+
+        - Evaluation forms follow their own rule and become due once the trip has
+          travelled. Receipt_Required is deliberately NOT consulted for them, exactly
+          as in the legacy code. The payload carries no Travel_End_Date, so the
+          departure date stands in for it — which errs EARLY on a multi-day trip: the
+          form can read as due from the day the trip starts rather than the day it ends.
+        - Every other form is due only if a receipt is required and the due date has
+          arrived. A form that requires no receipt is never "due" — at most "pending".
+        """
+        if form.received:
+            return False
+        if (form.form_type or "").strip().casefold() == "evaluation":
+            return form.departure_date is not None and form.departure_date < today
+        if not form.receipt_required:
+            return False
+        return form.due_date is None or form.due_date <= today
 
     def _parse_trip_summary(self, trip_dict: dict) -> VendorTripSummary:
         """
@@ -213,23 +481,40 @@ class VendorService:
                 continue
         return None
 
+    # Exact inverse of the legacy GP_DateString (UtilityProcedures.wdg), which renders
+    # a departure as one of three shapes:
+    #   same month  -> "September 7-21, 2026"
+    #   same year   -> "November 22-December 6, 2026"
+    #   cross year  -> "December 28, 2026-January 5, 2027"
+    # The cross-year shape must be matched FIRST: a greedy "take the trailing year"
+    # regex reads it as 2027 and puts the departure a year late.
+    _CROSS_YEAR_RANGE = re.compile(
+        r"^\s*([A-Za-z.]+)\s+(\d{1,2})\s*,\s*(\d{4})\s*-\s*[A-Za-z.]+\s+\d{1,2}\s*,\s*\d{4}\s*$"
+    )
+    _SAME_YEAR_RANGE = re.compile(
+        r"^\s*([A-Za-z.]+)\s+(\d{1,2})\s*-\s*(?:[A-Za-z.]+\s+)?\d{1,2}\s*,\s*(\d{4})\s*$"
+    )
+    # Anything else that still looks like "<Month> <day> ... , <year>" (e.g. a single day).
+    _LOOSE_RANGE = re.compile(r"^\s*([A-Za-z.]+)\s+(\d{1,2})\b.*,\s*(\d{4})\s*$")
+
     def _parse_trip_start_date(self, trip_dates: Optional[str]) -> Optional[date]:
         """Extract the starting date from vendor trip date ranges like `May 10-20, 2023`."""
         if not trip_dates:
             return None
 
-        match = re.match(r"^\s*([A-Za-z.]+)\s+(\d{1,2})\b.*,\s*(\d{4})\s*$", trip_dates)
-        if not match:
-            return None
-
-        month, day, year = match.groups()
-        normalized = f"{month.rstrip('.')} {day} {year}"
-
-        for fmt in ("%B %d %Y", "%b %d %Y"):
-            try:
-                return datetime.strptime(normalized, fmt).date()
-            except ValueError:
+        for pattern in (self._CROSS_YEAR_RANGE, self._SAME_YEAR_RANGE, self._LOOSE_RANGE):
+            match = pattern.match(trip_dates)
+            if not match:
                 continue
+
+            month, day, year = match.groups()
+            normalized = f"{month.rstrip('.')} {day} {year}"
+
+            for fmt in ("%B %d %Y", "%b %d %Y"):
+                try:
+                    return datetime.strptime(normalized, fmt).date()
+                except ValueError:
+                    continue
         return None
 
     def _parse_vendor_form(self, form_dict: dict, company_code: str) -> VendorForm:
