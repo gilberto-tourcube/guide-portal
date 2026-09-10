@@ -91,6 +91,55 @@ def test_vendor_home_forms_badge_distinguishes_empty_from_complete():
     assert "trip.forms_due_count == 0" not in template
 
 
+def test_vendor_home_renders_every_forms_badge_state():
+    """Render the real template so the macro is exercised, not just grepped.
+
+    Both trip lists go through the same macro, so this also proves the future and
+    past cards can no longer drift apart.
+    """
+    import re
+
+    from jinja2 import ChoiceLoader, DictLoader, Environment, FileSystemLoader
+
+    env = Environment(
+        loader=ChoiceLoader(
+            [
+                # Stub layout: this test is about the card markup, not the shell.
+                DictLoader({"layouts/dashboard.html": "{% block page_content %}{% endblock %}"}),
+                FileSystemLoader(str(PROJECT_ROOT / "templates")),
+            ]
+        )
+    )
+
+    def card(name, badge, due=0, incomplete=0):
+        return dict(
+            trip_departure_id=1, trip_id=1, tour_name=name, dates="August 30-31, 2026",
+            thumbnail_image=None, group_size=4, trip_contact_name="AM", trip_leaders="TL",
+            departure_docs_count=None, forms_badge=badge,
+            forms_due_count=due, forms_incomplete_count=incomplete,
+        )
+
+    html = env.get_template("pages/vendor_home.html").render(
+        vendor=dict(
+            future_trips=[card("Due", "due", due=2), card("Pending", "pending", incomplete=1)],
+            past_trips=[card("Complete", "complete"), card("Empty", "empty"), card("Unknown", None)],
+        )
+    )
+
+    rendered = []
+    for chunk in re.split(r'class="card trip-card', html)[1:]:
+        badges = re.findall(r'<span class="badge (bg-outline-\w+)[^"]*"[^>]*>(.*?)</span>', chunk, re.S)
+        rendered.append([(cls, re.sub(r"\s+", " ", re.sub("<[^>]+>", "", text)).strip()) for cls, text in badges])
+
+    assert rendered == [
+        [("bg-outline-danger", "2 Forms Due")],
+        [("bg-outline-warning", "1 Form Pending")],
+        [("bg-outline-success", "Complete")],
+        [("bg-outline-warning", "No Forms")],
+        [],  # unknown state renders no badge at all
+    ]
+
+
 def test_guide_home_toggle_underline_is_scoped_to_text():
     template = _read("templates/pages/guide_home.html")
 

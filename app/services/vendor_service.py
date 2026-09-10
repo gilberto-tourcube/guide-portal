@@ -6,7 +6,7 @@ import logging
 import re
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional, Tuple
-from app.services.api_client import api_client
+from app.services.api_client import APIClient, api_client
 from app.utils.sentry_utils import capture_exception_with_context
 from app.models.schemas import (
     VendorHomepageData,
@@ -41,6 +41,23 @@ class VendorService:
 
     def __init__(self):
         self.api_client = api_client
+
+    @staticmethod
+    def _client_for(company_config) -> APIClient:
+        """
+        Build a REQUEST-SCOPED API client for this tenant.
+
+        The module-level `api_client` is a process-wide singleton whose base_url and
+        api_key are mutated in place. That is safe only while a request holds it across
+        a single await; the vendor homepage now awaits several calls, including a
+        fan-out, so a concurrent request for another tenant could overwrite the
+        credentials mid-flight and send one company's key to another company's host.
+        A per-request instance removes that window entirely.
+        """
+        client = APIClient()
+        client.base_url = company_config.api_url
+        client.api_key = company_config.api_key
+        return client
 
     async def get_vendor_id_by_hash(
         self,
@@ -109,12 +126,12 @@ class VendorService:
         # Get company configuration with API credentials
         company_config = settings.get_company_config(company_code, mode)
 
-        # Configure api_client with correct credentials for this request
-        self.api_client.base_url = company_config.api_url
-        self.api_client.api_key = company_config.api_key
+        # Request-scoped client: this method awaits several calls, so it must not rely
+        # on credentials parked on the shared singleton (see _client_for).
+        client = self._client_for(company_config)
 
         # Fetch homepage data from API
-        homepage_response = await self.api_client.get(
+        homepage_response = await client.get(
             f"/tourcube/guidePortal/getVendorHomepage/{vendor_id}"
         )
 
@@ -133,6 +150,7 @@ class VendorService:
         # forms_available tells the badge logic whether an empty list is an assertion
         # ("this vendor has no forms") or simply the result of a failed call.
         forms, forms_pending_count, forms_available = await self._fetch_vendor_forms(
+            client=client,
             vendor_id=vendor_id,
             company_code=company_code,
             mode=mode,
@@ -141,7 +159,7 @@ class VendorService:
         # Drop canceled departures. The vendor homepage payload has no status field,
         # so the status is resolved with one extra getTripPage call per distinct TripID.
         future_trips, past_trips = await self._drop_canceled_departures(
-            future_trips, past_trips, company_code=company_code, mode=mode
+            future_trips, past_trips, client=client, company_code=company_code, mode=mode
         )
 
         # Sort past trips in descending order by departure date (most recent first).
@@ -167,6 +185,7 @@ class VendorService:
 
     async def _fetch_vendor_forms(
         self,
+        client: APIClient,
         vendor_id: int,
         company_code: str,
         mode: str,
@@ -181,7 +200,7 @@ class VendorService:
         forms_pending_count = 0
 
         try:
-            forms_response = await self.api_client.get(
+            forms_response = await client.get(
                 f"/tourcube/guidePortal/getVendorForms/{vendor_id}/0"
             )
 
@@ -200,7 +219,18 @@ class VendorService:
                 forms_list = []
 
             for form_dict in forms_list:
-                form = self._parse_vendor_form(form_dict, company_code)
+                # Parse per form: one malformed row must not discard the forms that did
+                # parse, because losing them would silently disable the badge for EVERY
+                # trip of this vendor and fall back to the counter this fix replaces.
+                try:
+                    form = self._parse_vendor_form(form_dict, company_code)
+                except Exception as e:
+                    logger.warning(
+                        "Skipping unparseable vendor form for vendor %s: %s", vendor_id, e
+                    )
+                    capture_exception_with_context(e, mode=mode, company_code=company_code)
+                    continue
+
                 forms.append(form)
 
                 # Count forms that need attention (pending or overdue)
@@ -218,6 +248,7 @@ class VendorService:
         self,
         future_trips: List[VendorTripSummary],
         past_trips: List[VendorTripSummary],
+        client: APIClient,
         company_code: str,
         mode: str,
     ) -> Tuple[List[VendorTripSummary], List[VendorTripSummary]]:
@@ -239,7 +270,7 @@ class VendorService:
             return future_trips, past_trips
 
         status_by_trip = await self._fetch_departure_statuses(
-            trip_ids, company_code=company_code, mode=mode
+            trip_ids, client=client, company_code=company_code, mode=mode
         )
 
         def keep(trip: VendorTripSummary) -> bool:
@@ -256,6 +287,7 @@ class VendorService:
     async def _fetch_departure_statuses(
         self,
         trip_ids: List[int],
+        client: APIClient,
         company_code: str,
         mode: str,
     ) -> Dict[int, Dict[int, str]]:
@@ -266,31 +298,35 @@ class VendorService:
         semaphore = asyncio.Semaphore(TRIP_STATUS_CONCURRENCY)
 
         async def fetch(trip_id: int) -> Tuple[int, Optional[Dict[int, str]]]:
+            # Parsing stays inside the guard: an unexpected payload shape must degrade
+            # this one trip to "status unknown", never bubble out of gather() and 500
+            # the whole page.
             async with semaphore:
                 try:
                     response = await asyncio.wait_for(
-                        self.api_client.get(
+                        client.get(
                             f"/tourcube/guidePortal/getTripPage/{trip_id}"
                         ),
                         timeout=TRIP_STATUS_TIMEOUT_SECONDS,
                     )
+                    departures = response.get("departures") if isinstance(response, dict) else None
+                    if not isinstance(departures, list):
+                        return trip_id, None
+
+                    statuses = {}
+                    for departure in departures:
+                        if not isinstance(departure, dict):
+                            continue
+                        departure_id = departure.get("tripdepID")
+                        if departure_id is not None:
+                            statuses[departure_id] = departure.get("status")
+                    return trip_id, statuses
                 except Exception as e:
                     logger.warning(
                         "Failed to resolve departure status for trip %s: %s", trip_id, e
                     )
                     capture_exception_with_context(e, mode=mode, company_code=company_code)
                     return trip_id, None
-
-            departures = response.get("departures") if isinstance(response, dict) else None
-            if not isinstance(departures, list):
-                return trip_id, None
-
-            statuses = {}
-            for departure in departures:
-                departure_id = departure.get("tripdepID")
-                if departure_id is not None:
-                    statuses[departure_id] = departure.get("status")
-            return trip_id, statuses
 
         results = await asyncio.gather(*(fetch(trip_id) for trip_id in trip_ids))
         return {trip_id: statuses for trip_id, statuses in results if statuses}
@@ -359,7 +395,13 @@ class VendorService:
         return ((trip_name or "").strip().casefold(), departure_date)
 
     def _index_forms_by_trip(self, forms: List[VendorForm]) -> Dict[Tuple[str, Optional[date]], List[VendorForm]]:
-        """Group forms by (trip name, departure date), both taken from the form payload."""
+        """
+        Group forms by (trip name, departure date), both taken from the form payload.
+
+        The forms payload carries no TripID, so two departures of the same trip leaving
+        on the same day would share one bucket and therefore one badge. That is the
+        finest key the API offers.
+        """
         index: Dict[Tuple[str, Optional[date]], List[VendorForm]] = {}
         for form in forms:
             if form.departure_date is None or not form.trip_info:
@@ -376,10 +418,15 @@ class VendorService:
         """
         Whether a form is outstanding AND actionable today.
 
-        Mirrors the legacy counter in GP_VendorHomepage, including the separate rule
-        for Evaluation forms, which only become due once the trip has travelled. The
-        payload carries no Travel_End_Date, so the departure date is used as the proxy.
-        A form that does not require a receipt is never "due" — at most "pending".
+        Mirrors the legacy counter in GP_VendorHomepage:
+
+        - Evaluation forms follow their own rule and become due once the trip has
+          travelled. Receipt_Required is deliberately NOT consulted for them, exactly
+          as in the legacy code. The payload carries no Travel_End_Date, so the
+          departure date stands in for it — which errs EARLY on a multi-day trip: the
+          form can read as due from the day the trip starts rather than the day it ends.
+        - Every other form is due only if a receipt is required and the due date has
+          arrived. A form that requires no receipt is never "due" — at most "pending".
         """
         if form.received:
             return False

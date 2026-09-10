@@ -122,7 +122,7 @@ async def test_vendor_homepage_orders_past_trips_most_recent_first(monkeypatch):
             )
         ),
     )
-    monkeypatch.setattr(vendor_service, "api_client", FakeAPIClient())
+    monkeypatch.setattr(vendor_service, "_client_for", lambda company_config: FakeAPIClient())
 
     homepage = await vendor_service.get_vendor_homepage(123, "WTGUIDE", "Test")
 
@@ -173,7 +173,8 @@ def _fake_settings():
 
 def _install(monkeypatch, client):
     monkeypatch.setattr(vendor_module, "settings", _fake_settings())
-    monkeypatch.setattr(vendor_service, "api_client", client)
+    # The homepage builds a request-scoped client, so that factory is the seam.
+    monkeypatch.setattr(vendor_service, "_client_for", lambda company_config: client)
 
 
 class FakeClient:
@@ -461,3 +462,91 @@ async def test_api_forms_due_alert_survives_a_failed_forms_call(monkeypatch):
 
     assert trip.forms_badge == "due"
     assert trip.forms_due_count == 2
+
+
+@pytest.mark.asyncio
+async def test_evaluation_form_is_due_once_the_trip_has_departed(monkeypatch):
+    """The other half of the Evaluation rule: after departure it becomes due.
+
+    Receipt_Required is deliberately not consulted for Evaluations — the legacy
+    counter does not consult it either.
+    """
+    start = _days_ago(20)
+    trip = _trip(56807, 58000, "Southern Tanzania", _range_string(start))
+    trip["formsDue"] = 0
+    client = FakeClient(
+        homepage={"name": "Wildlife Explorer", "FutureTrips": [], "PastTrips": [trip]},
+        forms={
+            "requestStatus": "OK",
+            "forms": [
+                _form("Southern Tanzania", start, form_type="Evaluation", required=False)
+            ],
+        },
+        trip_pages={58000: [{"tripdepID": 56807, "status": "Open"}]},
+    )
+    _install(monkeypatch, client)
+
+    parsed = (await vendor_service.get_vendor_homepage(123, "WT", "Test")).past_trips[0]
+
+    assert parsed.forms_due_count == 1
+    assert parsed.forms_badge == "due"
+
+
+@pytest.mark.asyncio
+async def test_malformed_trip_page_payload_does_not_break_the_page(monkeypatch):
+    """An unexpected getTripPage shape degrades that trip to unknown, never 500s."""
+    client = FakeClient(
+        homepage={
+            "name": "African Environments",
+            "FutureTrips": [_trip(61689, 10389, "Grand Danube", "September 7-21, 2026")],
+            "PastTrips": [],
+        },
+        trip_pages={10389: [None, "nonsense", {"tripdepID": 61689, "status": "Canceled"}]},
+    )
+    _install(monkeypatch, client)
+
+    homepage = await vendor_service.get_vendor_homepage(123, "WT", "Test")
+
+    # The junk entries are skipped; the well-formed one still filters the departure.
+    assert homepage.future_trips == []
+
+
+@pytest.mark.asyncio
+async def test_trip_page_returning_a_non_dict_leaves_every_trip_visible(monkeypatch):
+    class BadClient(FakeClient):
+        async def get(self, path, params=None):
+            if "/getTripPage/" in path:
+                return "not a dict"
+            return await super().get(path, params)
+
+    client = BadClient(
+        homepage={
+            "name": "African Environments",
+            "FutureTrips": [_trip(61689, 10389, "Grand Danube", "September 7-21, 2026")],
+            "PastTrips": [],
+        },
+    )
+    _install(monkeypatch, client)
+
+    homepage = await vendor_service.get_vendor_homepage(123, "WT", "Test")
+
+    assert [t.trip_departure_id for t in homepage.future_trips] == [61689]
+
+
+@pytest.mark.asyncio
+async def test_one_unparseable_form_does_not_discard_the_others(monkeypatch):
+    """A single bad row must not disable the badge for the vendor's whole list."""
+    start = _days_ago(10)
+    good = _form("Botswana Wildlife Safari", start, required=True)
+    bad = {"TripInfo": "Broken - Jan. 1, 2026"}  # no formName -> ValidationError
+    client = FakeClient(
+        homepage=_homepage_with_past_trip("Botswana Wildlife Safari", start),
+        forms={"requestStatus": "OK", "forms": [bad, good]},
+        trip_pages={58000: [{"tripdepID": 58152, "status": "Open"}]},
+    )
+    _install(monkeypatch, client)
+
+    homepage = await vendor_service.get_vendor_homepage(123, "WT", "Test")
+
+    assert len(homepage.forms) == 1
+    assert homepage.past_trips[0].forms_badge == "due"
