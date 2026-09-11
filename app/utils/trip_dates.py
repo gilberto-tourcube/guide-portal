@@ -17,8 +17,11 @@ from typing import Optional
 #   same month  -> "September 7-21, 2026"
 #   same year   -> "November 22-December 6, 2026"
 #   cross year  -> "December 28, 2026-January 5, 2027"
-# The cross-year shape must be matched FIRST: a greedy "take the trailing year"
-# regex reads it as 2027 and puts the departure a year late.
+# ORDER MATTERS, and the pattern it protects against is _LOOSE_RANGE below, not
+# _SAME_YEAR_RANGE (which cannot match a cross-year string: it needs a dash right
+# after the day, and a cross-year string has ", <year>" there instead). _LOOSE_RANGE
+# DOES match "December 28, 2026-January 5, 2027" and yields 2027, a year late,
+# because it takes the trailing year. Keep _CROSS_YEAR_RANGE ahead of it.
 _CROSS_YEAR_RANGE = re.compile(
     r"^\s*([A-Za-z.]+)\s+(\d{1,2})\s*,\s*(\d{4})\s*-\s*[A-Za-z.]+\s+\d{1,2}\s*,\s*\d{4}\s*$"
 )

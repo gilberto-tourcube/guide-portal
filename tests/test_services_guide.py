@@ -452,3 +452,19 @@ async def test_old_trip_without_forms_and_without_api_count_stays_silent(monkeyp
 
     assert parsed.forms_badge is None
     assert parsed.has_forms is False
+
+
+def test_loose_pattern_alone_would_misread_a_cross_year_range():
+    """Pins WHY the cross-year pattern must be tried first.
+
+    _LOOSE_RANGE takes the trailing year, so on its own it reads a range that ends
+    in January as starting a year late. Reordering or dropping _CROSS_YEAR_RANGE
+    would silently move every cross-year departure forward by a year.
+    """
+    from app.utils import trip_dates
+
+    cross_year = "December 28, 2026-January 5, 2027"
+
+    assert trip_dates._SAME_YEAR_RANGE.match(cross_year) is None
+    assert trip_dates._LOOSE_RANGE.match(cross_year).groups() == ("December", "28", "2027")
+    assert trip_dates.parse_trip_start_date(cross_year) == date(2026, 12, 28)
