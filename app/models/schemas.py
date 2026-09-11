@@ -26,6 +26,15 @@ class TripSummary(BaseModel):
     departure_docs_count: Optional[int] = Field(None, description="Number of departure documents")
     forms_due_count: Optional[int] = Field(None, description="Number of forms due")
 
+    # Forms state resolved by the portal from the guide forms payload.
+    # has_forms is tri-state: True/False are assertions, None means "unknown".
+    has_forms: Optional[bool] = Field(None, description="Whether the trip has any guide form on record")
+    forms_incomplete_count: Optional[int] = Field(None, description="Forms that have not been received yet")
+    forms_badge: Optional[str] = Field(
+        None,
+        description="Badge state for the trip card: due | pending | complete | empty | None (render nothing)",
+    )
+
     class Config:
         json_schema_extra = {
             "example": {

@@ -1,10 +1,12 @@
 """Business logic for guide-related operations"""
 
+import json
 import logging
-from datetime import date, datetime
-from typing import List, Optional
+from datetime import date, datetime, timedelta
+from typing import Dict, List, Optional, Tuple
 from app.services.api_client import api_client
 from app.utils.sentry_utils import capture_exception_with_context
+from app.utils.trip_dates import parse_trip_start_date
 from app.models.schemas import (
     GuideHomepageData,
     TripSummary,
@@ -29,6 +31,11 @@ from app.config import settings
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# GP_GetGuideForms drops any form whose dueDate is more than 60 days old, so an empty
+# forms payload only proves "this guide has no forms" for recent/future departures.
+# Outside this window the portal shows no forms badge at all instead of asserting.
+NO_FORMS_ASSERTION_WINDOW_DAYS = 30
 
 
 class GuideService:
@@ -112,19 +119,6 @@ class GuideService:
         # Parse API response
         homepage_data = GuideHomepageAPIResponse(**homepage_response)
 
-        # Fetch forms data from API
-        forms_response = await self.api_client.get(
-            f"/tourcube/guidePortal/getGuideForms/{guide_id}/0"
-        )
-
-        # Parse forms API response
-        # The API may return forms as a JSON string, so we need to parse it
-        if isinstance(forms_response.get('forms'), str):
-            import json
-            forms_response['forms'] = json.loads(forms_response['forms'])
-
-        forms_data = GuideFormsAPIResponse(**forms_response)
-
         # Process trips
         future_trips = [
             self._parse_trip_summary(trip) for trip in homepage_data.future_trips
@@ -133,20 +127,25 @@ class GuideService:
             self._parse_trip_summary(trip) for trip in homepage_data.past_trips
         ]
 
-        # Sort past trips in descending order by departure date (most recent first)
-        past_trips.sort(key=lambda trip: trip.departure_date if trip.departure_date else date.min, reverse=True)
+        # Process forms with status calculation.
+        # forms_available tells the badge logic whether an empty list is an assertion
+        # ("this guide has no forms") or simply the result of a failed call.
+        forms, forms_pending_count, forms_available = await self._fetch_guide_forms(
+            guide_id=guide_id,
+            company_code=company_code,
+            mode=mode,
+        )
 
-        # Process forms with status calculation
-        forms = []
-        forms_pending_count = 0
+        # Sort past trips in descending order by departure date (most recent first).
+        # When departure_date is missing, fall back to date.min so those trips sort last.
+        past_trips.sort(
+            key=lambda trip: trip.departure_date if trip.departure_date else date.min,
+            reverse=True,
+        )
 
-        for form_dict in forms_data.forms:
-            form = self._parse_guide_form(form_dict, company_code)
-            forms.append(form)
-
-            # Count forms that need attention (pending or expired)
-            if form.status and form.status.status in ("pending", "expired"):
-                forms_pending_count += 1
+        # Recompute the forms badge from the forms the portal actually knows about.
+        # The API's own `formsDue` counter is not usable here — see _apply_forms_badges.
+        self._apply_forms_badges(future_trips + past_trips, forms, forms_available)
 
         # Build complete homepage data
         return GuideHomepageData(
@@ -158,6 +157,191 @@ class GuideService:
             forms=forms,
             forms_pending_count=forms_pending_count
         )
+
+    async def _fetch_guide_forms(
+        self,
+        guide_id: int,
+        company_code: str,
+        mode: str,
+    ) -> Tuple[List[GuideForm], int, bool]:
+        """
+        Fetch every guide form in one call (GP_GetGuideForms with tripDepartureID = 0).
+
+        Returns (forms, pending_count, available) where `available` is False when the
+        call failed — an empty list is then "unknown", not "this guide has no forms".
+        """
+        forms: List[GuideForm] = []
+        forms_pending_count = 0
+
+        try:
+            forms_response = await self.api_client.get(
+                f"/tourcube/guidePortal/getGuideForms/{guide_id}/0"
+            )
+
+            # Parse forms API response
+            # The API returns: {'forms': '[{...}, {...}]', 'requestStatus': 'OK'}
+            # where 'forms' is a JSON string that needs to be parsed.
+            # When the guide has no forms at all it returns {'requestStatus': 'EMPTY'}.
+            forms_list = forms_response.get("forms", []) if isinstance(forms_response, dict) else forms_response
+
+            # If forms_list is a JSON string, parse it
+            if isinstance(forms_list, str):
+                forms_list = json.loads(forms_list)
+
+            # Ensure we have a list
+            if not isinstance(forms_list, list):
+                forms_list = []
+
+            for form_dict in forms_list:
+                # Parse per form: one malformed row must not discard the forms that did
+                # parse, because losing them would silently disable the badge for EVERY
+                # trip of this guide and fall back to the counter this fix replaces.
+                try:
+                    form = self._parse_guide_form(form_dict, company_code)
+                except Exception as e:
+                    logger.warning(
+                        "Skipping unparseable guide form for guide %s: %s", guide_id, e
+                    )
+                    capture_exception_with_context(e, mode=mode, company_code=company_code)
+                    continue
+
+                forms.append(form)
+
+                # Count forms that need attention (pending or expired)
+                if form.status and form.status.status in ("pending", "expired"):
+                    forms_pending_count += 1
+        except Exception as e:
+            # Log the error but continue without forms
+            logger.warning("Failed to fetch guide forms for guide %s: %s", guide_id, e)
+            capture_exception_with_context(e, mode=mode, company_code=company_code)
+            return [], 0, False
+
+        return forms, forms_pending_count, True
+
+    def _apply_forms_badges(
+        self,
+        trips: List[TripSummary],
+        forms: List[GuideForm],
+        forms_available: bool,
+    ) -> None:
+        """
+        Recompute each trip card's forms badge from the guide's actual forms.
+
+        Why not use the API's `formsDue`: GP_GuideHomePage only increments it when
+        `Received=False AND Receipt_Required=True AND DueDate<=today` (or, for
+        Evaluation forms, `Travel_End_Date<today AND Received=False`). A form that is
+        outstanding but not yet past due therefore arrives as formsDue = 0, and the
+        template used to render that as "Complete" — the same value it renders for a
+        trip that never had a form at all.
+
+        The forms payload carries the raw `DepartureDate` and a `TripInfo` of
+        "<Trip_Name> - <Mmm. D, YYYY>", so forms are attributed to a trip card by
+        (trip name, departure date) — an exact key on both sides, not a heuristic.
+
+        Sets forms_badge to one of:
+            "due"      - at least one form is outstanding and actionable now
+            "pending"  - forms exist and are unreturned, but none is due yet
+            "complete" - forms exist and all of them were received
+            "empty"    - the trip has no forms on record (recent departures only)
+            None       - unknown; the card renders no badge
+        """
+        today = date.today()
+        forms_by_trip = self._index_forms_by_trip(forms)
+        assertion_cutoff = today - timedelta(days=NO_FORMS_ASSERTION_WINDOW_DAYS)
+
+        for trip in trips:
+            if not forms_available or trip.departure_date is None:
+                # Nothing reliable to say. Keep the API's own alert if it raised one,
+                # but never claim "Complete" on a guess.
+                trip.has_forms = None
+                trip.forms_incomplete_count = None
+                trip.forms_badge = "due" if (trip.forms_due_count or 0) > 0 else None
+                continue
+
+            # The API's own counter, before it is replaced below. The two feeds do NOT
+            # share a filter: GP_GetGuideForms drops rows more than 60 days past due,
+            # while the homepage counter queries the forms table with no date floor at
+            # all. So for an old trip the counter can be the ONLY surviving evidence
+            # that something is outstanding, and it never over-reports (it counts only
+            # unreceived + receipt-required + already due).
+            api_forms_due = trip.forms_due_count or 0
+
+            matched = forms_by_trip.get(self._forms_key(trip.tour_name, trip.departure_date), [])
+            if matched:
+                trip.has_forms = True
+                trip.forms_due_count = sum(1 for form in matched if self._is_form_due(form, today))
+                trip.forms_incomplete_count = sum(1 for form in matched if not form.received)
+
+                if trip.forms_due_count:
+                    trip.forms_badge = "due"
+                elif trip.forms_incomplete_count:
+                    trip.forms_badge = "pending"
+                else:
+                    trip.forms_badge = "complete"
+            elif api_forms_due > 0:
+                # No rows came back for this trip, but the counter says forms are due.
+                # Keep the alert rather than going silent on a real one.
+                trip.has_forms = True
+                trip.forms_due_count = api_forms_due
+                trip.forms_incomplete_count = None
+                trip.forms_badge = "due"
+            else:
+                trip.has_forms = False
+                trip.forms_due_count = 0
+                trip.forms_incomplete_count = 0
+                if trip.departure_date >= assertion_cutoff:
+                    # No forms on record, and recent enough that GP_GetGuideForms would
+                    # still be reporting them if they existed.
+                    trip.forms_badge = "empty"
+                else:
+                    trip.forms_badge = None
+
+    @staticmethod
+    def _forms_key(trip_name: Optional[str], departure_date: Optional[date]) -> Tuple[str, Optional[date]]:
+        """Join key shared by trip cards and forms: normalized trip name + departure date."""
+        return ((trip_name or "").strip().casefold(), departure_date)
+
+    def _index_forms_by_trip(self, forms: List[GuideForm]) -> Dict[Tuple[str, Optional[date]], List[GuideForm]]:
+        """
+        Group forms by (trip name, departure date), both taken from the form payload.
+
+        The forms payload carries no TripID, so two departures of the same trip leaving
+        on the same day would share one bucket and therefore one badge. That is the
+        finest key the API offers.
+        """
+        index: Dict[Tuple[str, Optional[date]], List[GuideForm]] = {}
+        for form in forms:
+            if form.departure_date is None or not form.trip_info:
+                # Without a departure date the form cannot be attributed to a card.
+                continue
+            # TripInfo is "<Trip_Name> - <Mmm. D, YYYY>"; trip names may contain " - ",
+            # so split from the right.
+            trip_name = form.trip_info.rsplit(" - ", 1)[0]
+            index.setdefault(self._forms_key(trip_name, form.departure_date), []).append(form)
+        return index
+
+    @staticmethod
+    def _is_form_due(form: GuideForm, today: date) -> bool:
+        """
+        Whether a form is outstanding AND actionable today.
+
+        Mirrors the legacy counter in GP_GuideHomePage:
+
+        - Evaluation forms follow their own rule and become due once the trip has
+          travelled. Receipt_Required is deliberately NOT consulted for them, exactly
+          as in the legacy code. The payload carries no Travel_End_Date, so the
+          departure date stands in for it — which errs EARLY on a multi-day trip: the
+          form can read as due from the day the trip starts rather than the day it ends.
+        - Every other form is due only if it is required and the due date has arrived.
+          A form that is not required is never "due" — at most "pending".
+        """
+        if form.received:
+            return False
+        if (form.form_type or "").strip().casefold() == "evaluation":
+            return form.departure_date is not None and form.departure_date < today
+        if not form.required:
+            return False
+        return form.due_date is None or form.due_date <= today
 
     def _parse_trip_summary(self, trip_dict: dict) -> TripSummary:
         """
@@ -172,10 +356,16 @@ class GuideService:
         # Extract dates string (e.g., "January 1-16, 2026")
         dates = trip_dict.get("dates", "")
 
-        # Parse departure date from Departure_Date field if available (format: YYYYMMDD)
+        # Parse departure date from Departure_Date field if available (format: YYYYMMDD).
+        # GP_GuideHomePage only emits Departure_Date for PAST trips; future trips have
+        # no machine-readable date at all, so fall back to parsing the `dates` range
+        # string (exact inverse of the legacy GP_DateString) — this is also the join
+        # key used to attribute forms to a trip card by (trip name, departure date).
         departure_date = None
         if trip_dict.get("Departure_Date"):
             departure_date = self._parse_date(trip_dict.get("Departure_Date"))
+        if departure_date is None:
+            departure_date = parse_trip_start_date(dates)
 
         return TripSummary(
             trip_departure_id=trip_dict.get("Trip_DepartureID"),
