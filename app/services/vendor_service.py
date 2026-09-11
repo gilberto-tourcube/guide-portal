@@ -1,6 +1,5 @@
 """Business logic for vendor-related operations"""
 
-import asyncio
 import json
 import logging
 import re
@@ -19,16 +18,6 @@ from app.config import settings
 
 # Configure logging
 logger = logging.getLogger(__name__)
-
-# Legacy departure status string returned by getTripPage for a canceled departure
-# (COL_GuidePortal.wdg GP_TripPage, Departure_Status = 3).
-CANCELED_DEPARTURE_STATUS = "Canceled"
-
-# The vendor homepage payload carries no departure status, so the portal resolves it
-# with one extra getTripPage call per DISTINCT TripID (one call returns every
-# departure of that trip). These bound the fan-out.
-TRIP_STATUS_CONCURRENCY = 6
-TRIP_STATUS_TIMEOUT_SECONDS = 8.0
 
 # GP_VendorForms drops any form whose dueDate is more than 60 days old, so an empty
 # forms payload only proves "this trip has no forms" for recent/future departures.
@@ -156,12 +145,6 @@ class VendorService:
             mode=mode,
         )
 
-        # Drop canceled departures. The vendor homepage payload has no status field,
-        # so the status is resolved with one extra getTripPage call per distinct TripID.
-        future_trips, past_trips = await self._drop_canceled_departures(
-            future_trips, past_trips, client=client, company_code=company_code, mode=mode
-        )
-
         # Sort past trips in descending order by departure date (most recent first).
         # When departure_date is missing, fall back to date.min so those trips sort last.
         past_trips.sort(
@@ -243,93 +226,6 @@ class VendorService:
             return [], 0, False
 
         return forms, forms_pending_count, True
-
-    async def _drop_canceled_departures(
-        self,
-        future_trips: List[VendorTripSummary],
-        past_trips: List[VendorTripSummary],
-        client: APIClient,
-        company_code: str,
-        mode: str,
-    ) -> Tuple[List[VendorTripSummary], List[VendorTripSummary]]:
-        """
-        Resolve each departure's status and remove the canceled ones.
-
-        getVendorHomepage does not return a departure status (COL_GuidePortal.wdg
-        GP_VendorHomepage builds TripID/dates/Trip_Name/SignUps/Trip_DepartureID/
-        documentsReady/formsDue/thumbnail and nothing else), so the status comes from
-        getTripPage, which returns every departure of a trip WITH its status — the same
-        source the guide flow already filters on (guide_service.get_trip_page).
-
-        Degrades open: a trip whose status could not be resolved is KEPT. Hiding a
-        legitimate trip because of a network error is worse than showing a canceled one.
-        """
-        trips = future_trips + past_trips
-        trip_ids = sorted({trip.trip_id for trip in trips if trip.trip_id})
-        if not trip_ids:
-            return future_trips, past_trips
-
-        status_by_trip = await self._fetch_departure_statuses(
-            trip_ids, client=client, company_code=company_code, mode=mode
-        )
-
-        def keep(trip: VendorTripSummary) -> bool:
-            statuses = status_by_trip.get(trip.trip_id)
-            if not statuses:
-                return True
-            # Departures outside getTripPage's +/-730 day window are simply absent.
-            status = statuses.get(trip.trip_departure_id)
-            trip.departure_status = status
-            return status != CANCELED_DEPARTURE_STATUS
-
-        return [t for t in future_trips if keep(t)], [t for t in past_trips if keep(t)]
-
-    async def _fetch_departure_statuses(
-        self,
-        trip_ids: List[int],
-        client: APIClient,
-        company_code: str,
-        mode: str,
-    ) -> Dict[int, Dict[int, str]]:
-        """
-        Fan out getTripPage over distinct trip IDs and return
-        {trip_id: {trip_departure_id: status}}. A trip that failed is simply absent.
-        """
-        semaphore = asyncio.Semaphore(TRIP_STATUS_CONCURRENCY)
-
-        async def fetch(trip_id: int) -> Tuple[int, Optional[Dict[int, str]]]:
-            # Parsing stays inside the guard: an unexpected payload shape must degrade
-            # this one trip to "status unknown", never bubble out of gather() and 500
-            # the whole page.
-            async with semaphore:
-                try:
-                    response = await asyncio.wait_for(
-                        client.get(
-                            f"/tourcube/guidePortal/getTripPage/{trip_id}"
-                        ),
-                        timeout=TRIP_STATUS_TIMEOUT_SECONDS,
-                    )
-                    departures = response.get("departures") if isinstance(response, dict) else None
-                    if not isinstance(departures, list):
-                        return trip_id, None
-
-                    statuses = {}
-                    for departure in departures:
-                        if not isinstance(departure, dict):
-                            continue
-                        departure_id = departure.get("tripdepID")
-                        if departure_id is not None:
-                            statuses[departure_id] = departure.get("status")
-                    return trip_id, statuses
-                except Exception as e:
-                    logger.warning(
-                        "Failed to resolve departure status for trip %s: %s", trip_id, e
-                    )
-                    capture_exception_with_context(e, mode=mode, company_code=company_code)
-                    return trip_id, None
-
-        results = await asyncio.gather(*(fetch(trip_id) for trip_id in trip_ids))
-        return {trip_id: statuses for trip_id, statuses in results if statuses}
 
     def _apply_forms_badges(
         self,

@@ -578,10 +578,6 @@ class VendorTripSummary(BaseModel):
     forms_due_count: Optional[int] = Field(None, description="Number of forms due for the trip")
     departure_date: Optional[date] = Field(None, description="Parsed departure date (used for sorting)")
 
-    # Departure status resolved by the portal via getTripPage (the vendor homepage
-    # payload carries no status). None means "could not be resolved".
-    departure_status: Optional[str] = Field(None, description="Departure status, e.g. Open/Closed/Canceled")
-
     # Forms state resolved by the portal from the vendor forms payload.
     # has_forms is tri-state: True/False are assertions, None means "unknown".
     has_forms: Optional[bool] = Field(None, description="Whether the trip has any vendor form on record")

@@ -183,11 +183,9 @@ class FakeClient:
     base_url = None
     api_key = None
 
-    def __init__(self, homepage, forms=None, trip_pages=None, trip_page_error=None):
+    def __init__(self, homepage, forms=None):
         self.homepage = homepage
         self.forms = forms if forms is not None else {"requestStatus": "EMPTY"}
-        self.trip_pages = trip_pages or {}
-        self.trip_page_error = trip_page_error
         self.trip_page_calls = []
 
     async def get(self, path, params=None):
@@ -198,11 +196,9 @@ class FakeClient:
                 raise self.forms
             return self.forms
         if "/getTripPage/" in path:
-            trip_id = int(path.rsplit("/", 1)[1])
-            self.trip_page_calls.append(trip_id)
-            if self.trip_page_error is not None:
-                raise self.trip_page_error
-            return {"requestStatus": "OK", "departures": self.trip_pages.get(trip_id, [])}
+            # Recorded, never served: the homepage has no business calling this.
+            self.trip_page_calls.append(path)
+            raise AssertionError(f"getTripPage must not be called from the homepage: {path}")
         raise AssertionError(f"Unexpected API path: {path}")
 
 
@@ -237,77 +233,33 @@ def _range_string(start, days=1):
 
 
 # ---------------------------------------------------------------------------
-# Item 1 — canceled departures must not be listed
+# The trip-status fan-out is gone: the REST API filters canceled departures now
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_vendor_homepage_drops_canceled_departures(monkeypatch):
-    """A departure that getTripPage reports as Canceled disappears from both lists."""
-    client = FakeClient(
-        homepage={
-            "name": "African Environments",
-            "FutureTrips": [
-                _trip(61689, 10389, "Grand Danube", "September 7-21, 2026"),
-                _trip(61690, 10389, "Grand Danube", "September 21-October 5, 2026"),
-            ],
-            "PastTrips": [
-                _trip(61600, 10389, "Grand Danube", "March 1-15, 2026"),
-            ],
-        },
-        trip_pages={
-            10389: [
-                {"tripdepID": 61689, "status": "Canceled"},
-                {"tripdepID": 61690, "status": "Open"},
-                {"tripdepID": 61600, "status": "Canceled"},
-            ]
-        },
-    )
-    _install(monkeypatch, client)
+async def test_vendor_homepage_never_calls_the_trip_page_endpoint(monkeypatch):
+    """The homepage must not reach for getTripPage.
 
-    homepage = await vendor_service.get_vendor_homepage(123, "WT", "Test")
-
-    assert [t.trip_departure_id for t in homepage.future_trips] == [61690]
-    assert homepage.past_trips == []
-    # One call per DISTINCT TripID, not one per departure row.
-    assert client.trip_page_calls == [10389]
-
-
-@pytest.mark.asyncio
-async def test_vendor_homepage_keeps_trips_when_status_lookup_fails(monkeypatch):
-    """A network failure must never hide a legitimate trip."""
+    Canceled departures used to be resolved with one extra call per distinct trip,
+    because the homepage payload carries no status. The REST API filters them at the
+    source now, so that round trip is pure latency (it measured +1.1s per page load).
+    This pins the removal: any getTripPage call from this flow fails the test.
+    """
     client = FakeClient(
         homepage={
             "name": "African Environments",
             "FutureTrips": [_trip(61689, 10389, "Grand Danube", "September 7-21, 2026")],
-            "PastTrips": [],
+            "PastTrips": [_trip(61600, 10389, "Grand Danube", "March 1-15, 2026")],
         },
-        trip_page_error=RuntimeError("boom"),
     )
     _install(monkeypatch, client)
 
     homepage = await vendor_service.get_vendor_homepage(123, "WT", "Test")
 
+    assert client.trip_page_calls == []
     assert [t.trip_departure_id for t in homepage.future_trips] == [61689]
-    assert homepage.future_trips[0].departure_status is None
-
-
-@pytest.mark.asyncio
-async def test_vendor_homepage_keeps_departures_outside_trip_page_window(monkeypatch):
-    """getTripPage only covers +/-730 days; older departures are absent, not canceled."""
-    client = FakeClient(
-        homepage={
-            "name": "African Environments",
-            "FutureTrips": [],
-            "PastTrips": [_trip(48038, 10389, "Grand Danube", "July 3-13, 2023")],
-        },
-        trip_pages={10389: [{"tripdepID": 61690, "status": "Open"}]},
-    )
-    _install(monkeypatch, client)
-
-    homepage = await vendor_service.get_vendor_homepage(123, "WT", "Test")
-
-    assert [t.trip_departure_id for t in homepage.past_trips] == [48038]
+    assert [t.trip_departure_id for t in homepage.past_trips] == [61600]
 
 
 # ---------------------------------------------------------------------------
@@ -340,7 +292,6 @@ async def test_forms_badge_is_pending_when_a_form_is_outstanding(monkeypatch):
     client = FakeClient(
         homepage=_homepage_with_past_trip("Botswana Wildlife Safari", start, forms_due=0),
         forms={"requestStatus": "OK", "forms": [_form("Botswana Wildlife Safari", start, required=False)]},
-        trip_pages={58000: [{"tripdepID": 58152, "status": "Open"}]},
     )
     _install(monkeypatch, client)
 
@@ -357,7 +308,6 @@ async def test_forms_badge_is_due_when_a_required_form_is_past_due(monkeypatch):
     client = FakeClient(
         homepage=_homepage_with_past_trip("Botswana Wildlife Safari", start),
         forms={"requestStatus": "OK", "forms": [_form("Botswana Wildlife Safari", start, required=True)]},
-        trip_pages={58000: [{"tripdepID": 58152, "status": "Open"}]},
     )
     _install(monkeypatch, client)
 
@@ -373,7 +323,6 @@ async def test_forms_badge_is_complete_only_when_every_form_was_received(monkeyp
     client = FakeClient(
         homepage=_homepage_with_past_trip("Botswana Wildlife Safari", start),
         forms={"requestStatus": "OK", "forms": [_form("Botswana Wildlife Safari", start, received=True)]},
-        trip_pages={58000: [{"tripdepID": 58152, "status": "Open"}]},
     )
     _install(monkeypatch, client)
 
@@ -389,7 +338,6 @@ async def test_forms_badge_is_empty_when_a_recent_trip_never_had_a_form(monkeypa
     client = FakeClient(
         homepage=_homepage_with_past_trip("Okavango Delta", start),
         forms={"requestStatus": "EMPTY"},
-        trip_pages={58000: [{"tripdepID": 58152, "status": "Open"}]},
     )
     _install(monkeypatch, client)
 
@@ -406,7 +354,6 @@ async def test_forms_badge_is_silent_for_old_trips_without_forms(monkeypatch):
     client = FakeClient(
         homepage=_homepage_with_past_trip("Okavango Delta", start),
         forms={"requestStatus": "EMPTY"},
-        trip_pages={58000: [{"tripdepID": 58152, "status": "Open"}]},
     )
     _install(monkeypatch, client)
 
@@ -428,7 +375,6 @@ async def test_evaluation_form_is_only_due_after_the_trip_has_departed(monkeypat
             "requestStatus": "OK",
             "forms": [_form("Southern Tanzania", future_start, form_type="Evaluation")],
         },
-        trip_pages={58000: [{"tripdepID": 56807, "status": "Open"}]},
     )
     _install(monkeypatch, client)
 
@@ -444,7 +390,6 @@ async def test_forms_badge_never_claims_complete_when_the_forms_call_fails(monke
     client = FakeClient(
         homepage=_homepage_with_past_trip("Botswana Wildlife Safari", start, forms_due=0),
         forms=RuntimeError("forms endpoint down"),
-        trip_pages={58000: [{"tripdepID": 58152, "status": "Open"}]},
     )
     _install(monkeypatch, client)
 
@@ -461,7 +406,6 @@ async def test_api_forms_due_alert_survives_a_failed_forms_call(monkeypatch):
     client = FakeClient(
         homepage=_homepage_with_past_trip("Botswana Wildlife Safari", start, forms_due=2),
         forms=RuntimeError("forms endpoint down"),
-        trip_pages={58000: [{"tripdepID": 58152, "status": "Open"}]},
     )
     _install(monkeypatch, client)
 
@@ -489,7 +433,6 @@ async def test_evaluation_form_is_due_once_the_trip_has_departed(monkeypatch):
                 _form("Southern Tanzania", start, form_type="Evaluation", required=False)
             ],
         },
-        trip_pages={58000: [{"tripdepID": 56807, "status": "Open"}]},
     )
     _install(monkeypatch, client)
 
@@ -497,47 +440,6 @@ async def test_evaluation_form_is_due_once_the_trip_has_departed(monkeypatch):
 
     assert parsed.forms_due_count == 1
     assert parsed.forms_badge == "due"
-
-
-@pytest.mark.asyncio
-async def test_malformed_trip_page_payload_does_not_break_the_page(monkeypatch):
-    """An unexpected getTripPage shape degrades that trip to unknown, never 500s."""
-    client = FakeClient(
-        homepage={
-            "name": "African Environments",
-            "FutureTrips": [_trip(61689, 10389, "Grand Danube", "September 7-21, 2026")],
-            "PastTrips": [],
-        },
-        trip_pages={10389: [None, "nonsense", {"tripdepID": 61689, "status": "Canceled"}]},
-    )
-    _install(monkeypatch, client)
-
-    homepage = await vendor_service.get_vendor_homepage(123, "WT", "Test")
-
-    # The junk entries are skipped; the well-formed one still filters the departure.
-    assert homepage.future_trips == []
-
-
-@pytest.mark.asyncio
-async def test_trip_page_returning_a_non_dict_leaves_every_trip_visible(monkeypatch):
-    class BadClient(FakeClient):
-        async def get(self, path, params=None):
-            if "/getTripPage/" in path:
-                return "not a dict"
-            return await super().get(path, params)
-
-    client = BadClient(
-        homepage={
-            "name": "African Environments",
-            "FutureTrips": [_trip(61689, 10389, "Grand Danube", "September 7-21, 2026")],
-            "PastTrips": [],
-        },
-    )
-    _install(monkeypatch, client)
-
-    homepage = await vendor_service.get_vendor_homepage(123, "WT", "Test")
-
-    assert [t.trip_departure_id for t in homepage.future_trips] == [61689]
 
 
 @pytest.mark.asyncio
@@ -549,7 +451,6 @@ async def test_one_unparseable_form_does_not_discard_the_others(monkeypatch):
     client = FakeClient(
         homepage=_homepage_with_past_trip("Botswana Wildlife Safari", start),
         forms={"requestStatus": "OK", "forms": [bad, good]},
-        trip_pages={58000: [{"tripdepID": 58152, "status": "Open"}]},
     )
     _install(monkeypatch, client)
 
