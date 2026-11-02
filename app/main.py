@@ -13,6 +13,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.middleware.mobile_detection import MobileDetectionMiddleware
 from app.middleware.company_resolution import CompanyResolutionMiddleware
+from app.middleware.tenant_redirect import TenantRedirectMiddleware
 from app.config import settings
 from app.routes import guide, auth, vendor, resources, pwa
 from app.services.guide_service import guide_service
@@ -148,12 +149,19 @@ app.add_middleware(GuideHashMiddleware)
 # PWA gating support (#160). Order matters — these are registered AFTER
 # GuideHashMiddleware (the most recently added wraps the previous one),
 # so at request time their execution order is:
-#   SessionMiddleware → MobileDetectionMiddleware → CompanyResolutionMiddleware → GuideHashMiddleware
+#   SessionMiddleware → TenantRedirectMiddleware → MobileDetectionMiddleware → CompanyResolutionMiddleware → GuideHashMiddleware
 # Both new middlewares run after SessionMiddleware (so request.scope['session']
 # is populated) and before GuideHashMiddleware (so guide-hash redirects can
 # rely on request.state.company and request.state.is_mobile).
 app.add_middleware(CompanyResolutionMiddleware)
 app.add_middleware(MobileDetectionMiddleware)
+
+# Per-tenant redirect switch (TENANT_REDIRECTS). Registered after
+# GuideHashMiddleware and before SessionMiddleware, so it runs inside the
+# session (it can read the tenant of a logged-in guide) and before the V7
+# guide_hash bootstrap (a redirected tenant's hash is never consumed here).
+# No-op while the setting is empty.
+app.add_middleware(TenantRedirectMiddleware)
 
 # Add session middleware for authentication (outermost for session availability)
 app.add_middleware(

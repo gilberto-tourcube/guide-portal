@@ -1,10 +1,15 @@
 """Application configuration using Pydantic Settings"""
 
 import json
+import logging
 from pathlib import Path
+from urllib.parse import urlsplit
+
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 from typing import Optional, Dict, List
+
+logger = logging.getLogger(__name__)
 
 
 class InvalidCompanyCodeError(Exception):
@@ -85,9 +90,18 @@ class Settings(BaseSettings):
     mode: str = "Test"
     api_key_json_path: str = "./config/apikey.json"
 
+    # Per-tenant redirect switch (e.g. INCA V7 -> V8 cutover). JSON object
+    # mapping a company code to the https origin its traffic is sent to:
+    #   TENANT_REDIRECTS={"INCA": "https://inca.guideportal.tourcube.net"}
+    # Empty/unset = off. Kept as a raw string and parsed leniently by
+    # ``tenant_redirect_map`` so a typo in the app setting can never stop this
+    # shared app (WT, IG, ...) from booting.
+    tenant_redirects: str = ""
+
     # Cache for company configurations
     _company_configs: Optional[Dict[str, CompanyConfig]] = None
     _domain_map: Optional[Dict[str, tuple[str, str]]] = None  # host -> (company_id, mode)
+    _tenant_redirect_cache: Optional[tuple[str, Dict[str, str]]] = None  # (raw setting, parsed)
 
     class Config:
         env_file = ".env"
@@ -269,6 +283,73 @@ class Settings(BaseSettings):
         # No default-tenant fallback. Return whatever the caller supplied
         # (which may be a single populated side, e.g. mode-only).
         return None, normalized_mode
+
+    def tenant_redirect_map(self) -> Dict[str, str]:
+        """Parsed ``TENANT_REDIRECTS`` switch: company code -> https origin.
+
+        Never raises. Anything malformed or unsafe is dropped with a warning,
+        which leaves the affected tenant served exactly as before. Only a bare
+        https origin is accepted (no path, query, fragment or credentials), so
+        the redirect destination can only ever be a host an operator configured.
+        """
+        raw = self.tenant_redirects or ""
+        cached = self._tenant_redirect_cache
+        if cached is not None and cached[0] == raw:
+            return cached[1]
+
+        parsed: Dict[str, str] = {}
+        if raw.strip():
+            try:
+                data = json.loads(raw)
+            except ValueError:
+                logger.warning("TENANT_REDIRECTS is not valid JSON; redirect switch is off")
+                data = None
+            if data is not None and not isinstance(data, dict):
+                logger.warning("TENANT_REDIRECTS must be a JSON object; redirect switch is off")
+                data = None
+            for code, target in (data or {}).items():
+                company_code = self._normalize_company_code(code)
+                origin = self._normalize_redirect_origin(target)
+                if company_code and origin:
+                    parsed[company_code] = origin
+                else:
+                    logger.warning(
+                        "TENANT_REDIRECTS entry for %r ignored: needs a company code "
+                        "and a bare https origin", code,
+                    )
+
+        self._tenant_redirect_cache = (raw, parsed)
+        return parsed
+
+    def get_tenant_redirect(self, company_code: Optional[str]) -> Optional[str]:
+        """https origin this tenant must be redirected to, or None."""
+        normalized = self._normalize_company_code(company_code)
+        if not normalized:
+            return None
+        return self.tenant_redirect_map().get(normalized)
+
+    @staticmethod
+    def _normalize_redirect_origin(target) -> Optional[str]:
+        if not isinstance(target, str):
+            return None
+        try:
+            parts = urlsplit(target.strip())
+            hostname = parts.hostname
+            parts.port  # raises ValueError on a malformed port
+        except ValueError:
+            return None
+        if (
+            parts.scheme != "https"
+            or not hostname
+            or not parts.netloc.isascii()  # IDN hosts must be given as punycode
+            or parts.username is not None
+            or parts.password is not None
+            or parts.path not in ("", "/")
+            or parts.query
+            or parts.fragment
+        ):
+            return None
+        return f"https://{parts.netloc.lower()}"
 
     @staticmethod
     def company_code_from_query(query_params) -> Optional[str]:
